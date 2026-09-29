@@ -114,3 +114,17 @@
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Filament judges the brand blue too light for white text and falls back to
+   the 400 shade with dark text in light mode: keep Huvant's primary action. */
+.fi-btn.fi-color-primary.fi-bg-color-400 {
+    background-color: #0075de !important;
+    color: #ffffff !important;
+}
+.fi-btn.fi-color-primary.fi-bg-color-400:hover {
+    background-color: #005bab !important;
+}
+.fi-btn.fi-color-primary.fi-bg-color-400 .fi-icon,
+.fi-btn.fi-color-primary.fi-bg-color-400 .fi-btn-label {
+    color: #ffffff !important;
+}
