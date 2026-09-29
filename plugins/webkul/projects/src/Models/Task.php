@@ -151,7 +151,7 @@ class Task extends Model implements Sortable
 
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'projects_task_users');
+        return $this->belongsToMany(User::class, 'projects_task_users')->withTimestamps();
     }
 
     public function chatterResponsibles(): array

@@ -80,3 +80,52 @@
 .hv-milo-ask:hover { text-decoration: underline; }
 @media (max-width: 1100px) { .hv-home-grid { grid-template-columns: 1fr; } .hv-milo { position: static; } }
 @media (prefers-reduced-motion: reduce) { .hv-milo-orb, .hv-milo-orb i { animation: none; } }
+
+.hv-home-col { display: grid; align-content: start; gap: 18px; min-width: 0; }
+.hv-home-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.hv-home-link { color: var(--hv-h-primary); font-size: 13px; font-weight: 600; }
+.hv-home-grow { display: grid; flex: 1; min-width: 0; }
+.hv-home-grow small { color: var(--huvant-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hv-home-grow b { overflow: hidden; font-size: 13.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; color: var(--huvant-ink); }
+.hv-milo { position: static; }
+
+/* Meetings */
+.hv-home-meeting { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--huvant-hairline); }
+.hv-home-meeting:first-of-type { padding-top: 0; border-top: 0; }
+.hv-home-meeting-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--huvant-ink); font-size: 14px; font-weight: 600; }
+.hv-home-meeting-title:hover { color: var(--hv-h-primary); }
+.hv-home-meeting-title small { color: var(--huvant-muted); font-size: 12px; font-weight: 500; }
+.hv-home-meeting-title em { padding: 1px 8px; border-radius: 999px; background: var(--hv-h-milo-soft); color: var(--hv-h-milo); font-size: 11.5px; font-style: normal; }
+.hv-home-meeting ul { display: grid; gap: 4px; }
+.hv-home-meeting li { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--huvant-ink); }
+.hv-home-meeting li.is-mine .hv-home-item { font-weight: 600; }
+.hv-home-item small { color: var(--huvant-muted); font-weight: 400; }
+.hv-home-kind { flex: none; padding: 1px 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; background: var(--hv-h-3); color: var(--huvant-muted); }
+.hv-home-kind.kind-action { background: #e7f3ff; color: var(--hv-h-primary); }
+.hv-home-kind.kind-decision { background: var(--hv-h-ok-soft); color: var(--hv-h-ok); }
+.hv-home-kind.kind-open_point { background: var(--hv-h-warn-soft); color: var(--hv-h-warn); }
+.dark .hv-home-kind.kind-action { background: #112a42; color: #6cb3f3; }
+
+/* Waiting on you */
+.hv-home-waiting { border-color: color-mix(in srgb, var(--hv-h-primary) 40%, var(--huvant-hairline)); }
+.hv-home-wait { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 10px; background: var(--hv-h-2); color: var(--hv-h-primary); text-align: start; }
+button.hv-home-wait { cursor: pointer; }
+button.hv-home-wait:hover { background: var(--hv-h-3); }
+.hv-home-reply { display: inline-flex; gap: 4px; }
+.hv-home-reply button { padding: 3px 9px; border: 1px solid var(--huvant-hairline); border-radius: 7px; background: var(--huvant-surface); color: var(--huvant-ink); font-size: 12px; font-weight: 600; cursor: pointer; }
+.hv-home-reply button:hover { border-color: var(--hv-h-primary); color: var(--hv-h-primary); }
+
+/* My time today */
+.hv-home-meter { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 4px 8px; }
+.hv-home-meter b { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.hv-home-meter span { color: var(--huvant-muted); font-size: 13px; }
+.hv-home-meter i { grid-column: 1 / -1; height: 8px; overflow: hidden; border-radius: 999px; background: var(--hv-h-3); }
+.hv-home-meter i span { display: block; height: 100%; border-radius: inherit; background: var(--hv-h-primary); }
+.hv-home-running { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--hv-h-ok); font-size: 13px; font-weight: 600; }
+.hv-home-running span { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.hv-home-running small { color: var(--huvant-muted); font-weight: 400; }
+.hv-home-start { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 10px; border: 1px solid var(--huvant-hairline); border-radius: 10px; color: var(--hv-h-primary); }
+.hv-home-start select { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--huvant-ink); font-size: 13.5px; box-shadow: none; }
+.hv-home-entries { display: grid; gap: 4px; }
+.hv-home-entries li { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.hv-home-entries b { font-variant-numeric: tabular-nums; }

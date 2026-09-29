@@ -4,9 +4,7 @@ namespace Huvant\Worklog\Filament\Concerns;
 
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
@@ -15,39 +13,14 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Huvant\Worklog\Support\Worklog;
 use Illuminate\Database\Eloquent\Builder;
-use RuntimeException;
 use Webkul\Project\Models\Project;
 use Webkul\Security\Models\User;
 use Webkul\Timesheet\Models\Timesheet;
 
-/** The entries list and the "Log time" action of My time. */
+/** The entries list of My time. */
 trait ListsTimeEntries
 {
-    /** "Log time", the same in every view of My time. */
-    public function logTimeAction(): Action
-    {
-        return Action::make('logTime')
-            ->label('Log time')->modalHeading('Log time')
-            ->icon('heroicon-m-plus')
-            ->modalWidth(Width::Large)
-            ->modalSubmitActionLabel('Log')
-            ->schema([
-                Select::make('task_id')->label('Task')->required()->searchable()
-                    ->options(fn (): array => Worklog::assignedOpenTasks($this->user())
-                        ->mapWithKeys(fn ($t): array => [$t->id => $t->title.' — '.($t->project?->name ?? 'No project')])->all())
-                    ->helperText('Only tasks you are assigned to.'),
-                DatePicker::make('date')->label('Day')->required()->default(now())->maxDate(now())->native(false)->displayFormat('d/m/Y'),
-                TextInput::make('from')->label('Start time (optional)')->placeholder('9:30'),
-                TextInput::make('hours')->label('Hours')->placeholder('1:30')->required(),
-                TextInput::make('description')->label('What did you do')->required()->maxLength(255),
-            ])
-            ->action(function (array $data): void {
-                $this->attemptEntry(fn () => Worklog::addEntry(
-                    $this->user(), (int) $data['task_id'], (string) $data['date'], Worklog::parse((string) $data['hours']),
-                    (string) $data['description'], (string) ($data['from'] ?? ''),
-                ), 'Time logged');
-            });
-    }
+    use LogsTime;
 
     public function table(Table $table): Table
     {
@@ -102,18 +75,5 @@ trait ListsTimeEntries
             ->emptyStateHeading('No time entries')
             ->emptyStateDescription('Start the timer on one of your tasks or log time by hand.')
             ->paginated([25, 50, 100]);
-    }
-
-    private function attemptEntry(callable $callback, ?string $success = null): void
-    {
-        try {
-            $callback();
-            if ($success) {
-                Notification::make()->success()->title($success)->send();
-            }
-            $this->dispatch('huvant-worklog-changed');
-        } catch (RuntimeException $e) {
-            Notification::make()->danger()->title($e->getMessage())->send();
-        }
     }
 }

@@ -2,8 +2,10 @@
 
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Huvant\Calendar\Support\Calendar;
 use Huvant\Home\Filament\Pages\HomePage;
 use Huvant\Home\Support\Home;
+use Huvant\Worklog\Support\Worklog;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
@@ -86,4 +88,31 @@ it('renders the home page and schedules the briefs at 8 and 13 on weekdays', fun
 
     $events = collect(app(Schedule::class)->events())->filter(fn ($e) => str_contains($e->command, 'huvant:milo-briefings'));
     expect($events->map(fn ($e) => $e->expression)->values()->all())->toBe(['0 8 * * 1-5', '0 13 * * 1-5']);
+});
+
+it('shows what is waiting, today\'s time and the meetings from the Minutes', function () {
+    $user = homeUser();
+    $boss = User::withoutEvents(fn (): User => User::factory()->create(['is_active' => true, 'name' => 'Boss']));
+    $task = homeTask($user, 'Appena assegnato', null);
+    DB::table('projects_task_users')->where('task_id', $task)->delete();
+    \Webkul\Project\Models\Task::query()->findOrFail($task)->users()->attach($user->getKey()); // a real assignment, dated
+    Calendar::save($boss, ['kind' => 'meeting', 'title' => 'Kick-off', 'date' => now()->addDay()->toDateString(), 'from' => '10:00', 'to' => '11:00', 'attendees' => [$user->id]]);
+    Worklog::addEntry($user, $task, now()->toDateString(), 1.5, 'Studio del capitolato');
+    Http::fake(['minutes.test/api/v1/erp/my-meetings' => Http::response(['meetings' => [
+        ['title'    => 'Planning Atlas', 'date' => '2026-09-28', 'system' => 'minutes', 'url' => '/riunioni/?meeting=x', 'mine' => 1,
+            'items' => [['kind' => 'action', 'text' => 'Preparare l\'offerta', 'owner' => 'Giulia Rossi', 'due' => null, 'mine' => true]]],
+    ]])]);
+    $this->actingAs($user);
+
+    $waiting = Home::waiting($user);
+    expect($waiting['invites']->pluck('title')->all())->toBe(['Kick-off'])
+        ->and($waiting['assigned']->pluck('title')->all())->toBe(['Appena assegnato'])
+        ->and(Home::today($user)['hours'])->toBe(1.5);
+
+    $event = $waiting['invites']->first();
+    Livewire::test(HomePage::class)->assertOk()
+        ->assertSee('Waiting on you')->assertSee('Kick-off')->assertSee('Studio del capitolato')->assertSee('Planning Atlas')->assertSee('Preparare')
+        ->assertActionExists('logTime')
+        ->call('respondInvite', $event->id, 'accepted');
+    expect(Calendar::pendingFor($user))->toHaveCount(0);
 });
