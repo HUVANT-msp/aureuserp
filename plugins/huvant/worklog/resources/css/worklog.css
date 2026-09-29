@@ -187,6 +187,6 @@ button.hv-wl-cell:not(:hover) { color: color-mix(in srgb, var(--huvant-ink) 90%,
 .hv-gantt-chip:hover { background: color-mix(in srgb, var(--pc) 10%, transparent); }
 .hv-edit-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .hv-edit-form label { display: grid; gap: 4px; color: var(--huvant-muted); font-size: 12px; font-weight: 600; }
-.hv-edit-form input { height: 36px; padding: 0 10px; border: 1px solid var(--huvant-hairline); border-radius: 8px; background: var(--huvant-surface); color: var(--huvant-ink); font-size: 13.5px; font-weight: 400; }
+.hv-edit-form input { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid var(--huvant-hairline); border-radius: 8px; background: var(--huvant-surface); color: var(--huvant-ink); font-size: 13.5px; font-weight: 400; }
 .hv-edit-wide { grid-column: 1 / -1; }
 .hv-edit-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; }
