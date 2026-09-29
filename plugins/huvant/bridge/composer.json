@@ -1,0 +1,29 @@
+{
+    "name": "huvant/bridge",
+    "description": "Secure integration API and webhooks for Huvant Meeting Minutes",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Huvant SRL",
+            "email": "digital@huvant.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Huvant\\Bridge\\BridgeServiceProvider"
+            ],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Huvant\\Bridge\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Huvant\\Bridge\\Tests\\": "tests/"
+        }
+    }
+}
