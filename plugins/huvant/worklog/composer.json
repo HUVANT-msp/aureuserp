@@ -1,0 +1,29 @@
+{
+    "name": "huvant/worklog",
+    "description": "Daily work log: timer, weekly grid and team hours on assigned tasks",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Huvant SRL",
+            "email": "digital@huvant.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Huvant\\Worklog\\WorklogServiceProvider"
+            ],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Huvant\\Worklog\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Huvant\\Worklog\\Tests\\": "tests/"
+        }
+    }
+}

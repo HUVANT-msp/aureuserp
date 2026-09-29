@@ -47,6 +47,9 @@
         <testsuite name="HuvantTeamsFeature">
             <directory>plugins/huvant/teams/tests/Feature</directory>
         </testsuite>
+        <testsuite name="HuvantWorklogFeature">
+            <directory>plugins/huvant/worklog/tests/Feature</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

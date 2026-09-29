@@ -6,6 +6,7 @@ use App\Providers\Filament\CustomerPanelProvider;
 use Huvant\Bridge\BridgeServiceProvider;
 use Huvant\Meetings\MeetingsServiceProvider;
 use Huvant\Teams\TeamsServiceProvider;
+use Huvant\Worklog\WorklogServiceProvider;
 use Webkul\Account\AccountServiceProvider;
 use Webkul\Accounting\AccountingServiceProvider;
 use Webkul\Analytic\AnalyticServiceProvider;
@@ -69,5 +70,6 @@ return [
     BridgeServiceProvider::class,
     MeetingsServiceProvider::class,
     TeamsServiceProvider::class,
+    WorklogServiceProvider::class,
     PluginManagerServiceProvider::class,
 ];
