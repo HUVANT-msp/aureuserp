@@ -3,6 +3,7 @@
 use Huvant\Teams\Support\ProjectTeams;
 use Huvant\Worklog\Filament\Pages\MyWeek;
 use Huvant\Worklog\Filament\Pages\TeamHours;
+use Huvant\Worklog\Filament\Pages\TimeEntries;
 use Huvant\Worklog\Livewire\TopbarTimer;
 use Huvant\Worklog\Support\Worklog;
 use Illuminate\Support\Carbon;
@@ -48,71 +49,81 @@ it('lets a person log time only on tasks they are assigned to', function () {
 
     expect(Worklog::isAssignee($user, $mine))->toBeTrue()
         ->and(fn () => Worklog::start($user, $other))->toThrow(RuntimeException::class)
-        ->and(fn () => Worklog::setDayTotal($user, $other, '2026-09-28', 2))->toThrow(RuntimeException::class);
+        ->and(fn () => Worklog::addEntry($user, $other, '2026-09-28', 2, 'Analisi'))->toThrow(RuntimeException::class);
 
     Worklog::join($user, $other);
     expect(Worklog::isAssignee($user, $other))->toBeTrue();
 });
 
-it('turns a stopped timer into a timesheet entry on the task', function () {
+it('asks what was done before a timer becomes an entry, and records when', function () {
     $user = worker();
     $task = workTask($user);
 
     Carbon::setTestNow('2026-09-28 09:00:00');
-    Worklog::start($user, $task, 'Analisi');
+    Worklog::start($user, $task);
     Carbon::setTestNow('2026-09-28 10:30:00');
-    $entry = Worklog::stop($user);
+    expect(fn () => Worklog::stop($user, '  '))->toThrow(RuntimeException::class)
+        ->and(Worklog::running($user))->not->toBeNull();
+
+    $entry = Worklog::stop($user, 'Analisi dei requisiti');
     Carbon::setTestNow();
 
-    expect($entry)->not->toBeNull()
-        ->and((float) $entry->unit_amount)->toBe(1.5)
-        ->and($entry->name)->toBe('Analisi')
-        ->and($entry->task_id)->toBe($task)
+    $span = DB::table(Worklog::SPANS)->where('timesheet_id', $entry->getKey())->first();
+    expect((float) $entry->unit_amount)->toBe(1.5)
+        ->and($entry->name)->toBe('Analisi dei requisiti')
         ->and(Worklog::running($user))->toBeNull()
+        ->and(Carbon::parse($span->started_at)->format('H:i'))->toBe('09:00')
+        ->and(Carbon::parse($span->ended_at)->format('H:i'))->toBe('10:30')
         ->and((float) DB::table('projects_tasks')->where('id', $task)->value('effective_hours'))->toBe(1.5);
 });
 
-it('drops a timer stopped within a minute and replaces a running one on start', function () {
+it('uses the start note as description, drops a short timer and never runs two', function () {
     $user = worker();
     [$a, $b] = [workTask($user), workTask($user)];
 
     Carbon::setTestNow('2026-09-28 09:00:00');
-    Worklog::start($user, $a);
+    Worklog::start($user, $a, 'Revisione');
     Carbon::setTestNow('2026-09-28 09:00:30');
     expect(Worklog::stop($user))->toBeNull();
 
-    Worklog::start($user, $a);
-    Carbon::setTestNow('2026-09-28 10:00:30');
-    Worklog::start($user, $b);
-    Carbon::setTestNow();
+    Worklog::start($user, $a, 'Revisione');
+    expect(fn () => Worklog::start($user, $b))->toThrow(RuntimeException::class);
+    Carbon::setTestNow('2026-09-28 10:00:00');
+    expect(Worklog::stop($user)->name)->toBe('Revisione');
 
-    expect((int) Worklog::running($user)->task_id)->toBe($b)
-        ->and((float) Timesheet::query()->where('task_id', $a)->sum('unit_amount'))->toBe(1.0);
+    Worklog::start($user, $b);
+    Worklog::discard($user);
+    Carbon::setTestNow();
+    expect(Worklog::running($user))->toBeNull()
+        ->and(Timesheet::query()->where('task_id', $b)->exists())->toBeFalse();
 });
 
-it('sets the daily total from the weekly grid around timer entries', function () {
+it('adds, corrects and removes entries, each with a description', function () {
     $user = worker();
+    $colleague = worker();
     $task = workTask($user);
     $day = '2026-09-28';
 
-    Carbon::setTestNow("{$day} 09:00:00");
-    Worklog::start($user, $task);
-    Carbon::setTestNow("{$day} 10:00:00");
-    Worklog::stop($user);
-    Carbon::setTestNow();
+    expect(fn () => Worklog::addEntry($user, $task, $day, 1, ''))->toThrow(RuntimeException::class)
+        ->and(fn () => Worklog::addEntry($user, $task, now()->addDay()->toDateString(), 1, 'Domani'))->toThrow(RuntimeException::class);
 
-    Worklog::setDayTotal($user, $task, $day, 3);
-    $total = fn (): float => (float) Timesheet::query()->where('task_id', $task)->whereDate('date', $day)->sum('unit_amount');
-    expect($total())->toBe(3.0);
+    $entry = Worklog::addEntry($user, $task, $day, 2, 'Prove al banco', '14:00');
+    expect(Carbon::parse(DB::table(Worklog::SPANS)->where('timesheet_id', $entry->getKey())->value('ended_at'))->format('H:i'))->toBe('16:00');
 
-    Worklog::setDayTotal($user, $task, $day, 1);
-    expect($total())->toBe(1.0)
-        ->and(Timesheet::query()->where('task_id', $task)->where('name', Worklog::WEEKLY_ENTRY)->exists())->toBeFalse()
-        ->and(fn () => Worklog::setDayTotal($user, $task, $day, 0.5))->toThrow(RuntimeException::class);
+    Worklog::updateEntry($user, $entry, 1.5, 'Prove al banco e report');
+    expect((float) $entry->fresh()->unit_amount)->toBe(1.5)
+        ->and(fn () => Worklog::updateEntry($colleague, $entry, 3, 'No'))->toThrow(RuntimeException::class)
+        ->and(Worklog::entriesOn($user, $task, $day))->toHaveCount(1);
 
     $week = Worklog::week($user, Carbon::parse($day)->toImmutable()->startOfWeek());
-    expect($week['rows'][0]['hours'][$day])->toBe(1.0)
-        ->and($week['totals'][$day])->toBe(1.0);
+    $timeline = Worklog::timeline($user, Carbon::parse($day)->toImmutable()->startOfWeek());
+    expect($week['totals'][$day])->toBe(1.5)
+        ->and($timeline['days'][0]['blocks'][0]['from'])->toBe(14 * 60)
+        ->and($timeline['days'][0]['blocks'][0]['to'])->toBe(15 * 60 + 30)
+        ->and($timeline['total'])->toBe(1.5);
+
+    Worklog::deleteEntry($user, $entry);
+    expect(Timesheet::query()->whereKey($entry->getKey())->exists())->toBeFalse();
 });
 
 it('reads expected hours from the work calendar, eight on weekdays otherwise', function () {
@@ -125,20 +136,29 @@ it('reads expected hours from the work calendar, eight on weekdays otherwise', f
         ->and(Worklog::format(1.75))->toBe('1:45');
 });
 
-it('renders the week, the team overview and the top bar timer', function () {
+it('renders my hours, the entries, the team overview and the top bar timer', function () {
     Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('admin'));
     $admin = User::query()->whereHas('roles', fn ($query) => $query->where('name', 'Admin'))->first()
         ?? tap(worker())->assignRole(Role::query()->where('name', 'Admin')->firstOrFail());
     $task = workTask($admin);
     $this->actingAs($admin);
 
-    Livewire\Livewire::test(TopbarTimer::class)->assertOk()->assertSee('Timer')
+    $timer = Livewire\Livewire::test(TopbarTimer::class)->assertOk()->assertSee('Timer')
         ->call('start', $task)->assertSee('hv-timer-running', false);
+    Carbon::setTestNow(now()->addHour());
+    $timer->set('description', '')->call('stop')->assertSee('hv-timer-running', false)
+        ->call('discard')->assertDontSee('hv-timer-running', false);
+    Carbon::setTestNow();
+
     Livewire\Livewire::test(MyWeek::class)->assertOk()->assertSee('Aggiungimi a un task')
-        ->call('saveCell', $task, now()->toDateString(), '1:30')->assertOk()
+        ->call('openDay', $task, now()->toDateString())
+        ->set('entry', ['from' => '9:00', 'hours' => '1:30', 'description' => 'Montaggio'])->call('addEntry')
+        ->assertCount('edits', 1)
+        ->call('setTab', 'timeline')->assertOk()->assertSee('Montaggio', false)
         ->set('joining', true)->assertOk();
+    Livewire\Livewire::test(TimeEntries::class)->assertOk()->assertSee('Montaggio');
     Livewire\Livewire::test(TeamHours::class)->assertOk()->assertSee('Ore per progetto')
         ->call('shiftWeek', -1)->assertOk();
 
-    expect((float) Timesheet::query()->where('task_id', $task)->where('name', Worklog::WEEKLY_ENTRY)->sum('unit_amount'))->toBe(1.5);
+    expect((float) Timesheet::query()->where('task_id', $task)->sum('unit_amount'))->toBe(1.5);
 });

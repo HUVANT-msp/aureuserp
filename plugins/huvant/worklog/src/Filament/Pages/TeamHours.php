@@ -9,7 +9,6 @@ use Huvant\Worklog\Support\Worklog;
 use Livewire\Attributes\Url;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Webkul\Security\Models\User;
-use Webkul\Support\Enums\NavigationGroup;
 use Webkul\Timesheet\Models\Timesheet;
 
 /** Administrators: who logged what, day by day, against the hours foreseen. */
@@ -19,14 +18,16 @@ class TeamHours extends Page
 
     protected static ?string $slug = 'worklog/team';
 
-    protected static ?int $navigationSort = 81;
+    protected static ?int $navigationSort = 3;
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     #[Url(as: 'settimana')]
     public string $week = '';
 
     public static function getNavigationGroup(): string|\UnitEnum
     {
-        return NavigationGroup::Project;
+        return MyWeek::GROUP;
     }
 
     public static function getNavigationLabel(): string

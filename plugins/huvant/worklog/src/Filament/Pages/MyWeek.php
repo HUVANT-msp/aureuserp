@@ -9,41 +9,58 @@ use Huvant\Worklog\Support\Worklog;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use RuntimeException;
+use Webkul\Project\Models\Task;
 use Webkul\Security\Models\User;
-use Webkul\Support\Enums\NavigationGroup;
+use Webkul\Timesheet\Models\Timesheet;
 
 /**
- * The person's week: only the tasks they are assigned to. To log time on
- * another task they join it first, as co-assignee.
+ * The person's hours: the week grid (tasks they are assigned to) and the
+ * timeline of their days. Every entry says what was done.
  */
 class MyWeek extends Page
 {
+    public const GROUP = 'Ore';
+
     protected string $view = 'huvant-worklog::filament.pages.my-week';
 
     protected static ?string $slug = 'worklog/week';
 
-    protected static ?int $navigationSort = 80;
+    protected static ?int $navigationSort = 1;
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clock';
 
     #[Url(as: 'settimana')]
     public string $week = '';
+
+    #[Url(as: 'vista')]
+    public string $tab = 'week';
 
     public string $search = '';
 
     public bool $joining = false;
 
+    /** The day being edited in the entries dialog. */
+    public ?int $cellTask = null;
+
+    public string $cellDate = '';
+
+    public array $entry = ['from' => '', 'hours' => '', 'description' => ''];
+
+    public array $edits = [];
+
     public static function getNavigationGroup(): string|\UnitEnum
     {
-        return NavigationGroup::Project;
+        return self::GROUP;
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'La mia settimana';
+        return 'Le mie ore';
     }
 
     public function getTitle(): string
     {
-        return 'La mia settimana';
+        return 'Le mie ore';
     }
 
     public static function canAccess(): bool
@@ -54,6 +71,12 @@ class MyWeek extends Page
     public function mount(): void
     {
         $this->week = $this->monday()->toDateString();
+        $this->tab = in_array($this->tab, ['week', 'timeline'], true) ? $this->tab : 'week';
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->tab = in_array($tab, ['week', 'timeline'], true) ? $tab : 'week';
     }
 
     public function shiftWeek(int $weeks): void
@@ -66,24 +89,50 @@ class MyWeek extends Page
         $this->week = CarbonImmutable::today()->startOfWeek()->toDateString();
     }
 
-    public function saveCell(int $taskId, string $date, string $value): void
+    public function openDay(int $taskId, string $date): void
     {
-        try {
-            Worklog::setDayTotal($this->user(), $taskId, $date, Worklog::parse($value));
-        } catch (RuntimeException $e) {
-            Notification::make()->danger()->title($e->getMessage())->send();
+        $this->cellTask = $taskId;
+        $this->cellDate = CarbonImmutable::parse($date)->toDateString();
+        $this->entry = ['from' => '', 'hours' => '', 'description' => ''];
+        $this->edits = Worklog::entriesOn($this->user(), $taskId, $this->cellDate)
+            ->mapWithKeys(fn (Timesheet $t): array => [$t->id => ['hours' => Worklog::format((float) $t->unit_amount), 'description' => (string) $t->name]])
+            ->all();
+        $this->dispatch('open-modal', id: 'hv-day-entries');
+    }
+
+    public function addEntry(): void
+    {
+        $ok = $this->attempt(fn () => Worklog::addEntry(
+            $this->user(), (int) $this->cellTask, $this->cellDate, Worklog::parse((string) $this->entry['hours']),
+            (string) $this->entry['description'], (string) $this->entry['from'],
+        ), 'Ore registrate');
+        if ($ok) {
+            $this->openDay((int) $this->cellTask, $this->cellDate);
         }
-        $this->dispatch('huvant-worklog-changed');
+    }
+
+    public function saveEntry(int $id): void
+    {
+        $entry = Timesheet::query()->find($id);
+        if (! $entry) {
+            return;
+        }
+        $this->attempt(fn () => Worklog::updateEntry(
+            $this->user(), $entry, Worklog::parse((string) ($this->edits[$id]['hours'] ?? '')), (string) ($this->edits[$id]['description'] ?? '')
+        ), 'Salvato');
+    }
+
+    public function deleteEntry(int $id): void
+    {
+        $entry = Timesheet::query()->find($id);
+        if ($entry && $this->attempt(fn () => Worklog::deleteEntry($this->user(), $entry), 'Eliminato')) {
+            $this->openDay((int) $this->cellTask, $this->cellDate);
+        }
     }
 
     public function start(int $taskId): void
     {
-        try {
-            Worklog::start($this->user(), $taskId);
-        } catch (RuntimeException $e) {
-            Notification::make()->danger()->title($e->getMessage())->send();
-        }
-        $this->dispatch('huvant-worklog-changed');
+        $this->attempt(fn () => Worklog::start($this->user(), $taskId), 'Timer avviato');
     }
 
     public function join(int $taskId): void
@@ -104,12 +153,31 @@ class MyWeek extends Page
         $user = $this->user();
 
         return [
-            'monday'   => $monday,
-            'grid'     => Worklog::week($user, $monday),
-            'running'  => Worklog::running($user),
-            'joinable' => $this->joining ? Worklog::joinableTasks($user, trim($this->search)) : collect(),
-            'today'    => CarbonImmutable::today()->toDateString(),
+            'monday'    => $monday,
+            'grid'      => $this->tab === 'week' ? Worklog::week($user, $monday) : null,
+            'timeline'  => $this->tab === 'timeline' ? Worklog::timeline($user, $monday) : null,
+            'running'   => Worklog::running($user),
+            'joinable'  => $this->joining ? Worklog::joinableTasks($user, trim($this->search)) : collect(),
+            'today'     => CarbonImmutable::today()->toDateString(),
+            'cellTitle' => $this->cellTask ? Task::query()->whereKey($this->cellTask)->value('title') : null,
         ];
+    }
+
+    private function attempt(callable $callback, ?string $success = null): bool
+    {
+        try {
+            $callback();
+            if ($success) {
+                Notification::make()->success()->title($success)->send();
+            }
+            $this->dispatch('huvant-worklog-changed');
+
+            return true;
+        } catch (RuntimeException $e) {
+            Notification::make()->danger()->title($e->getMessage())->send();
+
+            return false;
+        }
     }
 
     private function monday(): CarbonImmutable

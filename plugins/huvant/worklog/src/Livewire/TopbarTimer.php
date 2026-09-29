@@ -25,12 +25,29 @@ class TopbarTimer extends Component
         $this->dispatch('huvant-worklog-changed');
     }
 
+    public string $description = '';
+
     public function stop(): void
     {
-        $entry = Worklog::stop($this->user());
+        try {
+            $entry = Worklog::stop($this->user(), $this->description);
+        } catch (RuntimeException $e) {
+            Notification::make()->danger()->title($e->getMessage())->send();
+
+            return;
+        }
+        $this->description = '';
         Notification::make()->success()
             ->title($entry ? 'Registrate '.Worklog::format((float) $entry->unit_amount).' h' : 'Timer fermato (meno di un minuto, non registrato)')
             ->send();
+        $this->dispatch('huvant-worklog-changed');
+    }
+
+    public function discard(): void
+    {
+        Worklog::discard($this->user());
+        $this->description = '';
+        Notification::make()->title('Timer annullato, nessuna ora registrata')->send();
         $this->dispatch('huvant-worklog-changed');
     }
 

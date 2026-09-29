@@ -42,7 +42,7 @@
 .hv-board-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--huvant-ink); font-size: 14px; outline: none; box-shadow: none; }
 .hv-board-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-inline-start: auto; }
 .hv-board-quick select, .hv-add-person {
-    height: 38px; padding: 0 30px 0 10px; border: 1px solid var(--huvant-hairline); border-radius: 10px;
+    max-width: 220px; height: 38px; padding: 0 30px 0 10px; border: 1px solid var(--huvant-hairline); border-radius: 10px;
     background-color: var(--huvant-surface); color: var(--huvant-ink); font-size: 13.5px;
 }
 .hv-chip-btn { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; border: 1px solid var(--huvant-hairline); border-radius: 10px; background: var(--huvant-surface); color: var(--huvant-ink); font-size: 13.5px; font-weight: 500; cursor: pointer; }
@@ -123,7 +123,7 @@
 .hv-tl-row:hover { background: color-mix(in srgb, var(--pc) 5%, transparent); }
 .hv-tl-row .hv-tl-label { position: sticky; left: 0; z-index: 1; overflow: hidden; padding: 0 14px 0 28px; border-inline-end: 1px solid var(--huvant-hairline); background: var(--huvant-surface); color: var(--huvant-ink); font-size: 13px; text-align: start; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .hv-tl-row .hv-tl-label:hover { color: var(--hv-t-primary); }
-.hv-tl-track { position: relative; background-image: linear-gradient(90deg, transparent calc(var(--day) - 1px), color-mix(in srgb, var(--huvant-hairline) 45%, transparent) 0); background-size: calc(var(--day) * 7) 100%; }
+.hv-tl-track { position: relative; background-image: linear-gradient(90deg, color-mix(in srgb, var(--huvant-hairline) 70%, transparent) 1px, transparent 1px); background-size: calc(var(--day) * 7) 100%; }
 .hv-tl-today { position: absolute; top: 0; bottom: 0; width: 2px; margin-inline-start: -1px; background: var(--hv-t-primary); opacity: .55; }
 .hv-tl-bar {
     position: absolute; top: 6px; height: 22px; overflow: hidden; padding: 0 8px; border-radius: 6px;

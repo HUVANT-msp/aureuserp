@@ -2,6 +2,7 @@
 
 namespace Huvant\Worklog;
 
+use BladeUI\Icons\Factory as IconFactory;
 use Filament\Panel;
 use Huvant\Worklog\Livewire\TopbarTimer;
 use Livewire\Livewire;
@@ -19,7 +20,7 @@ class WorklogServiceProvider extends PackageServiceProvider
         $package->name(static::$name)
             ->hasViews()
             ->hasDependencies(['projects', 'timesheets'])
-            ->hasMigrations(['2026_09_30_100000_create_huvant_work_timers_table'])
+            ->hasMigrations(['2026_09_30_100000_create_huvant_work_timers_table', '2026_10_01_100000_create_huvant_time_spans_table'])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {
                 $command
@@ -42,6 +43,11 @@ class WorklogServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        // Launcher icon "hvore-hours" for the Ore group.
+        $this->callAfterResolving(IconFactory::class, function (IconFactory $factory): void {
+            $factory->add('huvant-worklog', ['path' => __DIR__.'/../resources/svg', 'prefix' => 'hvore']);
+        });
+
         Panel::configureUsing(function (Panel $panel): void {
             $panel->plugin(WorklogPlugin::make());
         });

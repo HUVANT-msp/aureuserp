@@ -3,6 +3,7 @@
 namespace Huvant\Worklog\Support;
 
 use Carbon\CarbonImmutable;
+use Huvant\Tasks\Support\Palette;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -20,10 +21,10 @@ class Worklog
 {
     public const TIMERS = 'huvant_work_timers';
 
-    /** Hours typed in "La mia settimana" live in one entry per person, task and day. */
-    public const WEEKLY_ENTRY = 'Registrazione settimanale';
-
     public const TIMER_ENTRY = 'Timer';
+
+    /** Start and end time of an entry, when known (timer, or a start time given by hand). */
+    public const SPANS = 'huvant_time_spans';
 
     private const OPEN_STATES = ['in_progress', 'change_requested', 'approved'];
 
@@ -84,8 +85,8 @@ class Worklog
     {
         static::assertAssignee($user, $taskId);
         DB::transaction(function () use ($user, $taskId, $note): void {
-            if (static::running($user)) {
-                static::stop($user);
+            if ($running = static::running($user)) {
+                throw new RuntimeException('Hai già un timer su «'.$running->task_title.'»: fermalo e scrivi cosa hai fatto.');
             }
             DB::table(self::TIMERS)->insert([
                 'user_id'    => $user->getKey(),
@@ -98,28 +99,40 @@ class Worklog
         });
     }
 
-    /** Stop the running timer and log its time on the task (under a minute is dropped). */
-    public static function stop(User $user, ?string $note = null): ?Timesheet
+    /**
+     * Stop the running timer and log its time with what was done (required).
+     * Under a minute nothing is logged; without a description the timer keeps running.
+     */
+    public static function stop(User $user, ?string $description = null): ?Timesheet
     {
-        return DB::transaction(function () use ($user, $note): ?Timesheet {
+        return DB::transaction(function () use ($user, $description): ?Timesheet {
             $timer = DB::table(self::TIMERS)->where('user_id', $user->getKey())->lockForUpdate()->first();
             if (! $timer) {
                 return null;
             }
-            DB::table(self::TIMERS)->where('id', $timer->id)->delete();
             $started = CarbonImmutable::parse($timer->started_at);
-            $hours = round($started->diffInSeconds(now()) / 3600, 2);
+            $ended = CarbonImmutable::now();
+            $hours = round($started->diffInSeconds($ended) / 3600, 2);
             if ($hours < 1 / 60) {
+                DB::table(self::TIMERS)->where('id', $timer->id)->delete();
+
                 return null;
             }
-            $description = trim((string) ($note ?? $timer->note ?? '')) ?: self::TIMER_ENTRY;
+            $description = static::requireDescription($description ?? $timer->note);
+            DB::table(self::TIMERS)->where('id', $timer->id)->delete();
 
-            return static::log($user, (int) $timer->task_id, $started->toDateString(), $hours, $description);
+            return static::log($user, (int) $timer->task_id, $started->toDateString(), $hours, $description, $started, $ended);
         });
     }
 
+    /** Throw the running timer away without logging anything. */
+    public static function discard(User $user): void
+    {
+        DB::table(self::TIMERS)->where('user_id', $user->getKey())->delete();
+    }
+
     /** One declared piece of work: how long, on which day, and what was done (required). */
-    public static function addEntry(User $user, int $taskId, string $date, float $hours, string $description): Timesheet
+    public static function addEntry(User $user, int $taskId, string $date, float $hours, string $description, ?string $from = null): Timesheet
     {
         static::assertAssignee($user, $taskId);
         $description = static::requireDescription($description);
@@ -132,7 +145,50 @@ class Worklog
             throw new RuntimeException('Non si registrano ore nel futuro.');
         }
 
-        return static::log($user, $taskId, $day->toDateString(), $hours, $description);
+        $startedAt = null;
+        if ($from !== null && trim($from) !== '') {
+            if (! preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/', trim($from), $m)) {
+                throw new RuntimeException('Scrivi l\'orario di inizio come 9:30.');
+            }
+            $startedAt = $day->setTime((int) $m[1], (int) $m[2]);
+        }
+
+        return static::log($user, $taskId, $day->toDateString(), $hours, $description, $startedAt, $startedAt?->addMinutes((int) round($hours * 60)));
+    }
+
+    /** The person's own entry (administrators may correct anyone's). */
+    public static function updateEntry(User $user, Timesheet $entry, float $hours, string $description): void
+    {
+        static::assertOwnEntry($user, $entry);
+        $hours = round($hours, 2);
+        if ($hours <= 0 || $hours > 24) {
+            throw new RuntimeException('Indica da 1 minuto a 24 ore.');
+        }
+        $entry->forceFill(['unit_amount' => $hours, 'name' => static::requireDescription($description)])->save();
+        $span = DB::table(self::SPANS)->where('timesheet_id', $entry->getKey())->first();
+        if ($span) {
+            DB::table(self::SPANS)->where('id', $span->id)->update([
+                'ended_at' => CarbonImmutable::parse($span->started_at)->addMinutes((int) round($hours * 60)), 'updated_at' => now(),
+            ]);
+        }
+    }
+
+    public static function deleteEntry(User $user, Timesheet $entry): void
+    {
+        static::assertOwnEntry($user, $entry);
+        $entry->delete();
+    }
+
+    public static function canEditEntry(User $user, Timesheet $entry): bool
+    {
+        return (int) $entry->user_id === (int) $user->getKey() || static::isAdmin($user);
+    }
+
+    /** @return Collection<int, Timesheet> the person's entries on a task and day */
+    public static function entriesOn(User $user, int $taskId, string $date): Collection
+    {
+        return Timesheet::query()->where('user_id', $user->getKey())->where('task_id', $taskId)
+            ->whereDate('date', $date)->orderBy('id')->get(['id', 'name', 'unit_amount', 'date', 'user_id', 'task_id']);
     }
 
     public static function requireDescription(?string $description): string
@@ -143,47 +199,6 @@ class Worklog
         }
 
         return mb_substr($description, 0, 255);
-    }
-
-    /**
-     * Set the person's total for a task and day from the weekly grid: timer and
-     * other entries are kept, the weekly entry absorbs the difference.
-     */
-    public static function setDayTotal(User $user, int $taskId, string $date, float $hours): void
-    {
-        static::assertAssignee($user, $taskId);
-        $hours = round(max(0, $hours), 2);
-        if ($hours > 24) {
-            throw new RuntimeException('Un giorno ha al massimo 24 ore.');
-        }
-
-        DB::transaction(function () use ($user, $taskId, $date, $hours): void {
-            $entries = Timesheet::query()
-                ->where('user_id', $user->getKey())->where('task_id', $taskId)->whereDate('date', $date)
-                ->lockForUpdate()->get();
-            $weekly = $entries->firstWhere('name', self::WEEKLY_ENTRY);
-            $others = round($entries->where('name', '!=', self::WEEKLY_ENTRY)->sum('unit_amount'), 2);
-            $delta = round($hours - $others, 2);
-
-            if ($delta < 0) {
-                throw new RuntimeException(sprintf(
-                    'Il timer ha già registrato %s h in questo giorno: per scendere sotto, correggi quelle voci nella scheda Timesheets del task.',
-                    static::format($others)
-                ));
-            }
-            if ($delta == 0.0) {
-                $weekly?->delete();
-
-                return;
-            }
-            if ($weekly) {
-                $weekly->unit_amount = $delta;
-                $weekly->save();
-
-                return;
-            }
-            static::log($user, $taskId, $date, $delta, self::WEEKLY_ENTRY);
-        });
     }
 
     /** @return array{days: list<string>, rows: list<array>, totals: array<string, float>, expected: array<string, float>} */
@@ -215,6 +230,76 @@ class Worklog
             'totals'   => collect($days)->mapWithKeys(fn (string $day): array => [$day => round(collect($rows)->sum(fn (array $row) => $row['hours'][$day]), 2)])->all(),
             'expected' => collect($days)->mapWithKeys(fn (string $day): array => [$day => static::expectedHours($user, $day)])->all(),
         ];
+    }
+
+    /**
+     * The person's week on a clock: timed entries as blocks between their start
+     * and end, the others (no time of day) listed apart; hours per project.
+     */
+    public static function timeline(User $user, CarbonImmutable $monday): array
+    {
+        $sunday = $monday->addDays(6);
+        $entries = Timesheet::query()->withoutGlobalScopes()
+            ->leftJoin(self::SPANS, self::SPANS.'.timesheet_id', '=', 'analytic_records.id')
+            ->leftJoin('projects_tasks', 'projects_tasks.id', '=', 'analytic_records.task_id')
+            ->leftJoin('projects_projects', 'projects_projects.id', '=', 'analytic_records.project_id')
+            ->where('analytic_records.user_id', $user->getKey())
+            ->whereBetween('analytic_records.date', [$monday->toDateString(), $sunday->toDateString()])
+            ->orderBy(self::SPANS.'.started_at')->orderBy('analytic_records.id')
+            ->get([
+                'analytic_records.id', 'analytic_records.date', 'analytic_records.unit_amount', 'analytic_records.name',
+                'analytic_records.project_id', 'analytic_records.task_id', 'projects_tasks.title as task_title',
+                'projects_projects.name as project_name', 'projects_projects.color as project_color',
+                self::SPANS.'.started_at', self::SPANS.'.ended_at',
+            ]);
+
+        $color = fn ($row): string => class_exists(Palette::class)
+            ? Palette::project($row->project_id ? (int) $row->project_id : null, $row->project_color)
+            : '#0075de';
+        $minuteOf = fn (string $at): int => (int) CarbonImmutable::parse($at)->format('G') * 60 + (int) CarbonImmutable::parse($at)->format('i');
+
+        $first = 8 * 60;
+        $last = 19 * 60;
+        $days = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = $monday->addDays($i)->toDateString();
+            $rows = $entries->filter(fn ($row): bool => CarbonImmutable::parse($row->date)->toDateString() === $date);
+            $blocks = [];
+            $loose = [];
+            foreach ($rows as $row) {
+                $item = [
+                    'id'          => (int) $row->id,
+                    'hours'       => round((float) $row->unit_amount, 2),
+                    'description' => (string) $row->name,
+                    'task'        => $row->task_title ?? '—',
+                    'project'     => $row->project_name ?? 'Senza progetto',
+                    'color'       => $color($row),
+                ];
+                if ($row->started_at && $row->ended_at) {
+                    $from = $minuteOf($row->started_at);
+                    $to = CarbonImmutable::parse($row->ended_at)->isSameDay(CarbonImmutable::parse($row->started_at)) ? $minuteOf($row->ended_at) : 24 * 60;
+                    $first = min($first, intdiv($from, 60) * 60);
+                    $last = max($last, (int) ceil($to / 60) * 60);
+                    $blocks[] = $item + ['from' => $from, 'to' => max($to, $from + 10)];
+                } else {
+                    $loose[] = $item;
+                }
+            }
+            $days[] = [
+                'date'   => $date,
+                'blocks' => $blocks,
+                'loose'  => $loose,
+                'total'  => round($rows->sum('unit_amount'), 2),
+            ];
+        }
+
+        $projects = $entries->groupBy(fn ($row) => $row->project_id ?? 0)->map(fn ($rows) => [
+            'name'  => $rows->first()->project_name ?? 'Senza progetto',
+            'color' => $color($rows->first()),
+            'hours' => round($rows->sum('unit_amount'), 2),
+        ])->sortByDesc('hours')->values()->all();
+
+        return ['days' => $days, 'from' => $first, 'to' => min(24 * 60, $last), 'projects' => $projects, 'total' => round($entries->sum('unit_amount'), 2)];
     }
 
     /** Working hours foreseen by the person's work calendar (employee record); 8 h Mon–Fri otherwise. */
@@ -331,6 +416,13 @@ class Worklog
         return $has ??= Schema::hasTable('employees_employees');
     }
 
+    private static function assertOwnEntry(User $user, Timesheet $entry): void
+    {
+        if (! static::canEditEntry($user, $entry)) {
+            throw new RuntimeException('Puoi modificare solo le tue registrazioni.');
+        }
+    }
+
     private static function assertAssignee(User $user, int $taskId): void
     {
         if (! static::isAssignee($user, $taskId)) {
@@ -338,7 +430,7 @@ class Worklog
         }
     }
 
-    private static function log(User $user, int $taskId, string $date, float $hours, string $description): Timesheet
+    private static function log(User $user, int $taskId, string $date, float $hours, string $description, ?CarbonImmutable $startedAt = null, ?CarbonImmutable $endedAt = null): Timesheet
     {
         $task = Task::query()->withoutGlobalScopes()->findOrFail($taskId);
         $entry = new Timesheet;
@@ -356,6 +448,12 @@ class Worklog
             'company_id'  => $task->company_id ?? $user->default_company_id,
         ]);
         $entry->save();
+        if ($startedAt && $endedAt) {
+            DB::table(self::SPANS)->insert([
+                'timesheet_id' => $entry->getKey(), 'started_at' => $startedAt, 'ended_at' => $endedAt,
+                'created_at'   => now(), 'updated_at' => now(),
+            ]);
+        }
 
         return $entry;
     }

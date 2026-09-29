@@ -20,6 +20,14 @@ class TimesheetResource extends Resource
 
     protected static ?string $model = Timesheet::class;
 
+    /** Another plugin can take the timesheet list out of the menu (the pages stay reachable). */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('timesheets::filament/resources/timesheet.navigation.title');
