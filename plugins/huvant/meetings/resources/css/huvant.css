@@ -128,3 +128,8 @@
 .fi-btn.fi-color-primary.fi-bg-color-400 .fi-btn-label {
     color: #ffffff !important;
 }
+
+/* A top-bar group with a single page shows just its title (no lone "selected" tab). */
+.fi-topbar-nav-groups:has(> li:nth-child(2):last-child) > li.fi-topbar-item:has(> a.fi-topbar-item-btn) {
+    display: none;
+}

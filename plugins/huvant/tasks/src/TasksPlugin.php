@@ -9,7 +9,6 @@ use Huvant\Tasks\Filament\Pages\ManageProjectBoard;
 use Huvant\Tasks\Filament\Pages\ManageTaskWork;
 use Webkul\PluginManager\Package;
 use Webkul\Project\Filament\Clusters\Configurations;
-use Webkul\Project\Filament\Clusters\PluginSettings;
 use Webkul\Project\Filament\Resources\ProjectResource;
 use Webkul\Project\Filament\Resources\ProjectResource\Pages\ManageTasks;
 use Webkul\Project\Filament\Resources\TaskResource;
@@ -35,11 +34,10 @@ class TasksPlugin implements Plugin
         $panel->when($panel->getId() == 'admin', function (Panel $panel): void {
             ProjectResource::registerRecordPage('board', ManageProjectBoard::class, '/{record}/board');
             // The board replaces the task lists: no global Tasks item, no Tasks tab in a project
-            // (task pages stay reachable). Project configuration lives under the project Settings.
+            // (task pages stay reachable). Project configuration moves under the project Settings (TasksServiceProvider).
             ProjectResource::hideRecordPage(ManageTasks::class);
             TaskResource::$hiddenFromNavigation = true;
             Configurations::$hiddenFromNavigation = true;
-            Configurations::$movedTo = PluginSettings::class;
             TaskResource::registerRecordPage('work', ManageTaskWork::class, '/{record}/work');
             $panel->discoverPages(in: __DIR__.'/Filament/Pages', for: 'Huvant\\Tasks\\Filament\\Pages');
             $panel->renderHook(

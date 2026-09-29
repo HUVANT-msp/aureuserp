@@ -10,6 +10,8 @@ use Webkul\PluginManager\Console\Commands\InstallCommand;
 use Webkul\PluginManager\Console\Commands\UninstallCommand;
 use Webkul\PluginManager\Package;
 use Webkul\PluginManager\PackageServiceProvider;
+use Webkul\Project\Filament\Clusters\Configurations;
+use Webkul\Project\Filament\Clusters\PluginSettings;
 
 class TasksServiceProvider extends PackageServiceProvider
 {
@@ -42,6 +44,10 @@ class TasksServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        // Project configuration (stages, tags, milestones, activity plans) lives under the
+        // project Settings. Set before any panel registers its resources to clusters.
+        Configurations::$movedTo = PluginSettings::class;
+
         Panel::configureUsing(function (Panel $panel): void {
             $panel->plugin(TasksPlugin::make());
         });
