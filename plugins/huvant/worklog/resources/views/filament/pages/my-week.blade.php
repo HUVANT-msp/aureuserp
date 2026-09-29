@@ -15,8 +15,8 @@
                 if (e.button !== 0) return;
                 e.preventDefault();
                 this.mode = mode; this.x0 = e.clientX; this.y0 = e.clientY; this.delta = 0; this.active = false;
-                this.width = this.$el.parentElement.getBoundingClientRect().width;
-                this.$el.setPointerCapture(e.pointerId);
+                this.width = this.$root.parentElement.getBoundingClientRect().width;
+                this.$root.setPointerCapture(e.pointerId);
             },
             drag(e) {
                 if (! this.mode) return;
@@ -26,11 +26,11 @@
                 this.delta = Math.round((dx / this.width * cfg.span) / 15) * 15;
                 const px = this.delta / cfg.span * this.width;
                 if (this.mode === 'move') {
-                    this.$el.style.transform = `translate(${px}px, ${dy}px)`;
+                    this.$root.style.transform = `translate(${px}px, ${dy}px)`;
                     this.label = this.clock(cfg.from + this.delta) + '–' + this.clock(cfg.to + this.delta);
                 } else {
                     const len = Math.max(15, cfg.to - cfg.from + this.delta);
-                    this.$el.style.width = (len / cfg.span * this.width) + 'px';
+                    this.$root.style.width = (len / cfg.span * this.width) + 'px';
                     this.label = this.clock(cfg.from) + '–' + this.clock(cfg.from + len);
                 }
             },
@@ -47,7 +47,7 @@
                     this.$wire.resizeBlock(cfg.id, Math.max(15, cfg.to - cfg.from + this.delta));
                 }
             },
-            cancel() { this.mode = null; this.active = false; this.$el.style.transform = ''; this.$el.style.width = ''; },
+            cancel() { this.mode = null; this.active = false; this.$root.style.transform = ''; this.$root.style.width = ''; },
         });
     </script>
     <div class="hv-wl">
