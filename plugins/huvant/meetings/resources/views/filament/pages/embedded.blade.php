@@ -1,5 +1,10 @@
 <x-filament-panels::page>
-    @if ($frameUrl)
+    @if ($secureUrl)
+        <div style="padding:1.5rem;border-radius:0.75rem;box-shadow:0 0 0 1px rgba(0,0,0,0.08)">
+            Riunioni e Canvas funzionano solo dall'indirizzo sicuro del gestionale:
+            <a href="{{ $secureUrl }}" style="font-weight:600;color:rgb(var(--primary-600))">{{ $secureUrl }}</a>
+        </div>
+    @elseif ($frameUrl)
         <div style="display:flex;justify-content:flex-end;margin-top:-0.5rem">
             <a href="{{ $directUrl }}" target="_blank" rel="noopener"
                style="font-size:0.8125rem;font-weight:600;color:rgb(var(--primary-600))">

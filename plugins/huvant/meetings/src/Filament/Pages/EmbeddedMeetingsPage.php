@@ -13,6 +13,9 @@ abstract class EmbeddedMeetingsPage extends Page
 
     public ?string $directUrl = null;
 
+    /** Set when the ERP is opened over plain HTTP: embedding needs HTTPS. */
+    public ?string $secureUrl = null;
+
     abstract protected function target(): string;
 
     public static function getNavigationGroup(): string
@@ -23,6 +26,15 @@ abstract class EmbeddedMeetingsPage extends Page
     public function mount(): void
     {
         if (! MeetingsSso::isConfigured() || ! auth()->user()) {
+            return;
+        }
+
+        // Minutes' session cookie and the Canvas microphone only work in a frame
+        // when both sides are HTTPS (same site, secure context).
+        $appUrl = rtrim((string) config('app.url'), '/');
+        if (! request()->isSecure() && str_starts_with($appUrl, 'https://')) {
+            $this->secureUrl = $appUrl.'/'.ltrim(request()->path(), '/');
+
             return;
         }
 
