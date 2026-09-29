@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Webkul\Security\Enums\PermissionType;
+use Webkul\Security\Models\Role;
 use Webkul\Security\Models\User;
 use Webkul\Security\Policies\UserPolicy;
 use Webkul\Support\Models\Company;
@@ -58,6 +59,11 @@ it('shows a user without exposing password fields', function () {
 it('prevents a non-super-admin from assigning roles or global access', function () {
     $actor = authenticateActiveBridgeUser(['create_security_user']);
     $companyId = $actor->default_company_id;
+    $customRole = Role::query()->firstOrCreate([
+        'name'       => 'Bridge custom operator',
+        'guard_name' => 'web',
+    ]);
+    $actor->roles()->sync([$customRole->id]);
 
     $this->postJson(route('admin.api.v1.huvant.users.store'), [
         'name'                  => 'Bridge User',
@@ -70,6 +76,33 @@ it('prevents a non-super-admin from assigning roles or global access', function 
         'role_ids'              => [1],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['resource_permission', 'role_ids']);
+});
+
+it('lets the Admin system role assign roles and global access', function () {
+    $actor = authenticateActiveBridgeUser(['create_security_user']);
+    $companyId = $actor->default_company_id;
+    $adminRole = Role::query()->firstOrCreate([
+        'name'       => 'Admin',
+        'guard_name' => 'web',
+    ]);
+    $assignableRole = Role::query()->firstOrCreate([
+        'name'       => 'Bridge assigned role',
+        'guard_name' => 'web',
+    ]);
+    $actor->roles()->sync([$adminRole->id]);
+
+    $this->postJson(route('admin.api.v1.huvant.users.store'), [
+        'name'                  => 'Admin-created Bridge User',
+        'email'                 => 'admin-created-bridge-user@huvant.com',
+        'password'              => 'password123',
+        'password_confirmation' => 'password123',
+        'default_company_id'    => $companyId,
+        'allowed_company_ids'   => [$companyId],
+        'resource_permission'   => PermissionType::GLOBAL->value,
+        'role_ids'              => [$assignableRole->id],
+    ])->assertCreated()
+        ->assertJsonPath('data.resource_permission', PermissionType::GLOBAL->value)
+        ->assertJsonPath('data.role_ids.0', $assignableRole->id);
 });
 
 it('prevents assigning a company unavailable to the acting user', function () {

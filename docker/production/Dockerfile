@@ -1,7 +1,6 @@
 FROM ubuntu:24.04
 
 ARG APP_REF=master
-ARG APP_REVISION=
 ARG PHP_VERSION=8.4
 ARG NODE_VERSION=22
 ARG REPO_URL=https://github.com/aureuserp/aureuserp.git
@@ -72,6 +71,8 @@ RUN apt-get purge -y php${PHP_VERSION}-dev php-pear \
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
 WORKDIR /var/www/aureuserp
+
+ARG APP_REVISION=
 
 RUN git clone --depth 1 --branch ${APP_REF} ${REPO_URL} . \
     && if [ -n "${APP_REVISION}" ]; then test "$(git rev-parse HEAD)" = "${APP_REVISION}"; fi \

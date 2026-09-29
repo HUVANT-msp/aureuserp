@@ -5,6 +5,7 @@ namespace Huvant\Bridge\Support;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Webkul\Security\Models\Role;
 use Webkul\Security\Models\User;
 
 class BridgeAuthorization
@@ -37,13 +38,9 @@ class BridgeAuthorization
 
     public static function isSuperAdmin(User $user): bool
     {
-        $superAdminName = mb_strtolower((string) config('filament-shield.super_admin.name', 'super_admin'));
-
-        return $user->roles()->get()->contains(function ($role) use ($superAdminName): bool {
-            $name = $role->getRawOriginal('name') ?: $role->name;
-
-            return mb_strtolower((string) $name) === $superAdminName;
-        });
+        return $user->roles()->get()->contains(
+            fn (Role $role): bool => $role->isSystemRole(),
+        );
     }
 
     public static function companyIds(User $user): Collection
