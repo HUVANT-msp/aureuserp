@@ -2,6 +2,7 @@
 
 use Filament\Facades\Filament;
 use Huvant\Tasks\Filament\Pages\ManageProjectBoard;
+use Huvant\Tasks\Filament\Pages\ManageProjectNotes;
 use Huvant\Tasks\Filament\Pages\ManageTaskWork;
 use Huvant\Tasks\Filament\Pages\TaskBoardPage;
 use Huvant\Tasks\Livewire\TaskBoard;
@@ -9,6 +10,7 @@ use Huvant\Tasks\Livewire\TaskPanel;
 use Huvant\Tasks\Support\Board;
 use Huvant\Worklog\Support\Worklog;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Webkul\Project\Enums\TaskState;
 use Webkul\Project\Filament\Clusters\Configurations\Resources\TaskStageResource;
@@ -152,4 +154,33 @@ it('keeps tasks inside projects: no global task list or board in the menu, confi
     expect(TaskResource::shouldRegisterNavigation())->toBeFalse()
         ->and(TaskBoardPage::shouldRegisterNavigation())->toBeFalse()
         ->and(TaskStageResource::getCluster())->toBe(PluginSettings::class);
+});
+
+it('shows the project notes from the meetings and changes their state', function () {
+    $admin = boardAdmin();
+    [$project] = boardProject();
+    config(['huvant-bridge.webhook.url' => 'http://minutes.test/api/v1/erp/webhook', 'huvant-bridge.webhook.secret' => 'notes-secret']);
+    $note = fn (string $kind, string $text, string $status = 'open', array $actions = ['resolved']) => [
+        'key'  => 'minutes:m1:'.md5($text), 'kind' => $kind, 'text' => $text, 'owner' => 'Anna', 'due' => null, 'meeting' => 'Planning Atlas',
+        'date' => '2026-09-28', 'url' => '/riunioni/?meeting=m1', 'status' => $status, 'status_note' => null, 'status_by' => null, 'status_at' => null, 'actions' => $actions,
+    ];
+    Http::fake([
+        'minutes.test/api/v1/erp/project-notes' => Http::response(['notes' => [
+            $note('open_point', 'Chi approva il budget?'),
+            $note('risk', 'Fornitore in ritardo', 'open', ['addressed', 'accepted']),
+            $note('open_point', 'Data del kick-off', 'resolved'),
+        ], 'meetings' => [['source' => 'minutes', 'id' => 'm1', 'title' => 'Planning Atlas', 'date' => '2026-09-28', 'classified' => true]]]),
+        'minutes.test/api/v1/erp/project-notes/*' => Http::response(['ok' => true]),
+    ]);
+    $this->actingAs($admin);
+
+    $page = Livewire::test(ManageProjectNotes::class, ['record' => $project->getKey()])->assertOk()
+        ->assertSee('Open questions')->assertSee('Chi approva il budget?')->assertSee('Mark addressed')->assertDontSee('Data del kick-off')
+        ->set('showClosed', true)->assertSee('Data del kick-off')
+        ->call('askState', 'minutes:m1:x', 'open_point', 'resolved')->set('noteText', 'Approvato dal cliente')->call('confirmState')
+        ->call('moveMeeting', 'minutes', 'm1', $project->getKey());
+
+    Http::assertSent(fn ($request) => str_ends_with($request->url(), '/project-notes/state')
+        && $request['status'] === 'resolved' && $request['note'] === 'Approvato dal cliente' && $request['email'] === $admin->email);
+    Http::assertSent(fn ($request) => str_ends_with($request->url(), '/project-notes/move') && $request['meeting_id'] === 'm1');
 });

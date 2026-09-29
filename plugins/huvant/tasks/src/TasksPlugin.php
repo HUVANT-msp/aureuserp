@@ -6,6 +6,7 @@ use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Filament\View\PanelsRenderHook;
 use Huvant\Tasks\Filament\Pages\ManageProjectBoard;
+use Huvant\Tasks\Filament\Pages\ManageProjectNotes;
 use Huvant\Tasks\Filament\Pages\ManageTaskWork;
 use Webkul\PluginManager\Package;
 use Webkul\Project\Filament\Clusters\Configurations;
@@ -33,6 +34,7 @@ class TasksPlugin implements Plugin
 
         $panel->when($panel->getId() == 'admin', function (Panel $panel): void {
             ProjectResource::registerRecordPage('board', ManageProjectBoard::class, '/{record}/board');
+            ProjectResource::registerRecordPage('notes', ManageProjectNotes::class, '/{record}/notes');
             // The board replaces the task lists: no global Tasks item, no Tasks tab in a project
             // (task pages stay reachable). Project configuration moves under the project Settings (TasksServiceProvider).
             ProjectResource::hideRecordPage(ManageTasks::class);
