@@ -1,0 +1,18 @@
+{
+    "name": "huvant/tasks",
+    "description": "Task board: Kanban, timeline and list views, the task panel and the per-person work on a task.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Huvant\\Tasks\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Huvant\\Tasks\\TasksServiceProvider"
+            ]
+        }
+    }
+}

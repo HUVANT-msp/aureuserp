@@ -118,6 +118,33 @@ class Worklog
         });
     }
 
+    /** One declared piece of work: how long, on which day, and what was done (required). */
+    public static function addEntry(User $user, int $taskId, string $date, float $hours, string $description): Timesheet
+    {
+        static::assertAssignee($user, $taskId);
+        $description = static::requireDescription($description);
+        $hours = round($hours, 2);
+        if ($hours <= 0 || $hours > 24) {
+            throw new RuntimeException('Indica da 1 minuto a 24 ore.');
+        }
+        $day = CarbonImmutable::parse($date)->startOfDay();
+        if ($day->isAfter(CarbonImmutable::today())) {
+            throw new RuntimeException('Non si registrano ore nel futuro.');
+        }
+
+        return static::log($user, $taskId, $day->toDateString(), $hours, $description);
+    }
+
+    public static function requireDescription(?string $description): string
+    {
+        $description = trim(preg_replace('/\s+/u', ' ', (string) $description) ?? '');
+        if (mb_strlen($description) < 3) {
+            throw new RuntimeException('Scrivi cosa hai fatto: la descrizione è obbligatoria.');
+        }
+
+        return mb_substr($description, 0, 255);
+    }
+
     /**
      * Set the person's total for a task and day from the weekly grid: timer and
      * other entries are kept, the weekly entry absorbs the difference.

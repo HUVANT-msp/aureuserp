@@ -6,6 +6,7 @@ use App\Providers\Filament\CustomerPanelProvider;
 use Huvant\Bridge\BridgeServiceProvider;
 use Huvant\Documents\DocumentsServiceProvider;
 use Huvant\Meetings\MeetingsServiceProvider;
+use Huvant\Tasks\TasksServiceProvider;
 use Huvant\Teams\TeamsServiceProvider;
 use Huvant\Worklog\WorklogServiceProvider;
 use Webkul\Account\AccountServiceProvider;
@@ -73,5 +74,6 @@ return [
     TeamsServiceProvider::class,
     WorklogServiceProvider::class,
     DocumentsServiceProvider::class,
+    TasksServiceProvider::class,
     PluginManagerServiceProvider::class,
 ];

@@ -53,6 +53,9 @@
         <testsuite name="HuvantDocumentsFeature">
             <directory>plugins/huvant/documents/tests/Feature</directory>
         </testsuite>
+        <testsuite name="HuvantTasksFeature">
+            <directory>plugins/huvant/tasks/tests/Feature</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
