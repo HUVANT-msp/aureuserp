@@ -35,6 +35,7 @@ class MeetingsPlugin implements Plugin
             // Registered before the panel's own groups, so it comes first.
             $panel->navigationGroups([
                 'Riunioni' => NavigationGroup::make('Riunioni')->icon('huvant-meetings'),
+                'Milo' => NavigationGroup::make('Milo')->icon('huvant-milo'),
             ]);
             // Minutes and Canvas live on the same domain under /riunioni.
             $panel->navigationItems([
@@ -48,6 +49,12 @@ class MeetingsPlugin implements Plugin
                     ->icon('heroicon-o-microphone')
                     ->group('Riunioni')
                     ->sort(2),
+                // Milo lives on its own page, outside Minutes and Canvas.
+                NavigationItem::make('Chiedi a Milo')
+                    ->url(MeetingsSso::HOME.'milo')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->group('Milo')
+                    ->sort(1),
             ]);
             // Huvant look (light/dark) for every page of the panel, sign-in included.
             $panel->renderHook(
