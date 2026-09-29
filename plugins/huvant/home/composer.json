@@ -1,0 +1,18 @@
+{
+    "name": "huvant/home",
+    "description": "Personal home: upcoming appointments, one's tasks by urgency and Milo's brief.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Huvant\\Home\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Huvant\\Home\\HomeServiceProvider"
+            ]
+        }
+    }
+}

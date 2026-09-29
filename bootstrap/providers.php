@@ -6,6 +6,7 @@ use App\Providers\Filament\CustomerPanelProvider;
 use Huvant\Bridge\BridgeServiceProvider;
 use Huvant\Calendar\CalendarServiceProvider;
 use Huvant\Documents\DocumentsServiceProvider;
+use Huvant\Home\HomeServiceProvider;
 use Huvant\Insights\InsightsServiceProvider;
 use Huvant\Meetings\MeetingsServiceProvider;
 use Huvant\Tasks\TasksServiceProvider;
@@ -79,5 +80,6 @@ return [
     TasksServiceProvider::class,
     InsightsServiceProvider::class,
     CalendarServiceProvider::class,
+    HomeServiceProvider::class,
     PluginManagerServiceProvider::class,
 ];
