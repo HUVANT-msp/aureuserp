@@ -28,6 +28,11 @@ it('refuses to send the browser outside Minutes', function () {
     MeetingsSso::token('a.gotti@huvant.com', 'https://evil.test');
 })->throws(InvalidArgumentException::class);
 
+it('keeps the link relative on the shared domain', function () {
+    config(['huvant-meetings.url' => '']);
+    expect(MeetingsSso::url('a.gotti@huvant.com'))->toStartWith('/api/v1/auth/erp-sso?token=');
+});
+
 it('reports whether the link is configured', function () {
     expect(MeetingsSso::isConfigured())->toBeTrue();
     config(['huvant-meetings.sso_secret' => null]);

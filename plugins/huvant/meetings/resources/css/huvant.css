@@ -1,0 +1,116 @@
+/* Huvant theme for the ERP (Filament 5), from DESIGN.md / STYLE.md:
+   warm paper canvas, white surfaces, one blue for actions, hairlines and
+   barely-there shadows. Light and dark follow the system (Filament "system"). */
+:root {
+    --huvant-canvas: #f6f5f4;
+    --huvant-surface: #ffffff;
+    --huvant-ink: #171717;
+    --huvant-muted: #615d59;
+    --huvant-hairline: #e6e6e6;
+    --huvant-shadow-1: 0 0.175px 1.041px rgba(0, 0, 0, 0.01), 0 0.8px 2.925px rgba(0, 0, 0, 0.02),
+        0 2.025px 7.847px rgba(0, 0, 0, 0.027), 0 4px 18px rgba(0, 0, 0, 0.04);
+    --huvant-brand-stripe: linear-gradient(90deg, #ee7113 0 16.66%, #d8141d 16.66% 33.33%, #e30d7f 33.33% 50%,
+        #884393 50% 66.66%, #474798 66.66% 83.33%, #19b2b2 83.33% 100%);
+}
+
+.dark {
+    --huvant-canvas: #191918;
+    --huvant-surface: #222120;
+    --huvant-ink: #f1efed;
+    --huvant-muted: #a39e98;
+    --huvant-hairline: #34322f;
+    --huvant-shadow-1: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.fi-body {
+    background-color: var(--huvant-canvas) !important;
+    font-feature-settings: "lnum", "locl";
+}
+
+/* Top bar: a quiet white band with a hairline; the active area is unmistakable. */
+.fi-topbar > nav,
+.fi-topbar nav.fi-topbar {
+    background-color: var(--huvant-surface) !important;
+    border-bottom: 1px solid var(--huvant-hairline);
+    box-shadow: none !important;
+}
+.fi-topbar-item-active > a,
+.fi-topbar-item-active > button,
+.fi-topbar-item.fi-active > a,
+.fi-topbar-item.fi-active > button {
+    box-shadow: inset 0 -2px 0 var(--primary-600);
+    color: var(--primary-600) !important;
+}
+
+/* Titles: one weight (700) and tight tracking for every page heading. */
+.fi-header-heading,
+.fi-simple-header-heading,
+.fi-section-header-heading {
+    font-weight: 700 !important;
+    letter-spacing: -0.02em;
+    color: var(--huvant-ink);
+}
+.fi-header-subheading,
+.fi-simple-header-subheading {
+    color: var(--huvant-muted);
+}
+
+/* Radius hierarchy: fields 4px, buttons 8px, cards 12px, large containers 16px. */
+.fi-input-wrp,
+.fi-select-input,
+.fi-fo-field .fi-input-wrp {
+    border-radius: 4px !important;
+}
+.fi-btn,
+.fi-icon-btn,
+.fi-dropdown-panel {
+    border-radius: 8px !important;
+}
+.fi-section,
+.fi-ta-ctn,
+.fi-wi-stats-overview-stat,
+.fi-wi-widget > div,
+.fi-card {
+    border-radius: 12px !important;
+    border-color: var(--huvant-hairline) !important;
+    box-shadow: var(--huvant-shadow-1) !important;
+}
+.fi-modal-window {
+    border-radius: 16px !important;
+}
+
+/* Sign in: the Huvant wordmark, a thin brand stripe, no extra copy. */
+.fi-simple-layout {
+    background-color: var(--huvant-canvas);
+}
+.fi-simple-main {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px !important;
+    border: 1px solid var(--huvant-hairline);
+    background-color: var(--huvant-surface) !important;
+    box-shadow: var(--huvant-shadow-1) !important;
+}
+.fi-simple-main::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: var(--huvant-brand-stripe);
+}
+.fi-simple-header .fi-logo {
+    height: 2.25rem !important;
+    margin-block: 0.5rem 0.75rem;
+}
+.fi-simple-header-heading {
+    font-size: 1.25rem !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fi-body *,
+    .fi-body *::before,
+    .fi-body *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

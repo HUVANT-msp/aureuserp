@@ -1,9 +1,9 @@
 <?php
 
 return [
-    // Base URL of Huvant Meeting Minutes as the browser reaches it. Use the
-    // HTTPS address: the live Canvas needs a secure context for the microphone.
-    'url' => env('HUVANT_MEETINGS_URL'),
+    // Base URL of Huvant Meeting Minutes; empty when it shares the ERP domain
+    // (the default: Minutes under /riunioni, its API under /api).
+    'url' => env('HUVANT_MEETINGS_URL', ''),
 
     // Shared with Minutes (ERP_SSO_SECRET): signs the short-lived login token.
     'sso_secret' => env('HUVANT_MEETINGS_SSO_SECRET'),

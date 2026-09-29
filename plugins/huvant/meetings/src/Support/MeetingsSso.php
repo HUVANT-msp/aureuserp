@@ -14,13 +14,17 @@ use InvalidArgumentException;
  */
 class MeetingsSso
 {
+    /** Where Minutes lives on the shared Huvant domain. */
+    public const HOME = '/riunioni/';
+
     public static function isConfigured(): bool
     {
-        return filled(config('huvant-meetings.url')) && filled(config('huvant-meetings.sso_secret'));
+        return filled(config('huvant-meetings.sso_secret'));
     }
 
-    public static function url(string $email, string $next = '/'): string
+    public static function url(string $email, string $next = self::HOME): string
     {
+        // Empty on the shared domain: the link stays relative.
         $base = rtrim((string) config('huvant-meetings.url'), '/');
 
         return $base.'/api/v1/auth/erp-sso?token='.urlencode(static::token($email, $next));
