@@ -24,10 +24,11 @@ use Webkul\Employee\Filament\Resources\EmployeeResource\Tables\EmployeesTable;
 use Webkul\Employee\Models\Employee;
 use Webkul\Field\Filament\Traits\HasCustomFields;
 use Webkul\Support\Enums\NavigationGroup;
+use Webkul\Support\Filament\Concerns\HasExtraRecordPages;
 
 class EmployeeResource extends Resource
 {
-    use HasCustomFields;
+    use HasCustomFields, HasExtraRecordPages;
 
     protected static ?string $model = Employee::class;
 
@@ -93,6 +94,7 @@ class EmployeeResource extends Resource
             EditEmployee::class,
             ManageSkill::class,
             ManageResume::class,
+            ...static::extraRecordPageClasses(),
         ]);
     }
 
@@ -126,6 +128,7 @@ class EmployeeResource extends Resource
             'view'    => ViewEmployee::route('/{record}'),
             'skills'  => ManageSkill::route('/{record}/skills'),
             'resumes' => ManageResume::route('/{record}/resumes'),
+            ...static::extraRecordPageRoutes(),
         ];
     }
 }
