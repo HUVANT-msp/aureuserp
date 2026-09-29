@@ -173,6 +173,57 @@ class Worklog
         }
     }
 
+    /**
+     * Move an entry to another day and/or time, change its length or description
+     * (the timeline's drag, resize and edit). A null start leaves it without a time of day.
+     */
+    public static function reschedule(User $user, Timesheet $entry, string $date, ?string $from, float $hours, string $description): void
+    {
+        static::assertOwnEntry($user, $entry);
+        $hours = round($hours, 2);
+        if ($hours <= 0 || $hours > 24) {
+            throw new RuntimeException('Enter between 1 minute and 24 hours.');
+        }
+        $day = CarbonImmutable::parse($date)->startOfDay();
+        if ($day->isAfter(CarbonImmutable::today())) {
+            throw new RuntimeException('Time cannot be logged in the future.');
+        }
+        $startedAt = null;
+        if ($from !== null && trim($from) !== '') {
+            if (! preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/', trim($from), $m)) {
+                throw new RuntimeException('Write the start time like 9:30.');
+            }
+            $startedAt = $day->setTime((int) $m[1], (int) $m[2]);
+            if ($startedAt->addMinutes((int) round($hours * 60))->gt($day->addDay())) {
+                throw new RuntimeException('The entry would end after midnight.');
+            }
+        }
+
+        DB::transaction(function () use ($entry, $day, $hours, $description, $startedAt): void {
+            $entry->forceFill(['date' => $day->toDateString(), 'unit_amount' => $hours, 'name' => static::requireDescription($description)])->save();
+            DB::table(self::SPANS)->where('timesheet_id', $entry->getKey())->delete();
+            if ($startedAt) {
+                DB::table(self::SPANS)->insert([
+                    'timesheet_id' => $entry->getKey(), 'started_at' => $startedAt, 'ended_at' => $startedAt->addMinutes((int) round($hours * 60)),
+                    'created_at'   => now(), 'updated_at' => now(),
+                ]);
+            }
+        });
+    }
+
+    /** @return array{date: string, from: ?string, hours: string, description: string} */
+    public static function entryForm(Timesheet $entry): array
+    {
+        $span = DB::table(self::SPANS)->where('timesheet_id', $entry->getKey())->first();
+
+        return [
+            'date'        => CarbonImmutable::parse($entry->date)->toDateString(),
+            'from'        => $span ? CarbonImmutable::parse($span->started_at)->format('H:i') : null,
+            'hours'       => static::format((float) $entry->unit_amount),
+            'description' => (string) $entry->name,
+        ];
+    }
+
     public static function deleteEntry(User $user, Timesheet $entry): void
     {
         static::assertOwnEntry($user, $entry);

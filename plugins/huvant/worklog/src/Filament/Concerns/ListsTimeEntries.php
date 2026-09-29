@@ -1,18 +1,15 @@
 <?php
 
-namespace Huvant\Worklog\Filament\Pages;
+namespace Huvant\Worklog\Filament\Concerns;
 
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -23,64 +20,33 @@ use Webkul\Project\Models\Project;
 use Webkul\Security\Models\User;
 use Webkul\Timesheet\Models\Timesheet;
 
-/** Every declared entry: one's own, or everyone's for administrators. */
-class TimeEntries extends Page implements HasTable
+/** The entries list and the "Log time" action of My time. */
+trait ListsTimeEntries
 {
-    use InteractsWithTable;
-
-    protected string $view = 'huvant-worklog::filament.pages.time-entries';
-
-    protected static ?string $slug = 'worklog/entries';
-
-    protected static ?int $navigationSort = 2;
-
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-queue-list';
-
-    public static function getNavigationGroup(): string|\UnitEnum
+    /** "Log time", the same in every view of My time. */
+    public function logTimeAction(): Action
     {
-        return MyWeek::GROUP;
-    }
-
-    public static function getNavigationLabel(): string
-    {
-        return 'Time entries';
-    }
-
-    public function getTitle(): string
-    {
-        return 'Time entries';
-    }
-
-    public static function canAccess(): bool
-    {
-        return auth()->user() instanceof User;
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Action::make('add')
-                ->label('Log time')
-                ->icon('heroicon-m-plus')
-                ->modalWidth(Width::Large)
-                ->modalSubmitActionLabel('Log')
-                ->schema([
-                    Select::make('task_id')->label('Task')->required()->searchable()
-                        ->options(fn (): array => Worklog::assignedOpenTasks($this->user())
-                            ->mapWithKeys(fn ($t): array => [$t->id => $t->title.' — '.($t->project?->name ?? 'No project')])->all())
-                        ->helperText('Only tasks you are assigned to.'),
-                    DatePicker::make('date')->label('Day')->required()->default(now())->maxDate(now())->native(false)->displayFormat('d/m/Y'),
-                    TextInput::make('from')->label('Start time (optional)')->placeholder('9:30'),
-                    TextInput::make('hours')->label('Hours')->placeholder('1:30')->required(),
-                    TextInput::make('description')->label('What did you do')->required()->maxLength(255),
-                ])
-                ->action(function (array $data): void {
-                    $this->attempt(fn () => Worklog::addEntry(
-                        $this->user(), (int) $data['task_id'], (string) $data['date'], Worklog::parse((string) $data['hours']),
-                        (string) $data['description'], (string) ($data['from'] ?? ''),
-                    ), 'Time logged');
-                }),
-        ];
+        return Action::make('logTime')
+            ->label('Log time')->modalHeading('Log time')
+            ->icon('heroicon-m-plus')
+            ->modalWidth(Width::Large)
+            ->modalSubmitActionLabel('Log')
+            ->schema([
+                Select::make('task_id')->label('Task')->required()->searchable()
+                    ->options(fn (): array => Worklog::assignedOpenTasks($this->user())
+                        ->mapWithKeys(fn ($t): array => [$t->id => $t->title.' — '.($t->project?->name ?? 'No project')])->all())
+                    ->helperText('Only tasks you are assigned to.'),
+                DatePicker::make('date')->label('Day')->required()->default(now())->maxDate(now())->native(false)->displayFormat('d/m/Y'),
+                TextInput::make('from')->label('Start time (optional)')->placeholder('9:30'),
+                TextInput::make('hours')->label('Hours')->placeholder('1:30')->required(),
+                TextInput::make('description')->label('What did you do')->required()->maxLength(255),
+            ])
+            ->action(function (array $data): void {
+                $this->attemptEntry(fn () => Worklog::addEntry(
+                    $this->user(), (int) $data['task_id'], (string) $data['date'], Worklog::parse((string) $data['hours']),
+                    (string) $data['description'], (string) ($data['from'] ?? ''),
+                ), 'Time logged');
+            });
     }
 
     public function table(Table $table): Table
@@ -103,7 +69,7 @@ class TimeEntries extends Page implements HasTable
             ])
             ->defaultSort('date', 'desc')
             ->filters([
-                SelectFilter::make('user_id')->label('Person')->visible($admin)
+                SelectFilter::make('user_id')->label('Person')->visible($admin)->default(fn () => (string) $this->user()->getKey())
                     ->options(fn (): array => User::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())->searchable(),
                 SelectFilter::make('project_id')->label('Project')
                     ->options(fn (): array => Project::query()->orderBy('name')->pluck('name', 'id')->all())->searchable(),
@@ -125,20 +91,20 @@ class TimeEntries extends Page implements HasTable
                         TextInput::make('hours')->label('Hours')->required(),
                         TextInput::make('description')->label('What did you do')->required()->maxLength(255),
                     ])
-                    ->action(fn (Timesheet $r, array $data) => $this->attempt(
+                    ->action(fn (Timesheet $r, array $data) => $this->attemptEntry(
                         fn () => Worklog::updateEntry($this->user(), $r, Worklog::parse((string) $data['hours']), (string) $data['description']), 'Saved'
                     )),
                 Action::make('delete')->label('Delete')->icon('heroicon-m-trash')->iconButton()->color('danger')
                     ->visible(fn (Timesheet $r): bool => Worklog::canEditEntry($this->user(), $r))
                     ->requiresConfirmation()->modalHeading('Delete this entry?')
-                    ->action(fn (Timesheet $r) => $this->attempt(fn () => Worklog::deleteEntry($this->user(), $r), 'Deleted')),
+                    ->action(fn (Timesheet $r) => $this->attemptEntry(fn () => Worklog::deleteEntry($this->user(), $r), 'Deleted')),
             ])
             ->emptyStateHeading('No time entries')
             ->emptyStateDescription('Start the timer on one of your tasks or log time by hand.')
             ->paginated([25, 50, 100]);
     }
 
-    private function attempt(callable $callback, ?string $success = null): void
+    private function attemptEntry(callable $callback, ?string $success = null): void
     {
         try {
             $callback();
@@ -149,10 +115,5 @@ class TimeEntries extends Page implements HasTable
         } catch (RuntimeException $e) {
             Notification::make()->danger()->title($e->getMessage())->send();
         }
-    }
-
-    private function user(): User
-    {
-        return auth()->user();
     }
 }

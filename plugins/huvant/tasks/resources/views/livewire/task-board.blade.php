@@ -21,6 +21,9 @@
         </div>
 
         <div class="hv-board-quick">
+            @if ($projectId)
+                {{ $this->newTaskAction }}
+            @endif
             <select wire:model.live="filters.assignee" aria-label="Assignee">
                 <option value="all">Everyone</option>
                 <option value="me">Only mine</option>
@@ -87,6 +90,9 @@
                         <span class="hv-col-mark"></span>
                         <h3>{{ $column['label'] }}</h3>
                         <span class="hv-col-count">{{ $column['count'] }}</span>
+                        @if ($projectId && $column['name'] !== '')
+                            {{ ($this->addTaskAction)(['stage' => $column['name']]) }}
+                        @endif
                     </header>
                     <div class="hv-col-list">
                         @forelse ($column['tasks'] as $task)
@@ -252,4 +258,6 @@
             </table>
         </div>
     @endif
+
+    <x-filament-actions::modals />
 </div>

@@ -85,8 +85,26 @@ it('renders both views and the event dialog', function () {
     Livewire::test(CalendarPage::class)->assertOk()->assertSee("Who's where", false)
         ->call('setTab', 'agenda')->assertSee('Planning')
         ->call('openEvent', $event->id)->assertSee('Bruno')->assertSee('Awaiting reply')
-        ->call('markToday', 'remote')->assertOk();
+        ->call('markToday', 'remote')->assertOk()
+        ->call('setTab', 'presence')->call('setMyDay', CarbonImmutable::today()->subDays(3)->toDateString(), 'away')->assertOk();
 
     expect(Event::query()->where('kind', 'remote')->where('organizer_id', $admin->id)->exists())->toBeTrue();
     $this->get(CalendarPage::getUrl())->assertOk();
+});
+
+it('sets one\'s presence on any day, splitting longer events around it', function () {
+    $anna = calUser('Anna');
+    $trip = Calendar::save($anna, ['kind' => 'travel', 'date' => '2026-10-05', 'date_to' => '2026-10-07', 'all_day' => true]);
+
+    Calendar::setPresence($anna, CarbonImmutable::parse('2026-10-06'), 'remote');
+    $mine = Event::query()->orderBy('starts_at')->get()->map(fn ($e) => $e->kind.' '.$e->starts_at->format('d').'-'.$e->ends_at->format('d'))->all();
+    expect($mine)->toBe(['travel 05-06', 'remote 06-07', 'travel 07-08'])
+        ->and(Event::query()->whereKey($trip->id)->exists())->toBeFalse();
+
+    Calendar::setPresence($anna, CarbonImmutable::parse('2026-10-06'), 'office');
+    expect(Event::query()->where('kind', 'remote')->exists())->toBeFalse()
+        ->and(Event::query()->count())->toBe(2);
+
+    $board = Calendar::board(collect([$anna]), CarbonImmutable::parse('2026-10-05'), 3, CarbonImmutable::parse('2026-10-05 10:00'));
+    expect(array_column($board['rows'][0]['cells'], 'presence'))->toBe(['travel', 'office', 'travel']);
 });

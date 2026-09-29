@@ -30,6 +30,14 @@ use Webkul\Support\Enums\NavigationGroup;
 
 class TaskResource extends Resource
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     use HasCustomFields, HasExtraRecordPages;
 
     protected static ?string $model = Task::class;
@@ -103,13 +111,12 @@ class TaskResource extends Resource
 
     public static function getRecordSubNavigation(Page $page): array
     {
-        return $page->generateNavigationItems([
+        return $page->generateNavigationItems(static::visibleRecordPages([
             ViewTask::class,
             EditTask::class,
             ManageTimesheets::class,
             ManageSubTasks::class,
-            ...static::extraRecordPageClasses(),
-        ]);
+        ]));
     }
 
     public static function getRelations(): array

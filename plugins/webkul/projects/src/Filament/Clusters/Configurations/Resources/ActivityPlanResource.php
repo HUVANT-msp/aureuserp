@@ -25,6 +25,11 @@ class ActivityPlanResource extends Resource
 
     protected static ?string $cluster = Configurations::class;
 
+    public static function getCluster(): ?string
+    {
+        return Configurations::$movedTo ?? static::$cluster;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('projects::filament/clusters/configurations/resources/activity-plan.navigation.title');

@@ -5,6 +5,9 @@ namespace Huvant\Worklog\Filament\Pages;
 use Carbon\CarbonImmutable;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Huvant\Worklog\Filament\Concerns\ListsTimeEntries;
 use Huvant\Worklog\Support\Worklog;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -17,8 +20,12 @@ use Webkul\Timesheet\Models\Timesheet;
  * The person's hours: the week grid (tasks they are assigned to) and the
  * timeline of their days. Every entry says what was done.
  */
-class MyWeek extends Page
+class MyWeek extends Page implements HasTable
 {
+    use InteractsWithTable, ListsTimeEntries {
+        ListsTimeEntries::table insteadof InteractsWithTable;
+    }
+
     public const GROUP = 'Time';
 
     protected string $view = 'huvant-worklog::filament.pages.my-week';
@@ -71,12 +78,77 @@ class MyWeek extends Page
     public function mount(): void
     {
         $this->week = $this->monday()->toDateString();
-        $this->tab = in_array($this->tab, ['week', 'timeline'], true) ? $this->tab : 'week';
+        $this->tab = in_array($this->tab, ['week', 'timeline', 'list'], true) ? $this->tab : 'week';
     }
 
     public function setTab(string $tab): void
     {
-        $this->tab = in_array($tab, ['week', 'timeline'], true) ? $tab : 'week';
+        $this->tab = in_array($tab, ['week', 'timeline', 'list'], true) ? $tab : 'week';
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [$this->logTimeAction()];
+    }
+
+    /** The entry being edited from the timeline. */
+    public array $edit = ['id' => null, 'date' => '', 'from' => '', 'hours' => '', 'description' => ''];
+
+    public function editEntry(int $id): void
+    {
+        $entry = Timesheet::query()->where('user_id', $this->user()->getKey())->find($id);
+        if (! $entry) {
+            return;
+        }
+        $this->edit = ['id' => $id, ...Worklog::entryForm($entry)];
+        $this->edit['from'] ??= '';
+        $this->dispatch('open-modal', id: 'hv-entry-edit');
+    }
+
+    public function saveEdit(): void
+    {
+        $entry = Timesheet::query()->find((int) $this->edit['id']);
+        if ($entry && $this->attempt(fn () => Worklog::reschedule(
+            $this->user(), $entry, (string) $this->edit['date'], (string) $this->edit['from'] ?: null,
+            Worklog::parse((string) $this->edit['hours']), (string) $this->edit['description'],
+        ), 'Saved')) {
+            $this->dispatch('close-modal', id: 'hv-entry-edit');
+        }
+    }
+
+    public function deleteEdited(): void
+    {
+        $entry = Timesheet::query()->find((int) $this->edit['id']);
+        if ($entry && $this->attempt(fn () => Worklog::deleteEntry($this->user(), $entry), 'Deleted')) {
+            $this->dispatch('close-modal', id: 'hv-entry-edit');
+        }
+    }
+
+    /** Drag on the timeline: new day and start (minutes from midnight), same length. */
+    public function moveBlock(int $id, string $date, int $fromMinutes): void
+    {
+        $entry = Timesheet::query()->find($id);
+        if (! $entry) {
+            return;
+        }
+        $form = Worklog::entryForm($entry);
+        $fromMinutes = max(0, min(24 * 60 - 5, intdiv($fromMinutes, 5) * 5));
+        $this->attempt(fn () => Worklog::reschedule(
+            $this->user(), $entry, $date, sprintf('%d:%02d', intdiv($fromMinutes, 60), $fromMinutes % 60), (float) $entry->unit_amount, $form['description'],
+        ));
+    }
+
+    /** Resize on the timeline: new length in minutes. */
+    public function resizeBlock(int $id, int $minutes): void
+    {
+        $entry = Timesheet::query()->find($id);
+        if (! $entry) {
+            return;
+        }
+        $form = Worklog::entryForm($entry);
+        $this->attempt(fn () => Worklog::reschedule(
+            $this->user(), $entry, $form['date'], $form['from'], max(5, $minutes) / 60, $form['description'],
+        ));
     }
 
     public function shiftWeek(int $weeks): void

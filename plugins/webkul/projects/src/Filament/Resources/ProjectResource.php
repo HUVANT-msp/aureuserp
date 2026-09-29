@@ -89,13 +89,12 @@ class ProjectResource extends Resource
 
     public static function getRecordSubNavigation(Page $page): array
     {
-        return $page->generateNavigationItems([
+        return $page->generateNavigationItems(static::visibleRecordPages([
             ViewProject::class,
             EditProject::class,
             ManageTasks::class,
             ManageMilestones::class,
-            ...static::extraRecordPageClasses(),
-        ]);
+        ]));
     }
 
     public static function getRelations(): array

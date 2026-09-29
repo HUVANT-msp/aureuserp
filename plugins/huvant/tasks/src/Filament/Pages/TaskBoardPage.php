@@ -32,6 +32,12 @@ class TaskBoardPage extends Page
         return 'Task board';
     }
 
+    /** Boards live inside each project; this cross-project page stays reachable but off the menu. */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function canAccess(): bool
     {
         return auth()->user() instanceof User;

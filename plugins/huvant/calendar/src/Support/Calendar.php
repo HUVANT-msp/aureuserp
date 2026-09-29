@@ -116,6 +116,56 @@ class Calendar
         });
     }
 
+    /**
+     * Set where one is on a day ("office" clears it). Presence events that span
+     * more days are split around it, so the other days stay as they were.
+     */
+    public static function setPresence(User $user, CarbonImmutable $day, string $kind): void
+    {
+        if ($kind !== 'office' && ! (self::KINDS[$kind][3] ?? false)) {
+            throw new RuntimeException('Unknown presence.');
+        }
+        $day = $day->startOfDay();
+        $next = $day->addDay();
+
+        DB::transaction(function () use ($user, $day, $next, $kind): void {
+            $events = Event::query()->with('attendees')
+                ->whereIn('kind', ['remote', 'travel', 'away'])
+                ->where('starts_at', '<', $next)->where('ends_at', '>', $day)
+                ->whereHas('attendees', fn ($q) => $q->where('user_id', $user->getKey()))
+                ->get();
+            foreach ($events as $event) {
+                $parts = [];
+                if ($event->starts_at->lt($day)) {
+                    $parts[] = [CarbonImmutable::parse($event->starts_at), $day];
+                }
+                if ($event->ends_at->gt($next)) {
+                    $parts[] = [$next, CarbonImmutable::parse($event->ends_at)];
+                }
+                $onlyMine = $event->attendees->count() === 1 && (int) $event->organizer_id === (int) $user->getKey();
+                if ($onlyMine) {
+                    $event->delete();
+                } else {
+                    $event->attendees()->where('user_id', $user->getKey())->delete();
+                }
+                foreach ($parts as [$from, $to]) {
+                    static::personal($user, $event->kind, $event->title, $from, $to, (bool) $event->all_day);
+                }
+            }
+            if ($kind !== 'office') {
+                static::personal($user, $kind, static::kind($kind)[0], $day, $next, true);
+            }
+        });
+    }
+
+    private static function personal(User $user, string $kind, string $title, CarbonImmutable $from, CarbonImmutable $to, bool $allDay): void
+    {
+        $event = Event::query()->create([
+            'kind' => $kind, 'title' => $title, 'starts_at' => $from, 'ends_at' => $to, 'all_day' => $allDay, 'organizer_id' => $user->getKey(),
+        ]);
+        Attendee::query()->create(['event_id' => $event->getKey(), 'user_id' => $user->getKey(), 'response' => 'accepted']);
+    }
+
     public static function delete(User $actor, Event $event): void
     {
         if (! static::canEdit($actor, $event)) {

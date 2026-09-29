@@ -3,6 +3,7 @@
 use Filament\Facades\Filament;
 use Huvant\Tasks\Filament\Pages\ManageProjectBoard;
 use Huvant\Tasks\Filament\Pages\ManageTaskWork;
+use Huvant\Tasks\Filament\Pages\TaskBoardPage;
 use Huvant\Tasks\Livewire\TaskBoard;
 use Huvant\Tasks\Livewire\TaskPanel;
 use Huvant\Tasks\Support\Board;
@@ -10,6 +11,9 @@ use Huvant\Worklog\Support\Worklog;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Webkul\Project\Enums\TaskState;
+use Webkul\Project\Filament\Clusters\Configurations\Resources\TaskStageResource;
+use Webkul\Project\Filament\Clusters\PluginSettings;
+use Webkul\Project\Filament\Resources\TaskResource;
 use Webkul\Project\Models\Project;
 use Webkul\Project\Models\Task;
 use Webkul\Security\Models\Role;
@@ -126,4 +130,26 @@ it('renders every view, the panel and the project and task tabs', function () {
 
     $this->get(ManageProjectBoard::getUrl(['record' => $project->getKey()]))->assertOk();
     $this->get(ManageTaskWork::getUrl(['record' => $id]))->assertOk()->assertSee('Cablaggio');
+});
+
+it('creates tasks from the board with the standard form, in the chosen stage', function () {
+    $admin = boardAdmin();
+    [$project, $stages] = boardProject();
+    $this->actingAs($admin);
+
+    Livewire::test(TaskBoard::class, ['projectId' => $project->getKey()])
+        ->mountAction('addTask', ['stage' => 'In Progress'])
+        ->assertActionDataSet(['stage_id' => $stages['In Progress'], 'project_id' => $project->getKey()])
+        ->setActionData(['title' => 'Nuovo dal kanban'])
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    $task = Task::query()->where('title', 'Nuovo dal kanban')->firstOrFail();
+    expect($task->project_id)->toBe($project->getKey())->and($task->stage_id)->toBe($stages['In Progress']);
+});
+
+it('keeps tasks inside projects: no global task list or board in the menu, configuration under settings', function () {
+    expect(TaskResource::shouldRegisterNavigation())->toBeFalse()
+        ->and(TaskBoardPage::shouldRegisterNavigation())->toBeFalse()
+        ->and(TaskStageResource::getCluster())->toBe(PluginSettings::class);
 });

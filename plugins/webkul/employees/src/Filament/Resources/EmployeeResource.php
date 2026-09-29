@@ -89,13 +89,12 @@ class EmployeeResource extends Resource
 
     public static function getRecordSubNavigation(Page $page): array
     {
-        return $page->generateNavigationItems([
+        return $page->generateNavigationItems(static::visibleRecordPages([
             ViewEmployee::class,
             EditEmployee::class,
             ManageSkill::class,
             ManageResume::class,
-            ...static::extraRecordPageClasses(),
-        ]);
+        ]));
     }
 
     public static function getRelations(): array

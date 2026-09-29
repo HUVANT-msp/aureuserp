@@ -6,9 +6,53 @@
     $clock = fn (int $m): string => sprintf('%d:%02d', intdiv($m, 60), $m % 60);
 @endphp
 <x-filament-panels::page>
+    <script>
+        // Timeline blocks: drag to move (time and day), drag the right edge to resize, click to edit.
+        window.hvGanttBlock ??= (cfg) => ({
+            active: false, mode: null, x0: 0, y0: 0, width: 0, delta: 0, label: '',
+            clock(m) { m = Math.max(0, Math.min(1440, m)); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); },
+            begin(e, mode) {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                this.mode = mode; this.x0 = e.clientX; this.y0 = e.clientY; this.delta = 0; this.active = false;
+                this.width = this.$el.parentElement.getBoundingClientRect().width;
+                this.$el.setPointerCapture(e.pointerId);
+            },
+            drag(e) {
+                if (! this.mode) return;
+                const dx = e.clientX - this.x0, dy = e.clientY - this.y0;
+                if (! this.active && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+                this.active = true;
+                this.delta = Math.round((dx / this.width * cfg.span) / 15) * 15;
+                const px = this.delta / cfg.span * this.width;
+                if (this.mode === 'move') {
+                    this.$el.style.transform = `translate(${px}px, ${dy}px)`;
+                    this.label = this.clock(cfg.from + this.delta) + '–' + this.clock(cfg.to + this.delta);
+                } else {
+                    const len = Math.max(15, cfg.to - cfg.from + this.delta);
+                    this.$el.style.width = (len / cfg.span * this.width) + 'px';
+                    this.label = this.clock(cfg.from) + '–' + this.clock(cfg.from + len);
+                }
+            },
+            end(e) {
+                if (! this.mode) return;
+                const mode = this.mode; this.mode = null;
+                if (! this.active) { this.$wire.editEntry(cfg.id); return; }
+                if (mode === 'move') {
+                    const row = document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.matches?.('.hv-gantt-row[data-date]'));
+                    const date = row ? row.dataset.date : cfg.date;
+                    if (date > cfg.today) { this.cancel(); return; }
+                    this.$wire.moveBlock(cfg.id, date, cfg.from + this.delta);
+                } else {
+                    this.$wire.resizeBlock(cfg.id, Math.max(15, cfg.to - cfg.from + this.delta));
+                }
+            },
+            cancel() { this.mode = null; this.active = false; this.$el.style.transform = ''; this.$el.style.width = ''; },
+        });
+    </script>
     <div class="hv-wl">
         <div class="hv-wl-toolbar">
-            <div class="hv-wl-weeknav">
+            <div class="hv-wl-weeknav" @if ($tab === 'list') style="visibility: hidden" @endif>
                 <x-filament::icon-button icon="heroicon-m-chevron-left" wire:click="shiftWeek(-1)" label="Previous week" color="gray" />
                 <span class="hv-wl-range">{{ Worklog::weekLabel($monday) }}</span>
                 <x-filament::icon-button icon="heroicon-m-chevron-right" wire:click="shiftWeek(1)" label="Next week" color="gray" />
@@ -22,6 +66,9 @@
                 </button>
                 <button type="button" role="tab" aria-selected="{{ $tab === 'timeline' ? 'true' : 'false' }}" wire:click="setTab('timeline')">
                     <x-filament::icon icon="heroicon-m-chart-bar" class="h-4 w-4" />Timeline
+                </button>
+                <button type="button" role="tab" aria-selected="{{ $tab === 'list' ? 'true' : 'false' }}" wire:click="setTab('list')">
+                    <x-filament::icon icon="heroicon-m-queue-list" class="h-4 w-4" />List
                 </button>
             </div>
             @if ($tab === 'week')
@@ -121,6 +168,8 @@
                 </table>
             </div>
             <p class="hv-wl-hint">Click a day to see and add entries: each entry says what you did.</p>
+        @elseif ($tab === 'list')
+            {{ $this->table }}
         @else
             @php
                 $span = max(60, $timeline['to'] - $timeline['from']);
@@ -153,16 +202,21 @@
                     <span class="hv-gantt-sum">Hours</span>
                 </div>
                 @foreach ($timeline['days'] as $i => $day)
-                    <div @class(['hv-gantt-row', 'is-today' => $day['date'] === $today, 'is-weekend' => $i >= 5])>
+                    <div @class(['hv-gantt-row', 'is-today' => $day['date'] === $today, 'is-weekend' => $i >= 5]) data-date="{{ $day['date'] }}">
                         <span class="hv-gantt-day">{{ $dayNames[$i] }} <b>{{ \Carbon\CarbonImmutable::parse($day['date'])->format('j') }}</b></span>
                         <div class="hv-gantt-track">
                             @for ($m = $timeline['from']; $m <= $timeline['to']; $m += 60)
                                 <span class="hv-gantt-grid" style="left: {{ $pos($m) }}"></span>
                             @endfor
                             @foreach ($day['blocks'] as $block)
-                                <span class="hv-gantt-block" style="left: {{ $pos($block['from']) }}; width: {{ round(($block['to'] - $block['from']) / $span * 100, 3) }}%; --pc: {{ $block['color'] }}"
-                                      title="{{ $clock($block['from']) }}–{{ $clock($block['to']) }} · {{ $block['project'] }} · {{ $block['task'] }} — {{ $block['description'] }}">
-                                    <span>{{ $block['task'] }}</span>
+                                <span class="hv-gantt-block" wire:key="blk-{{ $block['id'] }}-{{ $block['from'] }}-{{ $block['to'] }}-{{ $day['date'] }}"
+                                      style="left: {{ $pos($block['from']) }}; width: {{ round(($block['to'] - $block['from']) / $span * 100, 3) }}%; --pc: {{ $block['color'] }}"
+                                      title="{{ $clock($block['from']) }}–{{ $clock($block['to']) }} · {{ $block['project'] }} · {{ $block['task'] }} — {{ $block['description'] }}"
+                                      x-data="hvGanttBlock({ id: {{ $block['id'] }}, from: {{ $block['from'] }}, to: {{ $block['to'] }}, span: {{ $span }}, date: '{{ $day['date'] }}', today: '{{ $today }}' })"
+                                      x-on:pointerdown="begin($event, 'move')" x-on:pointermove="drag($event)" x-on:pointerup="end($event)" x-on:pointercancel="cancel()"
+                                      :class="{ 'is-dragging': active }" role="button" tabindex="0" x-on:keydown.enter="$wire.editEntry({{ $block['id'] }})">
+                                    <span x-text="active ? label : @js($block['task'])">{{ $block['task'] }}</span>
+                                    <i class="hv-gantt-resize" x-on:pointerdown.stop="begin($event, 'resize')" aria-hidden="true"></i>
                                 </span>
                             @endforeach
                         </div>
@@ -173,7 +227,8 @@
                             <span class="hv-gantt-day"></span>
                             <div>
                                 @foreach ($day['loose'] as $item)
-                                    <span class="hv-gantt-chip" style="--pc: {{ $item['color'] }}" title="{{ $item['project'] }} · {{ $item['task'] }} — {{ $item['description'] }}">
+                                    <span class="hv-gantt-chip" style="--pc: {{ $item['color'] }}" title="{{ $item['project'] }} · {{ $item['task'] }} — {{ $item['description'] }}"
+                                          role="button" tabindex="0" wire:click="editEntry({{ $item['id'] }})" x-on:keydown.enter="$wire.editEntry({{ $item['id'] }})">
                                         <b>{{ Worklog::format($item['hours']) }}</b> {{ $item['task'] }}
                                     </span>
                                 @endforeach
@@ -182,7 +237,7 @@
                     @endif
                 @endforeach
             </div>
-            <p class="hv-wl-hint">Blocks come from the timer or from entries with a start time; the other entries sit under their day.</p>
+            <p class="hv-wl-hint">Drag a block to move it (also to another day), drag its right edge to change its length, click it to edit. Entries without a start time sit under their day: click one to give it a time.</p>
         @endif
     </div>
 
@@ -219,5 +274,18 @@
                 <x-filament::button type="submit">Add</x-filament::button>
             </form>
         </div>
+    </x-filament::modal>
+    <x-filament::modal id="hv-entry-edit" width="lg">
+        <x-slot name="heading">Edit entry</x-slot>
+        <form class="hv-edit-form" wire:submit="saveEdit">
+            <label>Day <input type="date" wire:model="edit.date" max="{{ $today }}" required /></label>
+            <label>From <input type="time" wire:model="edit.from" /></label>
+            <label>Hours <input type="text" wire:model="edit.hours" inputmode="decimal" required /></label>
+            <label class="hv-edit-wide">What did you do <input type="text" wire:model="edit.description" maxlength="255" required /></label>
+            <div class="hv-edit-actions">
+                <x-filament::button color="danger" size="sm" wire:click="deleteEdited" wire:confirm="Delete this entry?" type="button">Delete</x-filament::button>
+                <x-filament::button type="submit">Save</x-filament::button>
+            </div>
+        </form>
     </x-filament::modal>
 </x-filament-panels::page>

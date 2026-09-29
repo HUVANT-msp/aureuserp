@@ -3,18 +3,32 @@
 namespace Huvant\Tasks\Livewire;
 
 use Carbon\CarbonImmutable;
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Actions\CreateAction;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Huvant\Tasks\Support\Board;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use RuntimeException;
+use Webkul\Project\Enums\TaskState;
+use Webkul\Project\Filament\Resources\TaskResource;
 use Webkul\Project\Models\Task;
+use Webkul\Project\Models\TaskStage;
 use Webkul\Security\Models\User;
 
-class TaskBoard extends Component
+class TaskBoard extends Component implements HasActions, HasSchemas
 {
+    use InteractsWithActions, InteractsWithSchemas;
+
     /** Set when the board lives inside a project: the project filter is fixed. */
     public ?int $projectId = null;
 
@@ -50,6 +64,44 @@ class TaskBoard extends Component
     public function resetFilters(): void
     {
         $this->filters = Board::DEFAULT_FILTERS;
+    }
+
+    /** "New task": the standard task form, as a side panel. */
+    public function newTaskAction(): Action
+    {
+        return $this->taskFormAction('newTask')->label('New task')->icon('heroicon-m-plus');
+    }
+
+    /** "+" on a Kanban column: the same form, already in that stage. */
+    public function addTaskAction(): Action
+    {
+        return $this->taskFormAction('addTask')->label('Add a task here')->icon('heroicon-m-plus')->iconButton()->size('sm')->color('gray');
+    }
+
+    private function taskFormAction(string $name): CreateAction
+    {
+        return CreateAction::make($name)
+            ->model(Task::class)
+            ->modalHeading('New task')
+            ->slideOver()
+            ->modalWidth(Width::FourExtraLarge)
+            ->schema(fn (Schema $schema): Schema => TaskResource::form($schema))
+            ->fillForm(function (array $arguments): array {
+                $projectId = $this->projectId;
+                $stageId = null;
+                if ($projectId && ($arguments['stage'] ?? '') !== '') {
+                    $stageId = TaskStage::query()->where('project_id', $projectId)->get()
+                        ->first(fn (TaskStage $stage): bool => Str::lower(trim($stage->name)) === Str::lower(trim((string) $arguments['stage'])))?->getKey();
+                }
+
+                return array_filter([
+                    'project_id' => $projectId,
+                    'stage_id'   => $stageId ?? ($projectId ? TaskResource::getDefaultStageId($projectId) : null),
+                    'state'      => TaskState::IN_PROGRESS,
+                ], fn ($value) => $value !== null);
+            })
+            ->successNotificationTitle('Task created')
+            ->after(fn () => $this->dispatch('huvant-task-changed'));
     }
 
     public function moveTask(int $taskId, string $stageName): void

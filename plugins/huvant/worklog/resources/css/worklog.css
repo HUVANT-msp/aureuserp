@@ -176,3 +176,17 @@ button.hv-wl-cell:not(:hover) { color: color-mix(in srgb, var(--huvant-ink) 90%,
 .hv-gantt-loose { min-height: 34px; background: var(--hv-wl-surface-2); }
 .hv-gantt-loose > div { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 8px; }
 .hv-gantt-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 320px; overflow: hidden; padding: 2px 10px 2px 8px; border-radius: 6px; border: 1px dashed color-mix(in srgb, var(--pc) 60%, transparent); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Draggable timeline blocks and the entry editor */
+.hv-gantt-block { cursor: grab; touch-action: none; user-select: none; }
+.hv-gantt-block.is-dragging { z-index: 5; cursor: grabbing; opacity: .9; box-shadow: inset 3px 0 0 var(--pc), 0 6px 18px rgba(0,0,0,.18); }
+.hv-gantt-resize { position: absolute; top: 0; bottom: 0; inset-inline-end: 0; width: 8px; cursor: ew-resize; }
+.hv-gantt-resize::after { content: ""; position: absolute; top: 30%; bottom: 30%; inset-inline-end: 2px; width: 2px; border-radius: 2px; background: color-mix(in srgb, var(--pc) 70%, transparent); opacity: 0; transition: opacity .12s; }
+.hv-gantt-block:hover .hv-gantt-resize::after { opacity: 1; }
+.hv-gantt-chip { cursor: pointer; }
+.hv-gantt-chip:hover { background: color-mix(in srgb, var(--pc) 10%, transparent); }
+.hv-edit-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.hv-edit-form label { display: grid; gap: 4px; color: var(--huvant-muted); font-size: 12px; font-weight: 600; }
+.hv-edit-form input { height: 36px; padding: 0 10px; border: 1px solid var(--huvant-hairline); border-radius: 8px; background: var(--huvant-surface); color: var(--huvant-ink); font-size: 13.5px; font-weight: 400; }
+.hv-edit-wide { grid-column: 1 / -1; }
+.hv-edit-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; }

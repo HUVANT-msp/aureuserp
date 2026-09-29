@@ -26,6 +26,11 @@ class MilestoneResource extends Resource
 
     protected static ?string $cluster = Configurations::class;
 
+    public static function getCluster(): ?string
+    {
+        return Configurations::$movedTo ?? static::$cluster;
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->whereHas('project');

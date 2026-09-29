@@ -79,8 +79,29 @@
                                 <span class="hv-cal-muted">—</span>
                             @endif
                         </span>
+                        @php $isMe = (int) $row['user']->id === (int) auth()->id(); @endphp
                         @foreach ($row['cells'] as $cell)
                             @php [$label, $tone] = Calendar::PRESENCE[$cell['presence']]; @endphp
+                            @if ($isMe && $cell['presence'] !== 'leave')
+                                <span class="hv-cal-mine" x-data="{ open: false }" x-on:keydown.escape="open = false" x-on:click.outside="open = false">
+                                    <button type="button" @class(['hv-cal-cell', 'is-editable', 'tone-'.$tone, 'is-today' => $cell['date']->isSameDay($today)])
+                                            x-on:click="open = ! open" :aria-expanded="open" aria-haspopup="menu"
+                                            aria-label="Where are you on {{ $cell['date']->format('l j F') }}? Now: {{ $label }}">
+                                        <span class="hv-cal-presence">{{ $cell['presence'] === 'office' ? 'Office' : $label }}</span>
+                                        @if ($cell['meetings'])<span class="hv-cal-meetings">{{ $cell['meetings'] }} {{ $cell['meetings'] === 1 ? 'meeting' : 'meetings' }}</span>@endif
+                                        <x-filament::icon icon="heroicon-m-pencil" class="hv-cal-edit h-3 w-3" />
+                                    </button>
+                                    <span class="hv-cal-menu" role="menu" x-show="open" x-cloak x-transition.opacity>
+                                        @foreach (['office' => ['Office', 'heroicon-m-building-office'], 'remote' => ['Remote', 'heroicon-m-home'], 'travel' => ['Travel', 'heroicon-m-paper-airplane'], 'away' => ['Out of office', 'heroicon-m-no-symbol']] as $kind => [$kindLabel, $kindIcon])
+                                            <button type="button" role="menuitemradio" aria-checked="{{ $cell['presence'] === $kind ? 'true' : 'false' }}"
+                                                    wire:click="setMyDay('{{ $cell['date']->toDateString() }}', '{{ $kind }}')" x-on:click="open = false">
+                                                <x-filament::icon :icon="$kindIcon" class="h-4 w-4" />{{ $kindLabel }}
+                                            </button>
+                                        @endforeach
+                                    </span>
+                                </span>
+                                @continue
+                            @endif
                             <span @class(['hv-cal-cell', 'tone-'.$tone, 'is-today' => $cell['date']->isSameDay($today)])
                                   title="{{ $label }}@foreach ($cell['events'] as $e)&#10;{{ $e->all_day ? 'All day' : $e->starts_at->format('H:i') }} {{ $e->private && ! $e->attendees->contains('user_id', auth()->id()) ? 'Busy' : $e->title }}@endforeach">
                                 <span class="hv-cal-presence">{{ $cell['presence'] === 'office' ? 'Office' : $label }}</span>
@@ -94,7 +115,7 @@
                 @foreach (['ok' => 'In the office', 'remote' => 'Remote', 'limited' => 'Travelling', 'off' => 'Out of office / on leave'] as $tone => $label)
                     <li><span class="hv-cal-swatch tone-{{ $tone }}"></span>{{ $label }}</li>
                 @endforeach
-                <li class="hv-cal-muted">Click a person to see their week.</li>
+                <li class="hv-cal-muted">Click a person to see their week; click a day on your own row to change where you are.</li>
             </ul>
         @endif
 

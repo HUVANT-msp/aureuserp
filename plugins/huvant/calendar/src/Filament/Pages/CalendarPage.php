@@ -141,6 +141,13 @@ class CalendarPage extends Page
         }
     }
 
+    /** From one's own row of "Who's where": where I am on that day. */
+    public function setMyDay(string $date, string $kind): void
+    {
+        $this->attempt(fn () => Calendar::setPresence($this->user(), CarbonImmutable::parse($date), $kind),
+            ($kind === 'office' ? 'Office' : Calendar::kind($kind)[0]).' on '.CarbonImmutable::parse($date)->format('D j M'));
+    }
+
     /** One click: "I'm working remotely today", "I'm out of office today". */
     public function markToday(string $kind): void
     {

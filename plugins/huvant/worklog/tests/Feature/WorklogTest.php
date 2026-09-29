@@ -3,7 +3,6 @@
 use Huvant\Teams\Support\ProjectTeams;
 use Huvant\Worklog\Filament\Pages\MyWeek;
 use Huvant\Worklog\Filament\Pages\TeamHours;
-use Huvant\Worklog\Filament\Pages\TimeEntries;
 use Huvant\Worklog\Livewire\TopbarTimer;
 use Huvant\Worklog\Support\Worklog;
 use Illuminate\Support\Carbon;
@@ -156,9 +155,29 @@ it('renders my hours, the entries, the team overview and the top bar timer', fun
         ->assertCount('edits', 1)
         ->call('setTab', 'timeline')->assertOk()->assertSee('Montaggio', false)
         ->set('joining', true)->assertOk();
-    Livewire\Livewire::test(TimeEntries::class)->assertOk()->assertSee('Montaggio');
+    $page = Livewire\Livewire::test(MyWeek::class)->call('setTab', 'list')->assertOk()->assertSee('Montaggio')->assertActionExists('logTime');
+    $entry = Timesheet::query()->where('task_id', $task)->firstOrFail();
+    $page->call('setTab', 'timeline')->call('moveBlock', $entry->id, now()->toDateString(), 14 * 60)->call('resizeBlock', $entry->id, 45)
+        ->call('editEntry', $entry->id)->assertSet('edit.from', '14:00')->assertSet('edit.hours', '0:45')
+        ->set('edit.description', 'Montaggio e collaudo')->call('saveEdit');
+    expect($entry->fresh()->name)->toBe('Montaggio e collaudo');
+    Timesheet::query()->whereKey($entry->id)->update(['unit_amount' => 1.5]);
     Livewire\Livewire::test(TeamHours::class)->assertOk()->assertSee('Hours by project')
         ->call('shiftWeek', -1)->assertOk();
 
     expect((float) Timesheet::query()->where('task_id', $task)->sum('unit_amount'))->toBe(1.5);
+});
+
+it('moves, resizes and edits an entry, never past midnight or into the future', function () {
+    $user = worker();
+    $task = workTask($user);
+    $entry = Worklog::addEntry($user, $task, '2026-09-28', 1, 'Analisi', '9:00');
+
+    Worklog::reschedule($user, $entry, '2026-09-29', '15:30', 2, 'Analisi e report');
+    expect(Worklog::entryForm($entry->fresh()))->toBe(['date' => '2026-09-29', 'from' => '15:30', 'hours' => '2:00', 'description' => 'Analisi e report'])
+        ->and(fn () => Worklog::reschedule($user, $entry, '2026-09-29', '23:30', 1, 'X'))->toThrow(RuntimeException::class)
+        ->and(fn () => Worklog::reschedule($user, $entry, now()->addDay()->toDateString(), '9:00', 1, 'X'))->toThrow(RuntimeException::class);
+
+    Worklog::reschedule($user, $entry, '2026-09-29', null, 2, 'Senza orario');
+    expect(DB::table(Worklog::SPANS)->where('timesheet_id', $entry->id)->exists())->toBeFalse();
 });

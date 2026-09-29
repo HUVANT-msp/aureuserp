@@ -104,3 +104,16 @@ button.hv-cal-person:hover { color: var(--hv-c-primary); }
 .hv-cal-free { color: var(--hv-c-ok); font-size: 13px; font-weight: 600; }
 .hv-cal-conflicts { padding: 8px 12px; border-radius: 8px; background: var(--hv-c-busy-soft); color: var(--hv-c-busy); font-size: 13px; }
 .hv-cal-conflicts ul { margin-top: 4px; list-style: disc; padding-inline-start: 18px; }
+
+/* One's own row: every day can be changed */
+.hv-cal-mine { position: relative; display: grid; }
+.hv-cal-cell.is-editable { position: relative; width: auto; text-align: start; cursor: pointer; border: 1px dashed transparent; }
+.hv-cal-cell.is-editable:hover, .hv-cal-cell.is-editable[aria-expanded="true"] { border-color: var(--hv-c-primary); }
+.hv-cal-edit { position: absolute; top: 6px; inset-inline-end: 6px; color: var(--huvant-muted); opacity: 0; }
+.hv-cal-cell.is-editable:hover .hv-cal-edit { opacity: 1; }
+.hv-cal-menu { position: absolute; top: calc(100% - 2px); inset-inline-start: 3px; z-index: 20; display: grid; min-width: 170px; padding: 4px; border: 1px solid var(--huvant-hairline); border-radius: 10px; background: var(--huvant-surface); box-shadow: 0 4px 18px rgba(0,0,0,.08), 0 16px 40px rgba(0,0,0,.08); }
+.hv-cal-menu button { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 7px; color: var(--huvant-ink); font-size: 13px; text-align: start; cursor: pointer; }
+.hv-cal-menu button:hover { background: var(--hv-c-2); }
+.hv-cal-menu button[aria-checked="true"] { color: var(--hv-c-primary); font-weight: 600; }
+.hv-cal-row:has(.hv-cal-mine) { background: color-mix(in srgb, var(--hv-c-primary) 3%, transparent); }
+@media (min-width: 1100px) { .hv-cal-board { overflow: visible; } }
