@@ -41,6 +41,9 @@
         <testsuite name="HuvantBridgeFeature">
             <directory>plugins/huvant/bridge/tests/Feature</directory>
         </testsuite>
+        <testsuite name="HuvantMeetingsFeature">
+            <directory>plugins/huvant/meetings/tests/Feature</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

@@ -1,0 +1,29 @@
+{
+    "name": "huvant/meetings",
+    "description": "Huvant Meeting Minutes and Canvas inside the ERP",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Huvant SRL",
+            "email": "digital@huvant.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Huvant\\Meetings\\MeetingsServiceProvider"
+            ],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Huvant\\Meetings\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Huvant\\Meetings\\Tests\\": "tests/"
+        }
+    }
+}

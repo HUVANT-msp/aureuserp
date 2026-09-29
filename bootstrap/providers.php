@@ -4,6 +4,7 @@ use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\CustomerPanelProvider;
 use Huvant\Bridge\BridgeServiceProvider;
+use Huvant\Meetings\MeetingsServiceProvider;
 use Webkul\Account\AccountServiceProvider;
 use Webkul\Accounting\AccountingServiceProvider;
 use Webkul\Analytic\AnalyticServiceProvider;
@@ -65,5 +66,6 @@ return [
     TimesheetServiceProvider::class,
     WebsiteServiceProvider::class,
     BridgeServiceProvider::class,
+    MeetingsServiceProvider::class,
     PluginManagerServiceProvider::class,
 ];
