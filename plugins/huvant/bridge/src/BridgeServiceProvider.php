@@ -8,6 +8,7 @@ use Huvant\Bridge\Http\Middleware\EnsureIdempotentBridgeRequest;
 use Huvant\Bridge\Http\Middleware\TouchTaskAfterPivotUpdate;
 use Huvant\Bridge\Observers\BridgeWebhookObserver;
 use Huvant\Bridge\Observers\TaskStageCompanyObserver;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Webkul\Partner\Models\Partner;
@@ -56,6 +57,19 @@ class BridgeServiceProvider extends PackageServiceProvider
         }
 
         Gate::policy(User::class, UserPolicy::class);
+
+        // Roles and permissions are defined for the "web" guard only, while User
+        // declares ['web', 'sanctum']: on token requests spatie/permission looks
+        // them up for "sanctum", finds nothing and every REST endpoint (core ones
+        // included) answers 403. Honour exactly the permissions the user already
+        // holds on "web"; anything else still falls through to the policies.
+        Gate::before(function ($user, string $ability): ?bool {
+            if (! $user instanceof User || Auth::getDefaultDriver() === 'web') {
+                return null;
+            }
+
+            return $user->checkPermissionTo($ability, 'web') ? true : null;
+        });
 
         foreach ([Task::class, Project::class, User::class, Partner::class] as $model) {
             $model::observe(BridgeWebhookObserver::class);
