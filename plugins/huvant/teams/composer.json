@@ -1,0 +1,29 @@
+{
+    "name": "huvant/teams",
+    "description": "Project teams: users see only the projects their teams work on",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Huvant SRL",
+            "email": "digital@huvant.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Huvant\\Teams\\TeamsServiceProvider"
+            ],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Huvant\\Teams\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Huvant\\Teams\\Tests\\": "tests/"
+        }
+    }
+}
