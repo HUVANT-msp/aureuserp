@@ -89,7 +89,9 @@ class EnsureBridgeCompanyBoundary
         if ($stageId !== null) {
             $stage = ProjectStage::withoutGlobalScope(CompanyScope::class)->find($stageId);
 
-            if (! $stage || (int) $stage->company_id !== $companyId) {
+            // Stages without a company are shared by every company (the installer
+            // seeds them that way); only another company's stage is foreign.
+            if (! $stage || ($stage->company_id !== null && (int) $stage->company_id !== $companyId)) {
                 return $this->invalid('stage_id', 'The selected project stage does not belong to the project company.');
             }
         }
@@ -322,7 +324,7 @@ class EnsureBridgeCompanyBoundary
 
         return Partner::withoutGlobalScope(CompanyScope::class)
             ->whereKey((int) $partnerId)
-            ->where('company_id', $companyId)
+            ->where(fn ($query) => $query->where('company_id', $companyId)->orWhereNull('company_id'))
             ->exists();
     }
 

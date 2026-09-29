@@ -48,6 +48,34 @@ it('creates a project in the actor default company exactly once', function () {
         ->toBe($actor->default_company_id);
 });
 
+it('accepts a project stage shared by every company', function () {
+    $actor = activeCompanyBoundaryUser(['create_project_project']);
+    $actor->forceFill(['resource_permission' => PermissionType::GLOBAL])->saveQuietly();
+    $sharedStage = ProjectStage::factory()->create(['company_id' => null]);
+
+    $this->postJson(route('admin.api.v1.projects.projects.store'), [
+        'name'       => 'Project on a shared stage',
+        'visibility' => 'internal',
+        'stage_id'   => $sharedStage->id,
+    ], ['Idempotency-Key' => 'project-shared-stage-1'])
+        ->assertCreated()
+        ->assertJsonPath('data.company_id', $actor->default_company_id);
+});
+
+it('still rejects a project stage owned by another company', function () {
+    $actor = activeCompanyBoundaryUser(['create_project_project']);
+    $actor->forceFill(['resource_permission' => PermissionType::GLOBAL])->saveQuietly();
+    $foreignStage = ProjectStage::factory()->create(['company_id' => Company::factory()->create()->id]);
+
+    $this->postJson(route('admin.api.v1.projects.projects.store'), [
+        'name'       => 'Project on a foreign stage',
+        'visibility' => 'internal',
+        'stage_id'   => $foreignStage->id,
+    ], ['Idempotency-Key' => 'project-foreign-stage-1'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('stage_id');
+});
+
 function companyBoundaryRequest(
     User $user,
     string $method,
