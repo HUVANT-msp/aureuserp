@@ -6,9 +6,8 @@
             <span class="hv-timer-dot" aria-hidden="true"></span>
             <span class="hv-timer-task" title="{{ $running->task_title }}">{{ $running->task_title }}</span>
             <span class="hv-timer-clock" x-text="(() => { const s = Math.max(0, Math.floor((now - start) / 1000)); return Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); })()"></span>
-            <button type="button" class="hv-timer-stop" wire:click="stop" title="Ferma e registra">
+            <button type="button" class="hv-timer-stop" wire:click="stop" title="Ferma e registra" aria-label="Ferma e registra">
                 <x-filament::icon icon="heroicon-m-stop" class="h-4 w-4" />
-                <span class="sr-only">Ferma</span>
             </button>
         </div>
     @else

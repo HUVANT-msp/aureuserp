@@ -34,7 +34,7 @@
 .hv-timer-running { border-color: var(--hv-wl-live); padding-inline-end: 4px; }
 .hv-timer-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--hv-wl-live); animation: hv-wl-pulse 2s ease-in-out infinite; }
 @keyframes hv-wl-pulse { 50% { opacity: .35; } }
-.hv-timer-task { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hv-timer-task { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hv-timer-clock { font-variant-numeric: tabular-nums; color: var(--huvant-muted); }
 .hv-timer-stop {
     display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px;
@@ -54,6 +54,7 @@
     width: 100%; margin-bottom: 6px; padding: 6px 10px; font-size: 13px;
     border: 1px solid var(--huvant-hairline); border-radius: 6px; background: transparent; color: var(--huvant-ink);
 }
+@media (max-width: 1280px) { .hv-timer-task { max-width: 90px; } }
 @media (max-width: 640px) { .hv-timer-task, .hv-timer-start span { display: none; } }
 
 /* Pages */
