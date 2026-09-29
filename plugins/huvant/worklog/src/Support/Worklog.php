@@ -248,6 +248,16 @@ class Worklog
         return ['days' => $days, 'rows' => $rows, 'projects' => $projects];
     }
 
+    /** "28 set – 4 ott 2026", independent of the panel locale. */
+    public static function weekLabel(CarbonImmutable $monday): string
+    {
+        $months = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+        $sunday = $monday->addDays(6);
+        $day = fn (CarbonImmutable $d): string => $d->day.' '.$months[$d->month - 1];
+
+        return $day($monday).($monday->year !== $sunday->year ? ' '.$monday->year : '').' – '.$day($sunday).' '.$sunday->year;
+    }
+
     public static function format(float $hours): string
     {
         $minutes = (int) round($hours * 60);

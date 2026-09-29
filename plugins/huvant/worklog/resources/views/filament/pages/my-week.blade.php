@@ -8,7 +8,7 @@
         <div class="hv-wl-toolbar">
             <div class="hv-wl-weeknav">
                 <x-filament::icon-button icon="heroicon-m-chevron-left" wire:click="shiftWeek(-1)" label="Settimana precedente" color="gray" />
-                <span class="hv-wl-range">{{ $monday->translatedFormat('j M') }} – {{ $monday->addDays(6)->translatedFormat('j M Y') }}</span>
+                <span class="hv-wl-range">{{ Worklog::weekLabel($monday) }}</span>
                 <x-filament::icon-button icon="heroicon-m-chevron-right" wire:click="shiftWeek(1)" label="Settimana successiva" color="gray" />
                 @if ($monday->toDateString() !== \Carbon\CarbonImmutable::today()->startOfWeek()->toDateString())
                     <x-filament::button size="sm" color="gray" wire:click="thisWeek">Oggi</x-filament::button>
