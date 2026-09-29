@@ -83,7 +83,7 @@
                             @php [$label, $tone] = Calendar::PRESENCE[$cell['presence']]; @endphp
                             <span @class(['hv-cal-cell', 'tone-'.$tone, 'is-today' => $cell['date']->isSameDay($today)])
                                   title="{{ $label }}@foreach ($cell['events'] as $e)&#10;{{ $e->all_day ? 'All day' : $e->starts_at->format('H:i') }} {{ $e->private && ! $e->attendees->contains('user_id', auth()->id()) ? 'Busy' : $e->title }}@endforeach">
-                                <span class="hv-cal-presence">{{ $cell['presence'] === 'office' ? '' : $label }}</span>
+                                <span class="hv-cal-presence">{{ $cell['presence'] === 'office' ? 'Office' : $label }}</span>
                                 @if ($cell['meetings'])<span class="hv-cal-meetings">{{ $cell['meetings'] }} {{ $cell['meetings'] === 1 ? 'meeting' : 'meetings' }}</span>@endif
                             </span>
                         @endforeach

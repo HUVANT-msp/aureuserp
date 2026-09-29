@@ -39,8 +39,9 @@ button.hv-cal-person:hover { color: var(--hv-c-primary); }
 .tone-off.hv-cal-status { color: var(--hv-c-off); }
 .tone-idle.hv-cal-status { color: var(--huvant-muted); }
 .hv-cal-cell { display: grid; align-content: center; gap: 2px; margin: 4px 3px; padding: 5px 8px; border-radius: 8px; font-size: 12px; }
-.hv-cal-cell.is-today { outline: 2px solid color-mix(in srgb, var(--hv-c-primary) 45%, transparent); outline-offset: -2px; }
-.hv-cal-cell.tone-ok { background: transparent; }
+.hv-cal-cell.is-today { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hv-c-primary) 35%, transparent); }
+.hv-cal-cell.tone-ok { background: transparent; color: var(--huvant-muted); }
+.hv-cal-cell.tone-ok .hv-cal-presence { font-weight: 500; opacity: .7; }
 .hv-cal-cell.tone-remote { background: var(--hv-c-remote-soft); color: var(--hv-c-remote); }
 .hv-cal-cell.tone-limited { background: var(--hv-c-lim-soft); color: var(--hv-c-lim); }
 .hv-cal-cell.tone-off { background: var(--hv-c-off-soft); color: var(--hv-c-off); }

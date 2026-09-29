@@ -193,10 +193,18 @@ class CalendarPage extends Page
             ->modalHeading($editing ? 'Edit event' : 'New event')
             ->modalWidth(Width::TwoExtraLarge)
             ->modalSubmitActionLabel($editing ? 'Save' : 'Create')
-            ->fillForm(fn (): array => [
-                'kind' => 'meeting', 'date' => CarbonImmutable::today()->toDateString(), 'from' => CarbonImmutable::now()->addHour()->startOfHour()->format('H:i'),
-                'to'   => CarbonImmutable::now()->addHours(2)->startOfHour()->format('H:i'), 'all_day' => false, 'attendees' => [],
-            ])
+            ->fillForm(function (): array {
+                // Next full hour today, or tomorrow morning once the working day is over.
+                $start = CarbonImmutable::now()->addHour()->startOfHour();
+                if ($start->hour >= 18 || $start->hour < 8) {
+                    $start = CarbonImmutable::today()->addDay()->setTime(9, 0);
+                }
+
+                return [
+                    'kind' => 'meeting', 'date' => $start->toDateString(), 'from' => $start->format('H:i'),
+                    'to'   => $start->addHour()->format('H:i'), 'all_day' => false, 'attendees' => [],
+                ];
+            })
             ->schema([
                 ToggleButtons::make('kind')->hiddenLabel()->inline()->live()->required()
                     ->options(collect(Calendar::KINDS)->map(fn ($k) => $k[0])->all())
