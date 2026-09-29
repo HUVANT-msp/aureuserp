@@ -25,7 +25,7 @@ class ManageProjectBoard extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Bacheca';
+        return 'Board';
     }
 
     public function getTitle(): string|Htmlable

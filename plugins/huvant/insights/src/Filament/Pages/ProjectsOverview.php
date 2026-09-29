@@ -19,7 +19,7 @@ class ProjectsOverview extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-fire';
 
-    #[Url(as: 'giorni')]
+    #[Url(as: 'days')]
     public int $days = 7;
 
     public static function getNavigationGroup(): string|\UnitEnum
@@ -29,12 +29,12 @@ class ProjectsOverview extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Panoramica';
+        return 'Overview';
     }
 
     public function getTitle(): string
     {
-        return 'Panoramica progetti';
+        return 'Projects overview';
     }
 
     public static function canAccess(): bool

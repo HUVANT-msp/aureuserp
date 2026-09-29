@@ -86,7 +86,7 @@ class Worklog
         static::assertAssignee($user, $taskId);
         DB::transaction(function () use ($user, $taskId, $note): void {
             if ($running = static::running($user)) {
-                throw new RuntimeException('Hai già un timer su «'.$running->task_title.'»: fermalo e scrivi cosa hai fatto.');
+                throw new RuntimeException('A timer is already running on "'.$running->task_title.'": stop it and describe what you did.');
             }
             DB::table(self::TIMERS)->insert([
                 'user_id'    => $user->getKey(),
@@ -138,17 +138,17 @@ class Worklog
         $description = static::requireDescription($description);
         $hours = round($hours, 2);
         if ($hours <= 0 || $hours > 24) {
-            throw new RuntimeException('Indica da 1 minuto a 24 ore.');
+            throw new RuntimeException('Enter between 1 minute and 24 hours.');
         }
         $day = CarbonImmutable::parse($date)->startOfDay();
         if ($day->isAfter(CarbonImmutable::today())) {
-            throw new RuntimeException('Non si registrano ore nel futuro.');
+            throw new RuntimeException('Time cannot be logged in the future.');
         }
 
         $startedAt = null;
         if ($from !== null && trim($from) !== '') {
             if (! preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/', trim($from), $m)) {
-                throw new RuntimeException('Scrivi l\'orario di inizio come 9:30.');
+                throw new RuntimeException('Write the start time like 9:30.');
             }
             $startedAt = $day->setTime((int) $m[1], (int) $m[2]);
         }
@@ -162,7 +162,7 @@ class Worklog
         static::assertOwnEntry($user, $entry);
         $hours = round($hours, 2);
         if ($hours <= 0 || $hours > 24) {
-            throw new RuntimeException('Indica da 1 minuto a 24 ore.');
+            throw new RuntimeException('Enter between 1 minute and 24 hours.');
         }
         $entry->forceFill(['unit_amount' => $hours, 'name' => static::requireDescription($description)])->save();
         $span = DB::table(self::SPANS)->where('timesheet_id', $entry->getKey())->first();
@@ -195,7 +195,7 @@ class Worklog
     {
         $description = trim(preg_replace('/\s+/u', ' ', (string) $description) ?? '');
         if (mb_strlen($description) < 3) {
-            throw new RuntimeException('Scrivi cosa hai fatto: la descrizione è obbligatoria.');
+            throw new RuntimeException('Describe what you did: a description is required.');
         }
 
         return mb_substr($description, 0, 255);
@@ -220,7 +220,7 @@ class Worklog
             ->map(fn (Task $task): array => [
                 'id'      => $task->getKey(),
                 'title'   => $task->title,
-                'project' => $task->project?->name ?? 'Senza progetto',
+                'project' => $task->project?->name ?? 'No project',
                 'hours'   => collect($days)->mapWithKeys(fn (string $day): array => [$day => $hours[$task->getKey()][$day] ?? 0.0])->all(),
             ])->values()->all();
 
@@ -272,7 +272,7 @@ class Worklog
                     'hours'       => round((float) $row->unit_amount, 2),
                     'description' => (string) $row->name,
                     'task'        => $row->task_title ?? '—',
-                    'project'     => $row->project_name ?? 'Senza progetto',
+                    'project'     => $row->project_name ?? 'No project',
                     'color'       => $color($row),
                 ];
                 if ($row->started_at && $row->ended_at) {
@@ -294,7 +294,7 @@ class Worklog
         }
 
         $projects = $entries->groupBy(fn ($row) => $row->project_id ?? 0)->map(fn ($rows) => [
-            'name'  => $rows->first()->project_name ?? 'Senza progetto',
+            'name'  => $rows->first()->project_name ?? 'No project',
             'color' => $color($rows->first()),
             'hours' => round($rows->sum('unit_amount'), 2),
         ])->sortByDesc('hours')->values()->all();
@@ -353,7 +353,7 @@ class Worklog
         $projects = Timesheet::query()->withoutGlobalScopes()
             ->leftJoin('projects_projects', 'projects_projects.id', '=', 'analytic_records.project_id')
             ->whereBetween('analytic_records.date', [$days[0], $days[6]])
-            ->selectRaw("COALESCE(projects_projects.name, 'Senza progetto') as project, SUM(analytic_records.unit_amount) as hours")
+            ->selectRaw("COALESCE(projects_projects.name, 'No project') as project, SUM(analytic_records.unit_amount) as hours")
             ->groupBy('project')->orderByDesc('hours')->get()
             ->map(fn ($row): array => ['project' => $row->project, 'hours' => round((float) $row->hours, 2)])->all();
 
@@ -363,7 +363,7 @@ class Worklog
     /** "28 set – 4 ott 2026", independent of the panel locale. */
     public static function weekLabel(CarbonImmutable $monday): string
     {
-        $months = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         $sunday = $monday->addDays(6);
         $day = fn (CarbonImmutable $d): string => $d->day.' '.$months[$d->month - 1];
 
@@ -388,7 +388,7 @@ class Worklog
             return (int) $m[1] + (int) $m[2] / 60;
         }
         if (! is_numeric($normalized = str_replace(',', '.', $value))) {
-            throw new RuntimeException('Scrivi le ore come 1,5 oppure 1:30.');
+            throw new RuntimeException('Write hours like 1.5 or 1:30.');
         }
 
         return (float) $normalized;
@@ -419,14 +419,14 @@ class Worklog
     private static function assertOwnEntry(User $user, Timesheet $entry): void
     {
         if (! static::canEditEntry($user, $entry)) {
-            throw new RuntimeException('Puoi modificare solo le tue registrazioni.');
+            throw new RuntimeException('You can only change your own entries.');
         }
     }
 
     private static function assertAssignee(User $user, int $taskId): void
     {
         if (! static::isAssignee($user, $taskId)) {
-            throw new RuntimeException('Puoi registrare ore solo sui task di cui sei assegnatario: aggiungiti prima al task.');
+            throw new RuntimeException('You can only log time on tasks you are assigned to: join the task first.');
         }
     }
 

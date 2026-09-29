@@ -30,7 +30,7 @@ class DocumentsPlugin implements Plugin
         }
 
         $panel->when($panel->getId() == 'admin', function (Panel $panel): void {
-            // A "Documenti" tab on every project and task (before the panel builds its routes).
+            // A "Documents" tab on every project and task (before the panel builds its routes).
             ProjectResource::registerRecordPage('documents', ManageProjectDocuments::class, '/{record}/documents');
             TaskResource::registerRecordPage('documents', ManageTaskDocuments::class, '/{record}/documents');
 

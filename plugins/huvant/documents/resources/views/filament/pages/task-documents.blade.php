@@ -1,9 +1,9 @@
 <x-filament-panels::page>
     <p class="hv-doc-hint">
         @if ($this->record->project_id)
-            Visibili a chi lavora al progetto; li trovi anche nei documenti del progetto, in «Allegati ai task».
+            Visible to everyone on the project; they also appear in the project documents, under “Task attachments”.
         @else
-            Questo task non è in un progetto: i documenti sono visibili a chi vede il task.
+            This task is not in a project: its documents are visible to whoever can see the task.
         @endif
     </p>
     {{ $this->table }}

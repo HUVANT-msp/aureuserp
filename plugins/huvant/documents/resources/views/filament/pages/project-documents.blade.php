@@ -1,8 +1,8 @@
 <x-filament-panels::page>
-    <nav class="hv-doc-trail" aria-label="Percorso">
+    <nav class="hv-doc-trail" aria-label="Path">
         <button type="button" wire:click="openFolder(null)" @class(['is-current' => ! $trail && ! $taskFiles])>
             <x-filament::icon icon="heroicon-m-folder" class="h-4 w-4" />
-            Documenti
+            Documents
         </button>
         @foreach ($trail as $crumb)
             <x-filament::icon icon="heroicon-m-chevron-right" class="hv-doc-sep h-4 w-4" />
@@ -10,7 +10,7 @@
         @endforeach
         @if ($taskFiles)
             <x-filament::icon icon="heroicon-m-chevron-right" class="hv-doc-sep h-4 w-4" />
-            <button type="button" class="is-current">Allegati ai task</button>
+            <button type="button" class="is-current">Task attachments</button>
         @endif
     </nav>
 
@@ -23,7 +23,7 @@
                         <span class="hv-doc-folder-name">{{ $folder->name }}</span>
                         <span class="hv-doc-folder-meta">
                             @php($items = $folder->documents_count + $folder->children_count)
-                            {{ $items === 0 ? 'Vuota' : ($items === 1 ? '1 elemento' : $items.' elementi') }}
+                            {{ $items === 0 ? 'Empty' : ($items === 1 ? '1 item' : $items.' items') }}
                         </span>
                     </button>
                     <div class="hv-doc-folder-actions">
@@ -36,8 +36,8 @@
                 <li>
                     <button type="button" class="hv-doc-folder is-virtual" wire:click="openFolder('task')">
                         <x-filament::icon icon="heroicon-s-paper-clip" class="hv-doc-folder-icon" />
-                        <span class="hv-doc-folder-name">Allegati ai task</span>
-                        <span class="hv-doc-folder-meta">{{ $taskCount === 1 ? '1 elemento' : $taskCount.' elementi' }}</span>
+                        <span class="hv-doc-folder-name">Task attachments</span>
+                        <span class="hv-doc-folder-meta">{{ $taskCount === 1 ? '1 item' : $taskCount.' items' }}</span>
                     </button>
                 </li>
             @endif

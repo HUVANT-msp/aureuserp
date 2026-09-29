@@ -26,12 +26,12 @@ class ManageTaskWork extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Lavoro';
+        return 'Work';
     }
 
     public function getTitle(): string|Htmlable
     {
-        return 'Lavoro sul task';
+        return 'Work on this task';
     }
 
     protected function getViewData(): array

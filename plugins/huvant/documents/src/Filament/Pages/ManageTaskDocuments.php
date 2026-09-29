@@ -32,12 +32,12 @@ class ManageTaskDocuments extends Page implements HasTable
 
     public static function getNavigationLabel(): string
     {
-        return 'Documenti';
+        return 'Documents';
     }
 
     public function getTitle(): string|Htmlable
     {
-        return 'Documenti';
+        return 'Documents';
     }
 
     protected function documentsProjectId(): ?int

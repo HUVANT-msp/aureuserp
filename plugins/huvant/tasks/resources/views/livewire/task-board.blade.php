@@ -2,13 +2,13 @@
     use Huvant\Tasks\Support\Board;
     use Huvant\Tasks\Support\Palette;
     use Huvant\Tasks\Support\TaskWork;
-    $months = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+    $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 @endphp
 <div class="hv-board" x-data="{ dragging: null, over: null, filtersOpen: false }">
     {{-- Toolbar: views and filters --}}
     <div class="hv-board-toolbar">
-        <div class="hv-seg" role="tablist" aria-label="Vista">
-            @foreach (['kanban' => ['Kanban', 'heroicon-m-view-columns'], 'timeline' => ['Timeline', 'heroicon-m-chart-bar'], 'list' => ['Elenco', 'heroicon-m-list-bullet']] as $key => [$label, $icon])
+        <div class="hv-seg" role="tablist" aria-label="View">
+            @foreach (['kanban' => ['Kanban', 'heroicon-m-view-columns'], 'timeline' => ['Timeline', 'heroicon-m-chart-bar'], 'list' => ['List', 'heroicon-m-list-bullet']] as $key => [$label, $icon])
                 <button type="button" role="tab" aria-selected="{{ $view === $key ? 'true' : 'false' }}" wire:click="setView('{{ $key }}')">
                     <x-filament::icon :icon="$icon" class="h-4 w-4" />{{ $label }}
                 </button>
@@ -17,32 +17,32 @@
 
         <div class="hv-board-search">
             <x-filament::icon icon="heroicon-m-magnifying-glass" class="h-4 w-4" />
-            <input type="search" placeholder="Cerca un task" wire:model.live.debounce.300ms="filters.search" aria-label="Cerca un task" />
+            <input type="search" placeholder="Search tasks" wire:model.live.debounce.300ms="filters.search" aria-label="Search tasks" />
         </div>
 
         <div class="hv-board-quick">
-            <select wire:model.live="filters.assignee" aria-label="Assegnatario">
-                <option value="all">Tutti</option>
-                <option value="me">Solo i miei</option>
-                <option value="none">Non assegnati</option>
-                <optgroup label="Persona">
+            <select wire:model.live="filters.assignee" aria-label="Assignee">
+                <option value="all">Everyone</option>
+                <option value="me">Only mine</option>
+                <option value="none">Unassigned</option>
+                <optgroup label="Person">
                     @foreach ($people as $person)
                         <option value="{{ $person->id }}">{{ $person->name }}</option>
                     @endforeach
                 </optgroup>
             </select>
-            <select wire:model.live="filters.due" aria-label="Scadenza">
-                <option value="all">Qualsiasi scadenza</option>
-                <option value="overdue">Scaduti</option>
-                <option value="week">Entro 7 giorni</option>
-                <option value="none">Senza scadenza</option>
+            <select wire:model.live="filters.due" aria-label="Deadline">
+                <option value="all">Any deadline</option>
+                <option value="overdue">Overdue</option>
+                <option value="week">Within 7 days</option>
+                <option value="none">No deadline</option>
             </select>
             <button type="button" class="hv-chip-btn" x-on:click="filtersOpen = ! filtersOpen" :aria-expanded="filtersOpen">
                 <x-filament::icon icon="heroicon-m-funnel" class="h-4 w-4" />
-                Filtri @if ($active)<span class="hv-count">{{ $active }}</span>@endif
+                Filters @if ($active)<span class="hv-count">{{ $active }}</span>@endif
             </button>
             @if ($active)
-                <button type="button" class="hv-link-btn" wire:click="resetFilters">Azzera</button>
+                <button type="button" class="hv-link-btn" wire:click="resetFilters">Reset</button>
             @endif
         </div>
     </div>
@@ -50,7 +50,7 @@
     <div class="hv-board-filters" x-show="filtersOpen" x-cloak>
         @if ($projects->isNotEmpty())
             <fieldset>
-                <legend>Progetti</legend>
+                <legend>Projects</legend>
                 <div class="hv-project-chips">
                     @foreach ($projects as $project)
                         <label class="hv-project-chip" style="--pc: {{ Palette::project($project->id, $project->color) }}">
@@ -62,9 +62,9 @@
             </fieldset>
         @endif
         <fieldset class="hv-toggles">
-            <legend>Mostra anche</legend>
-            <label><input type="checkbox" wire:model.live="filters.subtasks" /> Sottotask</label>
-            <label><input type="checkbox" wire:model.live="filters.cancelled" /> Annullati</label>
+            <legend>Also show</legend>
+            <label><input type="checkbox" wire:model.live="filters.subtasks" /> Subtasks</label>
+            <label><input type="checkbox" wire:model.live="filters.cancelled" /> Cancelled</label>
         </fieldset>
     </div>
 
@@ -104,14 +104,14 @@
                                      x-on:click="$dispatch('huvant-open-task', { taskId: {{ $task->id }} })"
                                      x-on:keydown.enter="$dispatch('huvant-open-task', { taskId: {{ $task->id }} })">
                                 @unless ($projectId)
-                                    <p class="hv-card-project"><span class="hv-dot"></span>{{ $task->project?->name ?? 'Senza progetto' }}</p>
+                                    <p class="hv-card-project"><span class="hv-dot"></span>{{ $task->project?->name ?? 'No project' }}</p>
                                 @endunless
                                 <h4>
                                     @if ($task->priority)<x-filament::icon icon="heroicon-s-star" class="hv-star h-4 w-4" />@endif
                                     {{ $task->title }}
                                 </h4>
                                 @if ($task->parent_id)
-                                    <p class="hv-card-parent">Sottotask</p>
+                                    <p class="hv-card-parent">Subtask</p>
                                 @endif
                                 <footer>
                                     <span class="hv-avatars">
@@ -121,10 +121,10 @@
                                         @if ($task->users->count() > 3)<span class="hv-avatar more">+{{ $task->users->count() - 3 }}</span>@endif
                                     </span>
                                     @if ($task->subTasks->isNotEmpty())
-                                        <span class="hv-meta" title="Sottotask completati"><x-filament::icon icon="heroicon-m-check-circle" class="h-3.5 w-3.5" />{{ $done }}/{{ $task->subTasks->count() }}</span>
+                                        <span class="hv-meta" title="Subtasks done"><x-filament::icon icon="heroicon-m-check-circle" class="h-3.5 w-3.5" />{{ $done }}/{{ $task->subTasks->count() }}</span>
                                     @endif
                                     @if ((float) $task->total_hours_spent > 0)
-                                        <span class="hv-meta" title="Ore registrate"><x-filament::icon icon="heroicon-m-clock" class="h-3.5 w-3.5" />{{ TaskWork::hours((float) $task->total_hours_spent) }}</span>
+                                        <span class="hv-meta" title="Time logged"><x-filament::icon icon="heroicon-m-clock" class="h-3.5 w-3.5" />{{ TaskWork::hours((float) $task->total_hours_spent) }}</span>
                                     @endif
                                     @if ($label = Board::dueLabel($task))
                                         <span @class(['hv-due', 'is-overdue' => $overdue])><x-filament::icon icon="heroicon-m-calendar" class="h-3.5 w-3.5" />{{ $label }}</span>
@@ -132,7 +132,7 @@
                                 </footer>
                             </article>
                         @empty
-                            <p class="hv-col-empty">Trascina qui un task</p>
+                            <p class="hv-col-empty">Drop a task here</p>
                         @endforelse
                     </div>
                 </section>
@@ -148,12 +148,12 @@
         @endphp
         <div class="hv-timeline-tools">
             <div class="hv-weeknav">
-                <x-filament::icon-button icon="heroicon-m-chevron-left" color="gray" wire:click="shiftTimeline(-{{ max(1, intdiv($weeks, 2)) }})" label="Indietro" />
+                <x-filament::icon-button icon="heroicon-m-chevron-left" color="gray" wire:click="shiftTimeline(-{{ max(1, intdiv($weeks, 2)) }})" label="Back" />
                 <span>{{ $start->day }} {{ $months[$start->month - 1] }} – {{ $end->day }} {{ $months[$end->month - 1] }} {{ $end->year }}</span>
-                <x-filament::icon-button icon="heroicon-m-chevron-right" color="gray" wire:click="shiftTimeline({{ max(1, intdiv($weeks, 2)) }})" label="Avanti" />
+                <x-filament::icon-button icon="heroicon-m-chevron-right" color="gray" wire:click="shiftTimeline({{ max(1, intdiv($weeks, 2)) }})" label="Forward" />
             </div>
             <div class="hv-seg small">
-                @foreach ([4 => '4 sett.', 6 => '6 sett.', 12 => '3 mesi', 26 => '6 mesi'] as $w => $label)
+                @foreach ([4 => '4 weeks', 6 => '6 weeks', 12 => '3 months', 26 => '6 months'] as $w => $label)
                     <button type="button" aria-selected="{{ $weeks === $w ? 'true' : 'false' }}" wire:click="zoom({{ $w }})">{{ $label }}</button>
                 @endforeach
             </div>
@@ -191,7 +191,7 @@
                             <button type="button"
                                     @class(['hv-tl-bar', 'is-done' => $state === 'done', 'is-overdue' => Board::isOverdue($task), 'is-open' => ! $to, 'is-clipped-start' => $from->lt($start)])
                                     style="left: calc({{ $a }} * var(--day)); width: calc({{ $b - $a + 1 }} * var(--day))"
-                                    title="{{ $task->title }} · {{ $from->format('d/m') }} → {{ $to ? $to->format('d/m') : 'senza scadenza' }}"
+                                    title="{{ $task->title }} · {{ $from->format('d/m') }} → {{ $to ? $to->format('d/m') : 'no deadline' }}"
                                     x-on:click="$dispatch('huvant-open-task', { taskId: {{ $task->id }} })">
                                 <span>{{ $task->title }}</span>
                             </button>
@@ -199,10 +199,10 @@
                     </div>
                 @endforeach
             @empty
-                <p class="hv-empty">Nessun task in questo periodo.</p>
+                <p class="hv-empty">No tasks in this period.</p>
             @endforelse
         </div>
-        <p class="hv-hint">La barra va dall'inizio pianificato (o dalla creazione) alla scadenza. Tratteggiata: senza scadenza. Imposta le date aprendo il task.</p>
+        <p class="hv-hint">Bars run from the planned start (or creation) to the deadline; dashed means no deadline. Open a task to set its dates.</p>
     @endif
 
     {{-- List --}}
@@ -211,7 +211,7 @@
             <table class="hv-list">
                 <thead>
                     <tr>
-                        @foreach (['title' => 'Task', 'project' => 'Progetto', 'stage' => 'Stato', 'people' => 'Persone', 'deadline' => 'Scadenza', 'hours' => 'Ore'] as $key => $label)
+                        @foreach (['title' => 'Task', 'project' => 'Project', 'stage' => 'Stage', 'people' => 'People', 'deadline' => 'Deadline', 'hours' => 'Hours'] as $key => $label)
                             <th scope="col">
                                 @if ($key !== 'people')
                                     <button type="button" wire:click="sortBy('{{ $key }}')">{{ $label }}
@@ -246,7 +246,7 @@
                             <td class="hv-num">{{ (float) $task->total_hours_spent > 0 ? TaskWork::hours((float) $task->total_hours_spent) : '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="hv-empty">Nessun task con questi filtri.</td></tr>
+                        <tr><td colspan="6" class="hv-empty">No tasks match these filters.</td></tr>
                     @endforelse
                 </tbody>
             </table>

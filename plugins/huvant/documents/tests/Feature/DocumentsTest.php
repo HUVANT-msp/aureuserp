@@ -136,14 +136,14 @@ it('renders the project and task documents tabs', function () {
         ->assertSee('Kick-off');
 
     $folder = Folder::query()->where('project_id', $project->getKey())->firstOrFail();
-    $page->call('openFolder', (string) $folder->getKey())->assertSee('Nessun documento')->assertDontSee('Kick-off');
+    $page->call('openFolder', (string) $folder->getKey())->assertSee('No documents')->assertDontSee('Kick-off');
 
     Livewire::test(ManageTaskDocuments::class, ['record' => $task])->assertOk()
         ->callAction('newNote', ['title' => 'Checklist', 'body' => null])
         ->assertSee('Checklist');
 
     expect(Document::query()->where('task_id', $task)->value('project_id'))->toBe($project->getKey());
-    $this->get(ManageProjectDocuments::getUrl(['record' => $project->getKey()]))->assertOk()->assertSee('Allegati ai task');
+    $this->get(ManageProjectDocuments::getUrl(['record' => $project->getKey()]))->assertOk()->assertSee('Task attachments');
 });
 
 it('refuses downloads without a session', function () {

@@ -37,7 +37,7 @@ class TaskPanel extends Component
         $this->entry = ['date' => CarbonImmutable::today()->toDateString(), 'hours' => '', 'description' => ''];
         if (! $this->task()) {
             $this->taskId = null;
-            Notification::make()->warning()->title('Task non trovato o non visibile.')->send();
+            Notification::make()->warning()->title('Task not found or not visible.')->send();
 
             return;
         }
@@ -61,7 +61,7 @@ class TaskPanel extends Component
             $task = $this->editableTask();
             $date = $value ? CarbonImmutable::parse($value) : null;
             if ($field === 'deadline' && $date && $task->huvant_start_date && $date->lt(CarbonImmutable::parse($task->huvant_start_date))) {
-                throw new RuntimeException('La scadenza è prima dell\'inizio.');
+                throw new RuntimeException('The deadline is before the start.');
             }
             $task->forceFill([$field => $field === 'deadline' ? $date?->setTime(18, 0) : $date?->toDateString()])->save();
         });
@@ -123,7 +123,7 @@ class TaskPanel extends Component
 
     public function startTimer(): void
     {
-        $this->attempt(fn () => Worklog::start($this->user(), $this->taskId), 'Timer avviato');
+        $this->attempt(fn () => Worklog::start($this->user(), $this->taskId), 'Timer started');
         $this->dispatch('huvant-worklog-changed');
     }
 
@@ -131,7 +131,7 @@ class TaskPanel extends Component
     {
         $ok = $this->attempt(fn () => Worklog::addEntry(
             $this->user(), $this->taskId, (string) $this->entry['date'], Worklog::parse((string) $this->entry['hours']), (string) $this->entry['description']
-        ), 'Ore registrate');
+        ), 'Time logged');
         if ($ok) {
             $this->entry = ['date' => $this->entry['date'], 'hours' => '', 'description' => ''];
             $this->dispatch('huvant-worklog-changed');
@@ -169,7 +169,7 @@ class TaskPanel extends Component
     {
         $task = $this->task();
         if (! $task || ! Gate::allows('update', $task)) {
-            throw new RuntimeException('Non puoi modificare questo task.');
+            throw new RuntimeException('You cannot change this task.');
         }
 
         return $task;
@@ -188,7 +188,7 @@ class TaskPanel extends Component
         } catch (RuntimeException $e) {
             Notification::make()->danger()->title($e->getMessage())->send();
         } catch (ModelNotFoundException) {
-            Notification::make()->danger()->title('Elemento non trovato.')->send();
+            Notification::make()->danger()->title('Item not found.')->send();
         }
 
         return false;

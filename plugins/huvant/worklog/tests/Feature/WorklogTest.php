@@ -150,14 +150,14 @@ it('renders my hours, the entries, the team overview and the top bar timer', fun
         ->call('discard')->assertDontSee('hv-timer-running', false);
     Carbon::setTestNow();
 
-    Livewire\Livewire::test(MyWeek::class)->assertOk()->assertSee('Aggiungimi a un task')
+    Livewire\Livewire::test(MyWeek::class)->assertOk()->assertSee('Join a task')
         ->call('openDay', $task, now()->toDateString())
         ->set('entry', ['from' => '9:00', 'hours' => '1:30', 'description' => 'Montaggio'])->call('addEntry')
         ->assertCount('edits', 1)
         ->call('setTab', 'timeline')->assertOk()->assertSee('Montaggio', false)
         ->set('joining', true)->assertOk();
     Livewire\Livewire::test(TimeEntries::class)->assertOk()->assertSee('Montaggio');
-    Livewire\Livewire::test(TeamHours::class)->assertOk()->assertSee('Ore per progetto')
+    Livewire\Livewire::test(TeamHours::class)->assertOk()->assertSee('Hours by project')
         ->call('shiftWeek', -1)->assertOk();
 
     expect((float) Timesheet::query()->where('task_id', $task)->sum('unit_amount'))->toBe(1.5);

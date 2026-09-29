@@ -19,7 +19,7 @@ use Webkul\Timesheet\Models\Timesheet;
  */
 class MyWeek extends Page
 {
-    public const GROUP = 'Ore';
+    public const GROUP = 'Time';
 
     protected string $view = 'huvant-worklog::filament.pages.my-week';
 
@@ -29,10 +29,10 @@ class MyWeek extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clock';
 
-    #[Url(as: 'settimana')]
+    #[Url(as: 'week')]
     public string $week = '';
 
-    #[Url(as: 'vista')]
+    #[Url(as: 'view')]
     public string $tab = 'week';
 
     public string $search = '';
@@ -55,12 +55,12 @@ class MyWeek extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Le mie ore';
+        return 'My time';
     }
 
     public function getTitle(): string
     {
-        return 'Le mie ore';
+        return 'My time';
     }
 
     public static function canAccess(): bool
@@ -105,7 +105,7 @@ class MyWeek extends Page
         $ok = $this->attempt(fn () => Worklog::addEntry(
             $this->user(), (int) $this->cellTask, $this->cellDate, Worklog::parse((string) $this->entry['hours']),
             (string) $this->entry['description'], (string) $this->entry['from'],
-        ), 'Ore registrate');
+        ), 'Time logged');
         if ($ok) {
             $this->openDay((int) $this->cellTask, $this->cellDate);
         }
@@ -119,20 +119,20 @@ class MyWeek extends Page
         }
         $this->attempt(fn () => Worklog::updateEntry(
             $this->user(), $entry, Worklog::parse((string) ($this->edits[$id]['hours'] ?? '')), (string) ($this->edits[$id]['description'] ?? '')
-        ), 'Salvato');
+        ), 'Saved');
     }
 
     public function deleteEntry(int $id): void
     {
         $entry = Timesheet::query()->find($id);
-        if ($entry && $this->attempt(fn () => Worklog::deleteEntry($this->user(), $entry), 'Eliminato')) {
+        if ($entry && $this->attempt(fn () => Worklog::deleteEntry($this->user(), $entry), 'Deleted')) {
             $this->openDay((int) $this->cellTask, $this->cellDate);
         }
     }
 
     public function start(int $taskId): void
     {
-        $this->attempt(fn () => Worklog::start($this->user(), $taskId), 'Timer avviato');
+        $this->attempt(fn () => Worklog::start($this->user(), $taskId), 'Timer started');
     }
 
     public function join(int $taskId): void
@@ -140,7 +140,7 @@ class MyWeek extends Page
         Worklog::join($this->user(), $taskId);
         $this->search = '';
         $this->joining = false;
-        Notification::make()->success()->title('Ora sei assegnatario del task')->send();
+        Notification::make()->success()->title('You are now assigned to the task')->send();
         $this->dispatch('huvant-worklog-changed');
     }
 

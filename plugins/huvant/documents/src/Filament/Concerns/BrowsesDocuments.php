@@ -41,7 +41,7 @@ trait BrowsesDocuments
             ->query(fn (): Builder => $this->documentsQuery()->with(['creator:id,name', 'editor:id,name', 'task:id,title']))
             ->columns([
                 TextColumn::make('title')
-                    ->label('Nome')
+                    ->label('Name')
                     ->icon(fn (Document $record): string => $this->documentIcon($record))
                     ->iconColor(fn (Document $record): string => $record->isNote() ? 'warning' : 'primary')
                     ->weight('medium')
@@ -53,15 +53,15 @@ trait BrowsesDocuments
                     ->limit(60)
                     ->visible(fn (): bool => $this->showsTaskColumn()),
                 TextColumn::make('size')
-                    ->label('Dimensione')
-                    ->formatStateUsing(fn (Document $record): string => $record->isNote() ? 'Nota' : Documents::humanSize($record->size))
+                    ->label('Size')
+                    ->formatStateUsing(fn (Document $record): string => $record->isNote() ? 'Note' : Documents::humanSize($record->size))
                     ->color('gray')
                     ->sortable(),
                 TextColumn::make('creator.name')
-                    ->label('Autore')
+                    ->label('Author')
                     ->color('gray'),
                 TextColumn::make('updated_at')
-                    ->label('Modificato')
+                    ->label('Updated')
                     ->since()
                     ->dateTimeTooltip('d/m/Y H:i')
                     ->color('gray')
@@ -74,26 +74,26 @@ trait BrowsesDocuments
             ->recordActions([
                 $this->openNoteAction(),
                 Action::make('download')
-                    ->label('Scarica')
+                    ->label('Download')
                     ->icon('heroicon-m-arrow-down-tray')
                     ->iconButton()
                     ->color('gray')
                     ->visible(fn (Document $record): bool => $record->isFile())
                     ->url(fn (Document $record): string => route('huvant.documents.show', $record)),
                 Action::make('rename')
-                    ->label('Rinomina')
+                    ->label('Rename')
                     ->icon('heroicon-m-pencil-square')
                     ->iconButton()
                     ->color('gray')
                     ->visible(fn (Document $record): bool => $record->isFile() && Documents::canManage($this->currentUser(), $record))
                     ->modalWidth(Width::Medium)
                     ->fillForm(fn (Document $record): array => ['title' => $record->title])
-                    ->schema([TextInput::make('title')->label('Nome')->required()->maxLength(255)])
+                    ->schema([TextInput::make('title')->label('Name')->required()->maxLength(255)])
                     ->action(function (Document $record, array $data): void {
                         $record->update(['title' => trim($data['title']), 'updated_by' => $this->currentUser()->getKey()]);
                     }),
                 Action::make('move')
-                    ->label('Sposta')
+                    ->label('Move')
                     ->icon('heroicon-m-folder-arrow-down')
                     ->iconButton()
                     ->color('gray')
@@ -102,23 +102,23 @@ trait BrowsesDocuments
                     ->fillForm(fn (Document $record): array => ['folder_id' => $record->folder_id])
                     ->schema(fn (Document $record): array => [
                         Select::make('folder_id')
-                            ->label('Cartella')
-                            ->placeholder('Documenti del progetto (nessuna cartella)')
+                            ->label('Folder')
+                            ->placeholder('Project documents (no folder)')
                             ->options(Documents::folderOptions($record->project_id))
                             ->searchable(),
                     ])
                     ->action(function (Document $record, array $data): void {
-                        $this->attempt(fn () => Documents::move($record, $data['folder_id'] ? (int) $data['folder_id'] : null), 'Spostato');
+                        $this->attempt(fn () => Documents::move($record, $data['folder_id'] ? (int) $data['folder_id'] : null), 'Moved');
                     }),
                 DeleteAction::make()
                     ->iconButton()
-                    ->modalHeading(fn (Document $record): string => "Eliminare «{$record->title}»?")
-                    ->modalDescription('Non si può annullare.')
+                    ->modalHeading(fn (Document $record): string => "Delete \"{$record->title}\"?")
+                    ->modalDescription('This cannot be undone.')
                     ->visible(fn (Document $record): bool => Documents::canManage($this->currentUser(), $record)),
             ])
             ->emptyStateIcon('heroicon-o-document-text')
-            ->emptyStateHeading('Nessun documento')
-            ->emptyStateDescription('Carica un file o scrivi una nota.')
+            ->emptyStateHeading('No documents')
+            ->emptyStateDescription('Upload a file or write a note.')
             ->paginated([25, 50, 100]);
     }
 
@@ -130,10 +130,10 @@ trait BrowsesDocuments
     protected function uploadAction(): Action
     {
         return Action::make('upload')
-            ->label('Carica file')
+            ->label('Upload files')
             ->icon('heroicon-m-arrow-up-tray')
-            ->modalHeading('Carica file')
-            ->modalSubmitActionLabel('Carica')
+            ->modalHeading('Upload files')
+            ->modalSubmitActionLabel('Upload')
             ->modalWidth(Width::Large)
             ->schema([
                 FileUpload::make('files')
@@ -147,7 +147,7 @@ trait BrowsesDocuments
                     ->maxSize(Documents::MAX_UPLOAD_KB)
                     ->maxParallelUploads(3)
                     ->panelLayout('grid')
-                    ->helperText('Fino a 100 MB per file.'),
+                    ->helperText('Up to 100 MB per file.'),
             ])
             ->action(function (array $data): void {
                 $user = $this->currentUser();
@@ -157,46 +157,46 @@ trait BrowsesDocuments
                         $user, $this->documentsProjectId(), $this->documentsFolderId(), $this->documentsTaskId(), $path, $names[$path] ?? null
                     );
                 }
-                Notification::make()->success()->title(count((array) $data['files']) === 1 ? 'File caricato' : 'File caricati')->send();
+                Notification::make()->success()->title(count((array) $data['files']) === 1 ? 'File uploaded' : 'Files uploaded')->send();
             });
     }
 
     protected function newNoteAction(): Action
     {
         return Action::make('newNote')
-            ->label('Nuova nota')
+            ->label('New note')
             ->icon('heroicon-m-pencil')
             ->color('gray')
-            ->modalHeading('Nuova nota')
-            ->modalSubmitActionLabel('Salva')
+            ->modalHeading('New note')
+            ->modalSubmitActionLabel('Save')
             ->modalWidth(Width::FourExtraLarge)
             ->schema($this->noteSchema())
             ->action(function (array $data): void {
                 Documents::createNote(
                     $this->currentUser(), $this->documentsProjectId(), $this->documentsFolderId(), $this->documentsTaskId(), $data['title'], $data['body'] ?? null
                 );
-                Notification::make()->success()->title('Nota salvata')->send();
+                Notification::make()->success()->title('Note saved')->send();
             });
     }
 
     protected function openNoteAction(): Action
     {
         return Action::make('openNote')
-            ->label('Apri')
+            ->label('Open')
             ->icon('heroicon-m-eye')
             ->iconButton()
             ->color('gray')
             ->visible(fn (Document $record): bool => $record->isNote())
             ->modalHeading(fn (Document $record): string => $record->title)
-            ->modalDescription(fn (Document $record): string => 'Ultima modifica di '.($record->editor?->name ?? $record->creator?->name ?? '—').' · '.$record->updated_at?->format('d/m/Y H:i'))
+            ->modalDescription(fn (Document $record): string => 'Last edited by '.($record->editor?->name ?? $record->creator?->name ?? '—').' · '.$record->updated_at?->format('d/m/Y H:i'))
             ->modalWidth(Width::FourExtraLarge)
             ->modalContent(fn (Document $record): HtmlString => new HtmlString(
-                '<div class="hv-doc-note fi-prose">'.(filled($record->body) ? str($record->body)->sanitizeHtml() : '<p class="hv-doc-muted">Nota vuota.</p>').'</div>'
+                '<div class="hv-doc-note fi-prose">'.(filled($record->body) ? str($record->body)->sanitizeHtml() : '<p class="hv-doc-muted">Empty note.</p>').'</div>'
             ))
             ->modalSubmitAction(false)
-            ->modalCancelActionLabel('Chiudi')
+            ->modalCancelActionLabel('Close')
             ->extraModalFooterActions(fn (Action $action): array => [
-                $action->makeModalSubmitAction('edit', ['edit' => true])->label('Modifica')->icon('heroicon-m-pencil-square')->color('primary'),
+                $action->makeModalSubmitAction('edit', ['edit' => true])->label('Edit')->icon('heroicon-m-pencil-square')->color('primary'),
             ])
             ->action(function (Document $record, array $arguments): void {
                 if ($arguments['edit'] ?? false) {
@@ -208,8 +208,8 @@ trait BrowsesDocuments
     public function editNoteAction(): Action
     {
         return Action::make('editNote')
-            ->modalHeading('Modifica nota')
-            ->modalSubmitActionLabel('Salva')
+            ->modalHeading('Edit note')
+            ->modalSubmitActionLabel('Save')
             ->modalWidth(Width::FourExtraLarge)
             ->fillForm(fn (array $arguments): array => $this->findDocument($arguments['record'] ?? null)?->only(['title', 'body']) ?? [])
             ->schema($this->noteSchema())
@@ -219,14 +219,14 @@ trait BrowsesDocuments
                     return;
                 }
                 $document->update(['title' => trim($data['title']), 'body' => $data['body'] ?? null, 'updated_by' => $this->currentUser()->getKey()]);
-                Notification::make()->success()->title('Nota salvata')->send();
+                Notification::make()->success()->title('Note saved')->send();
             });
     }
 
     protected function noteSchema(): array
     {
         return [
-            TextInput::make('title')->label('Titolo')->required()->maxLength(255)->autofocus(),
+            TextInput::make('title')->label('Title')->required()->maxLength(255)->autofocus(),
             RichEditor::make('body')
                 ->hiddenLabel()
                 ->toolbarButtons([

@@ -18,13 +18,13 @@ class TaskBoard extends Component
     /** Set when the board lives inside a project: the project filter is fixed. */
     public ?int $projectId = null;
 
-    #[Url(as: 'vista')]
+    #[Url(as: 'view')]
     public string $view = 'kanban';
 
-    #[Url(as: 'filtri')]
+    #[Url(as: 'filters')]
     public array $filters = Board::DEFAULT_FILTERS;
 
-    #[Url(as: 'dal')]
+    #[Url(as: 'from')]
     public string $from = '';
 
     public int $weeks = 6;
@@ -118,7 +118,7 @@ class TaskBoard extends Component
                 ->where(fn ($q) => $q->whereNull('huvant_start_date')->orWhereDate('huvant_start_date', '<=', $end))
                 ->whereDate('created_at', '<=', $end)
                 ->orderBy('deadline')->limit(400)->get()
-                ->groupBy(fn (Task $task): string => $task->project?->name ?? 'Senza progetto')
+                ->groupBy(fn (Task $task): string => $task->project?->name ?? 'No project')
                 ->sortKeys();
         } else {
             $tasks = Board::query($user, $filters)->limit(800)->get();

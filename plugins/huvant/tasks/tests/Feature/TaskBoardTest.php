@@ -52,7 +52,7 @@ function boardTask(Project $project, int $stageId, array $extra = []): int
     ], $extra));
 }
 
-it('groups tasks by stage with Italian labels, hiding cancelled ones', function () {
+it('groups tasks by stage, hiding cancelled ones', function () {
     $admin = boardAdmin();
     [$project, $stages] = boardProject();
     boardTask($project, $stages['To Do']);
@@ -62,9 +62,9 @@ it('groups tasks by stage with Italian labels, hiding cancelled ones', function 
 
     $columns = collect(Board::columns($admin, ['projects' => [$project->getKey()]]));
 
-    expect($columns->pluck('label')->all())->toBe(['Da fare', 'In corso', 'Completati'])
-        ->and($columns->firstWhere('label', 'Da fare')['count'])->toBe(1)
-        ->and(collect(Board::columns($admin, ['projects' => [$project->getKey()], 'cancelled' => true]))->pluck('label'))->toContain('Annullati');
+    expect($columns->pluck('label')->all())->toBe(['To do', 'In progress', 'Done'])
+        ->and($columns->firstWhere('label', 'To do')['count'])->toBe(1)
+        ->and(collect(Board::columns($admin, ['projects' => [$project->getKey()], 'cancelled' => true]))->pluck('label'))->toContain('Cancelled');
 });
 
 it('moves a task between stages and keeps the state in step', function () {
@@ -112,7 +112,7 @@ it('renders every view, the panel and the project and task tabs', function () {
     expect(Task::query()->findOrFail($id)->stage_id)->toBe($stages['In Progress']);
 
     Livewire::test(TaskPanel::class)
-        ->call('open', $id)->assertOk()->assertSee('Montare il banco prova')->assertSee('Aggiungimi al task')
+        ->call('open', $id)->assertOk()->assertSee('Montare il banco prova')->assertSee('Join this task')
         ->call('joinTask')
         ->set('newSubtask', 'Ordinare i sensori')->call('addSubtask')
         ->assertSee('Ordinare i sensori')

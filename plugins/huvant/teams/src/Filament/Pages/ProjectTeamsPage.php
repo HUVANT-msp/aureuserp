@@ -47,7 +47,7 @@ class ProjectTeamsPage extends Page implements HasForms
 
     public function getTitle(): string
     {
-        return 'Team e progetti';
+        return 'Teams and projects';
     }
 
     public static function canAccess(): bool
@@ -80,21 +80,21 @@ class ProjectTeamsPage extends Page implements HasForms
         return $schema
             ->components([
                 Section::make('Team')
-                    ->description('Chi fa parte di ogni team.')
+                    ->description('Who belongs to each team.')
                     ->schema([
                         Repeater::make('teams')
                             ->hiddenLabel()
                             ->schema([
-                                TextInput::make('name')->label('Nome')->required()->maxLength(255),
-                                Select::make('members')->label('Membri')->multiple()->searchable()->options($users),
+                                TextInput::make('name')->label('Name')->required()->maxLength(255),
+                                Select::make('members')->label('Members')->multiple()->searchable()->options($users),
                             ])
                             ->columns(2)
-                            ->addActionLabel('Nuovo team')
+                            ->addActionLabel('New team')
                             ->defaultItems(0)
                             ->reorderable(false),
                     ]),
-                Section::make('Progetti')
-                    ->description('I team che lavorano su ciascun progetto. Un progetto senza team lo vedono solo gli amministratori.')
+                Section::make('Projects')
+                    ->description('The teams working on each project. A project without a team is visible to administrators only.')
                     ->schema(
                         Project::query()->orderBy('name')->get()->map(
                             fn (Project $project) => Select::make("projects.p{$project->getKey()}")
@@ -102,7 +102,7 @@ class ProjectTeamsPage extends Page implements HasForms
                                 ->multiple()
                                 ->searchable()
                                 ->options($teams)
-                                ->placeholder('Solo amministratori')
+                                ->placeholder('Administrators only')
                         )->all()
                     )
                     ->columns(2),
@@ -112,7 +112,7 @@ class ProjectTeamsPage extends Page implements HasForms
 
     protected function getFormActions(): array
     {
-        return [Action::make('save')->label('Salva')->submit('save')];
+        return [Action::make('save')->label('Save')->submit('save')];
     }
 
     public function save(): void
@@ -146,6 +146,6 @@ class ProjectTeamsPage extends Page implements HasForms
         ProjectTeams::forget();
         $this->mount();
 
-        Notification::make()->title('Team salvati')->success()->send();
+        Notification::make()->title('Teams saved')->success()->send();
     }
 }

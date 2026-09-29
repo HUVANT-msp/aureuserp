@@ -32,14 +32,14 @@ class Board
         'subtasks'  => false,
     ];
 
-    /** Stage names are shared by every project (To Do, In Progress, ...); shown in Italian. */
+    /** Stage names are shared by every project (To Do, In Progress, ...). */
     private const STAGE_LABELS = [
-        'to do'       => 'Da fare',
-        'todo'        => 'Da fare',
-        'in progress' => 'In corso',
-        'done'        => 'Completati',
-        'cancelled'   => 'Annullati',
-        'canceled'    => 'Annullati',
+        'to do'       => 'To do',
+        'todo'        => 'To do',
+        'in progress' => 'In progress',
+        'done'        => 'Done',
+        'cancelled'   => 'Cancelled',
+        'canceled'    => 'Cancelled',
     ];
 
     public static function stageLabel(string $name): string
@@ -115,7 +115,7 @@ class Board
 
         $unstaged = $grouped->get('') ?? collect();
         if ($unstaged->isNotEmpty()) {
-            array_unshift($columns, ['key' => '', 'name' => '', 'label' => 'Senza stato', 'kind' => 'todo', 'tasks' => $unstaged->values(), 'count' => $unstaged->count()]);
+            array_unshift($columns, ['key' => '', 'name' => '', 'label' => 'No stage', 'kind' => 'todo', 'tasks' => $unstaged->values(), 'count' => $unstaged->count()]);
         }
 
         return $columns;
@@ -125,12 +125,12 @@ class Board
     public static function move(User $user, Task $task, string $stageName): void
     {
         if (! Gate::forUser($user)->allows('update', $task)) {
-            throw new RuntimeException('Non puoi modificare questo task.');
+            throw new RuntimeException('You cannot change this task.');
         }
         $stage = TaskStage::query()->where('project_id', $task->project_id)->get()
             ->first(fn (TaskStage $stage): bool => Str::lower(trim($stage->name)) === Str::lower(trim($stageName)));
         if (! $stage) {
-            throw new RuntimeException('Questo progetto non ha lo stato «'.static::stageLabel($stageName).'».');
+            throw new RuntimeException('This project has no "'.static::stageLabel($stageName).'" stage.');
         }
 
         $state = match (static::stageKind($stage->name)) {
@@ -144,7 +144,7 @@ class Board
     public static function setAssignees(User $user, Task $task, array $userIds): void
     {
         if (! Gate::forUser($user)->allows('update', $task)) {
-            throw new RuntimeException('Non puoi modificare questo task.');
+            throw new RuntimeException('You cannot change this task.');
         }
         $task->users()->sync(array_values(array_unique(array_map('intval', $userIds))));
         $task->touch(); // pivot changes do not fire model events: let the Minutes sync know.
@@ -190,12 +190,12 @@ class Board
         $days = (int) CarbonImmutable::today()->diffInDays($task->deadline->copy()->startOfDay(), false);
 
         return match (true) {
-            $days === 0  => 'Oggi',
-            $days === 1  => 'Domani',
-            $days === -1 => 'Ieri',
-            $days < 0    => abs($days).' gg fa',
-            $days < 7    => 'Tra '.$days.' gg',
-            default      => $task->deadline->format('j').' '.['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'][$task->deadline->month - 1],
+            $days === 0  => 'Today',
+            $days === 1  => 'Tomorrow',
+            $days === -1 => 'Yesterday',
+            $days < 0    => abs($days).'d ago',
+            $days < 7    => 'In '.$days.'d',
+            default      => $task->deadline->format('M j'),
         };
     }
 }

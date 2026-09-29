@@ -24,12 +24,12 @@ class TaskBoardPage extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Bacheca';
+        return 'Board';
     }
 
     public function getTitle(): string
     {
-        return 'Bacheca task';
+        return 'Task board';
     }
 
     public static function canAccess(): bool

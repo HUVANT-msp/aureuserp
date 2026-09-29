@@ -21,7 +21,7 @@ class ManageEmployeeWork extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar-square';
 
-    #[Url(as: 'giorni')]
+    #[Url(as: 'days')]
     public int $days = 14;
 
     /** Administrators, the person's manager or coach, and the person. */
@@ -47,7 +47,7 @@ class ManageEmployeeWork extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Lavoro';
+        return 'Work';
     }
 
     public function getTitle(): string|Htmlable

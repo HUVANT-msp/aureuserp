@@ -38,7 +38,7 @@ class TopbarTimer extends Component
         }
         $this->description = '';
         Notification::make()->success()
-            ->title($entry ? 'Registrate '.Worklog::format((float) $entry->unit_amount).' h' : 'Timer fermato (meno di un minuto, non registrato)')
+            ->title($entry ? 'Logged '.Worklog::format((float) $entry->unit_amount).' h' : 'Timer stopped (under a minute, nothing logged)')
             ->send();
         $this->dispatch('huvant-worklog-changed');
     }
@@ -47,7 +47,7 @@ class TopbarTimer extends Component
     {
         Worklog::discard($this->user());
         $this->description = '';
-        Notification::make()->title('Timer annullato, nessuna ora registrata')->send();
+        Notification::make()->title('Timer discarded, nothing logged')->send();
         $this->dispatch('huvant-worklog-changed');
     }
 

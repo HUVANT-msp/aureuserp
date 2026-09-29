@@ -32,7 +32,7 @@ class ManageProjectDocuments extends Page implements HasTable
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-folder';
 
     /** Folder being browsed; "task" shows the files attached to the project's tasks. */
-    #[Url(as: 'cartella')]
+    #[Url(as: 'folder')]
     public ?string $location = null;
 
     public function mount(int|string $record): void
@@ -45,12 +45,12 @@ class ManageProjectDocuments extends Page implements HasTable
 
     public static function getNavigationLabel(): string
     {
-        return 'Documenti';
+        return 'Documents';
     }
 
     public function getTitle(): string|Htmlable
     {
-        return 'Documenti';
+        return 'Documents';
     }
 
     public function openFolder(?string $location): void
@@ -110,15 +110,15 @@ class ManageProjectDocuments extends Page implements HasTable
 
         return [
             Action::make('newFolder')
-                ->label('Nuova cartella')
+                ->label('New folder')
                 ->icon('heroicon-m-folder-plus')
                 ->color('gray')
                 ->modalWidth(Width::Medium)
-                ->modalSubmitActionLabel('Crea')
-                ->schema([TextInput::make('name')->label('Nome')->required()->maxLength(160)->autofocus()])
+                ->modalSubmitActionLabel('Create')
+                ->schema([TextInput::make('name')->label('Name')->required()->maxLength(160)->autofocus()])
                 ->action(fn (array $data) => $this->attempt(
                     fn () => Documents::createFolder($this->currentUser(), $this->documentsProjectId(), $this->documentsFolderId(), $data['name']),
-                    'Cartella creata',
+                    'Folder created',
                 )),
             $this->newNoteAction(),
             $this->uploadAction(),
@@ -128,16 +128,16 @@ class ManageProjectDocuments extends Page implements HasTable
     public function renameFolderAction(): Action
     {
         return Action::make('renameFolder')
-            ->label('Rinomina')
+            ->label('Rename')
             ->icon('heroicon-m-pencil-square')
             ->iconButton()
             ->size('sm')
             ->color('gray')
-            ->modalHeading('Rinomina cartella')
+            ->modalHeading('Rename folder')
             ->modalWidth(Width::Medium)
             ->visible(fn (array $arguments): bool => ($folder = $this->folderFromArguments($arguments)) && Documents::canManage($this->currentUser(), $folder))
             ->fillForm(fn (array $arguments): array => ['name' => $this->folderFromArguments($arguments)?->name])
-            ->schema([TextInput::make('name')->label('Nome')->required()->maxLength(160)])
+            ->schema([TextInput::make('name')->label('Name')->required()->maxLength(160)])
             ->action(function (array $data, array $arguments): void {
                 if ($folder = $this->folderFromArguments($arguments)) {
                     $this->attempt(fn () => Documents::renameFolder($folder, $data['name']));
@@ -148,18 +148,18 @@ class ManageProjectDocuments extends Page implements HasTable
     public function deleteFolderAction(): Action
     {
         return Action::make('deleteFolder')
-            ->label('Elimina')
+            ->label('Delete')
             ->icon('heroicon-m-trash')
             ->iconButton()
             ->size('sm')
             ->color('danger')
             ->requiresConfirmation()
-            ->modalHeading(fn (array $arguments): string => 'Eliminare la cartella «'.($this->folderFromArguments($arguments)?->name ?? '').'»?')
-            ->modalDescription('Si può eliminare solo una cartella vuota.')
+            ->modalHeading(fn (array $arguments): string => 'Delete the folder "'.($this->folderFromArguments($arguments)?->name ?? '').'"?')
+            ->modalDescription('Only an empty folder can be deleted.')
             ->visible(fn (array $arguments): bool => ($folder = $this->folderFromArguments($arguments)) && Documents::canManage($this->currentUser(), $folder))
             ->action(function (array $arguments): void {
                 if ($folder = $this->folderFromArguments($arguments)) {
-                    $this->attempt(fn () => Documents::deleteFolder($folder), 'Cartella eliminata');
+                    $this->attempt(fn () => Documents::deleteFolder($folder), 'Folder deleted');
                 }
             });
     }

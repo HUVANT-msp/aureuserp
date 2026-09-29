@@ -22,7 +22,7 @@ class TeamHours extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
-    #[Url(as: 'settimana')]
+    #[Url(as: 'week')]
     public string $week = '';
 
     public static function getNavigationGroup(): string|\UnitEnum
@@ -32,12 +32,12 @@ class TeamHours extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Ore del team';
+        return 'Team hours';
     }
 
     public function getTitle(): string
     {
-        return 'Ore del team';
+        return 'Team hours';
     }
 
     public static function canAccess(): bool
@@ -66,7 +66,7 @@ class TeamHours extends Page
     {
         return [
             Action::make('export')
-                ->label('Esporta CSV')
+                ->label('Export CSV')
                 ->icon('heroicon-m-arrow-down-tray')
                 ->color('gray')
                 ->action(fn (): StreamedResponse => $this->export()),
@@ -81,7 +81,7 @@ class TeamHours extends Page
         return response()->streamDownload(function () use ($monday, $sunday): void {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Data', 'Persona', 'Progetto', 'Task', 'Ore', 'Nota'], ';');
+            fputcsv($out, ['Date', 'Person', 'Project', 'Task', 'Hours', 'Description'], ';');
             Timesheet::query()->withoutGlobalScopes()
                 ->leftJoin('users', 'users.id', '=', 'analytic_records.user_id')
                 ->leftJoin('projects_projects', 'projects_projects.id', '=', 'analytic_records.project_id')
@@ -96,7 +96,7 @@ class TeamHours extends Page
                     number_format((float) $row->unit_amount, 2, ',', ''), $row->name,
                 ], ';'));
             fclose($out);
-        }, "ore-{$monday->toDateString()}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, "hours-{$monday->toDateString()}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     protected function getViewData(): array

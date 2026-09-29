@@ -1,0 +1,18 @@
+{
+    "name": "huvant/calendar",
+    "description": "Company calendar: where people are, whether they can be reached, meetings with invitees.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Huvant\\Calendar\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Huvant\\Calendar\\CalendarServiceProvider"
+            ]
+        }
+    }
+}

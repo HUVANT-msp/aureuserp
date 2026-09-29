@@ -3,7 +3,7 @@
     <div class="hv-work-page">
         <section class="hv-card-box">
             <header class="hv-box-head">
-                <h3>Divisione del lavoro</h3>
+                <h3>Who did the work</h3>
                 <span class="hv-big">{{ TaskWork::hours($work['total']) }} h</span>
             </header>
             @include('huvant-tasks::partials.work-people', ['work' => $work])
@@ -11,9 +11,9 @@
 
         @if ($subs->isNotEmpty())
             <section class="hv-card-box">
-                <header class="hv-box-head"><h3>Sottotask</h3></header>
+                <header class="hv-box-head"><h3>Subtasks</h3></header>
                 <table class="hv-list compact">
-                    <thead><tr><th>Sottotask</th><th>Stato</th><th>Persone</th><th class="hv-num">Ore</th></tr></thead>
+                    <thead><tr><th>Subtask</th><th>Stage</th><th>People</th><th class="hv-num">Hours</th></tr></thead>
                     <tbody>
                         @foreach ($subs as $row)
                             <tr>
@@ -39,9 +39,9 @@
         @endif
 
         <section class="hv-card-box">
-            <header class="hv-box-head"><h3>Cosa è stato fatto</h3><span class="hv-muted">{{ $work['entries']->count() }} voci</span></header>
+            <header class="hv-box-head"><h3>What was done</h3><span class="hv-muted">{{ $work['entries']->count() }} entries</span></header>
             @if ($work['entries']->isEmpty())
-                <p class="hv-muted">Nessuna ora dichiarata su questo task.</p>
+                <p class="hv-muted">No time logged on this task yet.</p>
             @else
                 @include('huvant-tasks::partials.work-entries', ['entries' => $work['entries'], 'task' => $task])
             @endif

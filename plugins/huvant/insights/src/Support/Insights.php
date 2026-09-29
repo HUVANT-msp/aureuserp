@@ -71,7 +71,7 @@ class Insights
             ->leftJoin('projects_projects', 'projects_projects.id', '=', 'analytic_records.project_id')
             ->where('analytic_records.user_id', $person->getKey())
             ->whereBetween('analytic_records.date', [$from->toDateString(), $today->toDateString()])
-            ->selectRaw("analytic_records.project_id, COALESCE(projects_projects.name, 'Senza progetto') as name, projects_projects.color, SUM(analytic_records.unit_amount) as hours")
+            ->selectRaw("analytic_records.project_id, COALESCE(projects_projects.name, 'No project') as name, projects_projects.color, SUM(analytic_records.unit_amount) as hours")
             ->groupBy('analytic_records.project_id', 'projects_projects.name', 'projects_projects.color')
             ->orderByDesc('hours')->get()
             ->map(fn ($r) => ['id' => $r->project_id ? (int) $r->project_id : null, 'name' => $r->name, 'color' => static::color($r->project_id, $r->color), 'hours' => round((float) $r->hours, 2)]);

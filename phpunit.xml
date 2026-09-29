@@ -59,6 +59,9 @@
         <testsuite name="HuvantInsightsFeature">
             <directory>plugins/huvant/insights/tests/Feature</directory>
         </testsuite>
+        <testsuite name="HuvantCalendarFeature">
+            <directory>plugins/huvant/calendar/tests/Feature</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

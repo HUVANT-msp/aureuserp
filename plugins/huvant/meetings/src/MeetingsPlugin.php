@@ -34,23 +34,23 @@ class MeetingsPlugin implements Plugin
             // The app launcher only lists navigation groups that have an icon.
             // Registered before the panel's own groups, so it comes first.
             $panel->navigationGroups([
-                'Riunioni' => NavigationGroup::make('Riunioni')->icon('huvant-meetings'),
-                'Milo' => NavigationGroup::make('Milo')->icon('huvant-milo'),
+                'Meetings' => NavigationGroup::make('Meetings')->icon('huvant-meetings'),
+                'Milo'     => NavigationGroup::make('Milo')->icon('huvant-milo'),
             ]);
             // Minutes and Canvas live on the same domain under /riunioni.
             $panel->navigationItems([
-                NavigationItem::make('Verbali')
+                NavigationItem::make('Minutes')
                     ->url(MeetingsSso::HOME)
                     ->icon('heroicon-o-document-text')
-                    ->group('Riunioni')
+                    ->group('Meetings')
                     ->sort(1),
                 NavigationItem::make('Canvas')
                     ->url(MeetingsSso::HOME.'canvas')
                     ->icon('heroicon-o-microphone')
-                    ->group('Riunioni')
+                    ->group('Meetings')
                     ->sort(2),
                 // Milo lives on its own page, outside Minutes and Canvas.
-                NavigationItem::make('Chiedi a Milo')
+                NavigationItem::make('Ask Milo')
                     ->url(MeetingsSso::HOME.'milo')
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->group('Milo')

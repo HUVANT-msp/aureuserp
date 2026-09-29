@@ -9,19 +9,19 @@
 <x-filament-panels::page>
     <div class="hv-ins">
         <div class="hv-ins-bar">
-            <div class="hv-ins-seg" role="tablist" aria-label="Periodo">
-                @foreach ([7 => 'Ultimi 7 giorni', 14 => '14 giorni', 30 => '30 giorni'] as $d => $label)
+            <div class="hv-ins-seg" role="tablist" aria-label="Period">
+                @foreach ([7 => 'Last 7 days', 14 => '14 days', 30 => '30 days'] as $d => $label)
                     <button type="button" role="tab" aria-selected="{{ $days === $d ? 'true' : 'false' }}" wire:click="setDays({{ $d }})">{{ $label }}</button>
                 @endforeach
             </div>
-            <p class="hv-ins-muted">{{ $data['from']->format('d/m') }} – {{ $data['to']->format('d/m/Y') }}, confronto con i {{ $days }} giorni precedenti</p>
+            <p class="hv-ins-muted">{{ $data['from']->format('d/m') }} – {{ $data['to']->format('d/m/Y') }}, compared with the previous {{ $days }} days</p>
         </div>
 
         <div class="hv-ins-kpis">
-            <div><span>Ore registrate</span><b>{{ Worklog::format($data['hours']) }}</b></div>
-            <div><span>Progetti attivi</span><b>{{ $data['active'] }}</b></div>
-            <div><span>Task completati</span><b>{{ $data['done'] }}</b></div>
-            <div><span>Persone al lavoro</span><b>{{ collect($data['leaders'])->where('hours', '>', 0)->count() }}</b></div>
+            <div><span>Time logged</span><b>{{ Worklog::format($data['hours']) }}</b></div>
+            <div><span>Active projects</span><b>{{ $data['active'] }}</b></div>
+            <div><span>Tasks done</span><b>{{ $data['done'] }}</b></div>
+            <div><span>People working</span><b>{{ collect($data['leaders'])->where('hours', '>', 0)->count() }}</b></div>
         </div>
 
         <div class="hv-ins-grid">
@@ -35,7 +35,7 @@
                                     <span class="hv-ins-dot"></span>{{ $project['name'] }}
                                 </a>
                                 @if ($project['trend'] === null)
-                                    <span class="hv-ins-trend up">Nuovo</span>
+                                    <span class="hv-ins-trend up">New</span>
                                 @elseif ($project['trend'] > 0)
                                     <span class="hv-ins-trend up">▲ {{ $project['trend'] }}%</span>
                                 @elseif ($project['trend'] < 0)
@@ -45,9 +45,9 @@
                             <div class="hv-ins-meter"><span style="width: {{ round($project['hours'] / $maxHours * 100, 1) }}%"></span></div>
                             <div class="hv-ins-facts">
                                 <span><b>{{ Worklog::format($project['hours']) }}</b> h</span>
-                                <span><b>{{ $project['done'] }}</b> completati</span>
-                                <span><b>{{ $project['open'] }}</b> aperti @if ($project['overdue'])<em>· {{ $project['overdue'] }} scaduti</em>@endif</span>
-                                <span class="hv-ins-progress" title="Task completati sul totale"><i style="width: {{ round($project['progress'] * 0.6, 1) }}px"></i>{{ $project['progress'] }}%</span>
+                                <span><b>{{ $project['done'] }}</b> done</span>
+                                <span><b>{{ $project['open'] }}</b> open @if ($project['overdue'])<em>· {{ $project['overdue'] }} overdue</em>@endif</span>
+                                <span class="hv-ins-progress" title="Tasks done out of all tasks"><i style="width: {{ round($project['progress'] * 0.6, 1) }}px"></i>{{ $project['progress'] }}%</span>
                             </div>
                             @if ($project['people'])
                                 <ul class="hv-ins-people">
@@ -61,7 +61,7 @@
                                     @endforeach
                                 </ul>
                             @else
-                                <p class="hv-ins-muted small">Nessuna attività nel periodo.</p>
+                                <p class="hv-ins-muted small">No activity in this period.</p>
                             @endif
                         </div>
                         <svg class="hv-ins-spark" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true">
@@ -69,12 +69,12 @@
                         </svg>
                     </li>
                 @empty
-                    <li class="hv-ins-muted">Nessun progetto visibile.</li>
+                    <li class="hv-ins-muted">No visible projects.</li>
                 @endforelse
             </ol>
 
             <aside class="hv-ins-side">
-                <h3>Chi sta lavorando di più</h3>
+                <h3>Who is working the most</h3>
                 @forelse ($data['leaders'] as $person)
                     <div class="hv-ins-leader">
                         <span class="hv-ins-avatar" style="--ac: {{ $personColor($person['id']) }}">{{ $initials($person['name']) }}</span>
@@ -85,9 +85,9 @@
                         <span class="hv-ins-leader-num"><b>{{ Worklog::format($person['hours']) }}</b><small>✓ {{ $person['done'] }}</small></span>
                     </div>
                 @empty
-                    <p class="hv-ins-muted">Nessuna ora registrata nel periodo.</p>
+                    <p class="hv-ins-muted">No time logged in this period.</p>
                 @endforelse
-                <p class="hv-ins-muted small">Ordinati per ore, poi per task completati (✓). Un task conta come completato quando è passato a «Completati» nel periodo.</p>
+                <p class="hv-ins-muted small">Sorted by hours, then by tasks done (✓). A task counts as done when it moved to Done in the period.</p>
             </aside>
         </div>
     </div>

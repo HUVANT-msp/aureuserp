@@ -59,10 +59,10 @@ class Documents
     {
         $name = static::cleanName($name);
         if ($parentId && ! Folder::query()->whereKey($parentId)->where('project_id', $projectId)->exists()) {
-            throw new RuntimeException('La cartella di destinazione non esiste più.');
+            throw new RuntimeException('The destination folder no longer exists.');
         }
         if (static::siblingFolders($projectId, $parentId)->contains(fn (Folder $f): bool => Str::lower($f->name) === Str::lower($name))) {
-            throw new RuntimeException("Esiste già una cartella «{$name}» qui.");
+            throw new RuntimeException("A folder named \"{$name}\" already exists here.");
         }
 
         return Folder::query()->create([
@@ -76,7 +76,7 @@ class Documents
         $clash = static::siblingFolders($folder->project_id, $folder->parent_id)
             ->contains(fn (Folder $f): bool => $f->isNot($folder) && Str::lower($f->name) === Str::lower($name));
         if ($clash) {
-            throw new RuntimeException("Esiste già una cartella «{$name}» qui.");
+            throw new RuntimeException("A folder named \"{$name}\" already exists here.");
         }
         $folder->update(['name' => $name]);
     }
@@ -84,7 +84,7 @@ class Documents
     public static function deleteFolder(Folder $folder): void
     {
         if ($folder->children()->exists() || $folder->documents()->exists()) {
-            throw new RuntimeException('La cartella non è vuota: sposta o elimina prima il suo contenuto.');
+            throw new RuntimeException('The folder is not empty: move or delete its contents first.');
         }
         $folder->delete();
     }
@@ -135,12 +135,12 @@ class Documents
     public static function move(Document $document, ?int $folderId): void
     {
         if ($folderId && ! Folder::query()->whereKey($folderId)->where('project_id', $document->project_id)->exists()) {
-            throw new RuntimeException('La cartella di destinazione non esiste più.');
+            throw new RuntimeException('The destination folder no longer exists.');
         }
         $document->update(['folder_id' => $folderId]);
     }
 
-    /** @return array<int, string> folder id => "Cartella / Sottocartella", for pickers */
+    /** @return array<int, string> folder id => "Folder / Subfolder", for pickers */
     public static function folderOptions(int $projectId): array
     {
         $folders = Folder::query()->where('project_id', $projectId)->get(['id', 'parent_id', 'name'])->keyBy('id');
@@ -165,7 +165,7 @@ class Documents
         }
         foreach (['B', 'KB', 'MB', 'GB'] as $unit) {
             if ($bytes < 1024 || $unit === 'GB') {
-                return ($unit === 'B' ? $bytes : number_format($bytes, $bytes < 10 ? 1 : 0, ',', '.')).' '.$unit;
+                return ($unit === 'B' ? $bytes : number_format($bytes, $bytes < 10 ? 1 : 0, '.', ',')).' '.$unit;
             }
             $bytes /= 1024;
         }
@@ -192,7 +192,7 @@ class Documents
     {
         $name = trim(preg_replace('/[\\\\\/\x00-\x1F]+/u', ' ', $name) ?? '');
         if ($name === '') {
-            throw new RuntimeException('Il nome non può essere vuoto.');
+            throw new RuntimeException('The name cannot be empty.');
         }
 
         return Str::limit($name, $max, '');
