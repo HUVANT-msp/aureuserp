@@ -25,16 +25,26 @@ class BridgeServiceProvider extends PackageServiceProvider
 {
     public static string $name = 'huvant-bridge';
 
+    private const DEPENDENCIES = ['employees', 'projects', 'timesheets'];
+
     public function configureCustomPackage(Package $package): void
     {
         $package->name(static::$name)
             ->hasConfigFile('huvant-bridge')
             ->hasRoute('api')
-            ->hasDependencies(['employees', 'projects', 'timesheets'])
+            ->hasDependencies(self::DEPENDENCIES)
             ->hasMigrations(['2026_09_29_000000_create_huvant_bridge_idempotency_keys_table'])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {
-                $command->installDependencies()->runsMigrations();
+                $command
+                    ->startWith(function (InstallCommand $command): void {
+                        foreach (self::DEPENDENCIES as $dependency) {
+                            if (! Package::isPluginInstalled($dependency)) {
+                                $command->call("{$dependency}:install");
+                            }
+                        }
+                    })
+                    ->runsMigrations();
             })
             ->hasUninstallCommand(function (UninstallCommand $command): void {});
     }
