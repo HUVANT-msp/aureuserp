@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Webkul\Field\Filament\Traits\HasCustomFields;
+use Webkul\Project\Filament\Concerns\HasExtraRecordPages;
 use Webkul\Project\Filament\Resources\ProjectResource\Pages\CreateProject;
 use Webkul\Project\Filament\Resources\ProjectResource\Pages\EditProject;
 use Webkul\Project\Filament\Resources\ProjectResource\Pages\ListProjects;
@@ -28,7 +29,7 @@ use Webkul\Support\Enums\NavigationGroup;
 
 class ProjectResource extends Resource
 {
-    use HasCustomFields;
+    use HasCustomFields, HasExtraRecordPages;
 
     protected static ?string $model = Project::class;
 
@@ -93,6 +94,7 @@ class ProjectResource extends Resource
             EditProject::class,
             ManageTasks::class,
             ManageMilestones::class,
+            ...static::extraRecordPageClasses(),
         ]);
     }
 
@@ -120,6 +122,7 @@ class ProjectResource extends Resource
             'view'       => ViewProject::route('/{record}'),
             'milestones' => ManageMilestones::route('/{record}/milestones'),
             'tasks'      => ManageTasks::route('/{record}/tasks'),
+            ...static::extraRecordPageRoutes(),
         ];
     }
 }

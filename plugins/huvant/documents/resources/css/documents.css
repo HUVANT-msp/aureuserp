@@ -1,0 +1,42 @@
+/* Project documents: breadcrumb, folder tiles, note reading (Huvant tokens). */
+.hv-doc-hint { margin: -8px 0 0; color: var(--huvant-muted); font-size: 13px; }
+.hv-doc-muted { color: var(--huvant-muted); }
+
+.hv-doc-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: -8px; font-size: 14px; }
+.hv-doc-trail button {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px;
+    color: var(--huvant-muted); font-weight: 500; cursor: pointer;
+}
+.hv-doc-trail button:hover { background: color-mix(in srgb, var(--huvant-hairline) 60%, transparent); color: var(--huvant-ink); }
+.hv-doc-trail button.is-current { color: var(--huvant-ink); font-weight: 600; cursor: default; background: none; }
+.hv-doc-sep { color: var(--huvant-muted); opacity: .6; }
+
+.hv-doc-folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.hv-doc-folders li { position: relative; }
+.hv-doc-folder {
+    display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center;
+    width: 100%; padding: 12px 14px; border: 1px solid var(--huvant-hairline); border-radius: 12px;
+    background: var(--huvant-surface); box-shadow: var(--huvant-shadow-1); text-align: start; cursor: pointer;
+    transition: border-color 160ms ease, transform 160ms ease;
+}
+.hv-doc-folder:hover { border-color: #9fcdf7; transform: translateY(-1px); }
+.hv-doc-folder-icon { grid-row: span 2; width: 30px; height: 30px; color: #0075de; }
+.hv-doc-folder.is-virtual .hv-doc-folder-icon { color: var(--huvant-muted); }
+.hv-doc-folder-name { overflow: hidden; color: var(--huvant-ink); font-weight: 600; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; padding-inline-end: 44px; }
+.hv-doc-folder-meta { color: var(--huvant-muted); font-size: 12px; }
+.hv-doc-folder-actions { position: absolute; top: 6px; inset-inline-end: 6px; display: flex; opacity: 0; transition: opacity 120ms ease; }
+.hv-doc-folders li:hover .hv-doc-folder-actions,
+.hv-doc-folder-actions:focus-within { opacity: 1; }
+@media (hover: none) { .hv-doc-folder-actions { opacity: 1; } }
+
+.hv-doc-note { max-height: 65vh; overflow-y: auto; color: var(--huvant-ink); line-height: 1.6; }
+.hv-doc-note h2 { font-size: 1.2em; font-weight: 650; margin: 1em 0 .4em; }
+.hv-doc-note h3 { font-size: 1.05em; font-weight: 650; margin: .9em 0 .3em; }
+.hv-doc-note p, .hv-doc-note ul, .hv-doc-note ol, .hv-doc-note blockquote, .hv-doc-note pre, .hv-doc-note table { margin: 0 0 .75em; }
+.hv-doc-note ul { list-style: disc; padding-inline-start: 1.4em; }
+.hv-doc-note ol { list-style: decimal; padding-inline-start: 1.4em; }
+.hv-doc-note a { color: #0075de; text-decoration: underline; }
+.hv-doc-note blockquote { padding-inline-start: 1em; border-inline-start: 3px solid var(--huvant-hairline); color: var(--huvant-muted); }
+.hv-doc-note pre { padding: .75em 1em; border-radius: 8px; background: color-mix(in srgb, var(--huvant-hairline) 50%, transparent); overflow-x: auto; font-size: .9em; }
+.hv-doc-note table { border-collapse: collapse; }
+.hv-doc-note td, .hv-doc-note th { padding: 4px 8px; border: 1px solid var(--huvant-hairline); }

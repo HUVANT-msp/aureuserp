@@ -50,6 +50,9 @@
         <testsuite name="HuvantWorklogFeature">
             <directory>plugins/huvant/worklog/tests/Feature</directory>
         </testsuite>
+        <testsuite name="HuvantDocumentsFeature">
+            <directory>plugins/huvant/documents/tests/Feature</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

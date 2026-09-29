@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Webkul\Field\Filament\Traits\HasCustomFields;
+use Webkul\Project\Filament\Concerns\HasExtraRecordPages;
 use Webkul\Project\Filament\Resources\TaskResource\Pages\CreateTask;
 use Webkul\Project\Filament\Resources\TaskResource\Pages\EditTask;
 use Webkul\Project\Filament\Resources\TaskResource\Pages\ListTasks;
@@ -29,7 +30,7 @@ use Webkul\Support\Enums\NavigationGroup;
 
 class TaskResource extends Resource
 {
-    use HasCustomFields;
+    use HasCustomFields, HasExtraRecordPages;
 
     protected static ?string $model = Task::class;
 
@@ -107,6 +108,7 @@ class TaskResource extends Resource
             EditTask::class,
             ManageTimesheets::class,
             ManageSubTasks::class,
+            ...static::extraRecordPageClasses(),
         ]);
     }
 
@@ -134,6 +136,7 @@ class TaskResource extends Resource
             'view'       => ViewTask::route('/{record}'),
             'timesheets' => ManageTimesheets::route('/{record}/timesheets'),
             'sub-tasks'  => ManageSubTasks::route('/{record}/sub-tasks'),
+            ...static::extraRecordPageRoutes(),
         ];
     }
 }
