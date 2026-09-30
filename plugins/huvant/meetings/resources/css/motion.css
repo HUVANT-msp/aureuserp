@@ -1,0 +1,151 @@
+/* Huvant motion for the ERP: pages settle in, cards answer the pointer, windows
+   open with a little spring. Short (120-420ms), transform/opacity only, and
+   everything is switched off by the reduced-motion rule in huvant.css.
+   Entrance animations use fill-mode "backwards" so no transform lingers once
+   they end (a lingering transform would re-anchor fixed/absolute popovers). */
+:root {
+    --hv-ease-out: cubic-bezier(.16, 1, .3, 1);
+    --hv-ease-spring: cubic-bezier(.34, 1.4, .64, 1);
+    --hv-ease-std: cubic-bezier(.2, .8, .2, 1);
+    --hv-lift: 0 1px 2px rgba(0, 0, 0, .04), 0 8px 24px -6px rgba(0, 0, 0, .12);
+}
+.dark { --hv-lift: 0 0 0 1px rgba(255, 255, 255, .05), 0 10px 28px -6px rgba(0, 0, 0, .55); }
+
+@keyframes hv-rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes hv-fade { from { opacity: 0; } }
+@keyframes hv-pop { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+@keyframes hv-grow-x { from { transform: scaleX(0); } }
+@keyframes hv-grow-y { from { transform: scaleY(0); } }
+@keyframes hv-gauge { from { stroke-dasharray: 0 999; } }
+@keyframes hv-slide-in-end { from { opacity: 0; transform: translateX(24px); } }
+@keyframes hv-shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+
+/* ── Pages: header, then content, settle in ─────────────────────────────── */
+.fi-page .fi-header { animation: hv-rise .42s var(--hv-ease-out) backwards; }
+.fi-page-content > *,
+.fi-page .fi-page-main > * { animation: hv-rise .46s var(--hv-ease-out) backwards; }
+.fi-page-content > :nth-child(2) { animation-delay: .05s; }
+.fi-page-content > :nth-child(3) { animation-delay: .1s; }
+.fi-page-content > :nth-child(n+4) { animation-delay: .14s; }
+.fi-page-sub-navigation-tabs, .fi-page .fi-tabs { animation: hv-fade .4s var(--hv-ease-std) .04s backwards; }
+
+/* Sections, widgets and our own cards come in one after another */
+.fi-section, .fi-wi-widget, .fi-wi-stats-overview-stat,
+.hv-home-card, .hv-milo, .hv-ins-card, .hv-notes-section, .hv-meet-row, .hv-doc-folders > li, .hv-doc-origin,
+.hv-col, .hv-day, .hv-cal-row, .hv-home-item, .hv-home-event, .hv-ins-project, .hv-ins-task {
+    animation: hv-rise .44s var(--hv-ease-out) backwards;
+}
+:is(.hv-home-top, .hv-home-grid, .hv-ins-grid, .hv-kanban, .hv-meet-list, .hv-doc-folders, .hv-notes-main, .fi-wi) > :nth-child(2) { animation-delay: .05s; }
+:is(.hv-home-top, .hv-home-grid, .hv-ins-grid, .hv-kanban, .hv-meet-list, .hv-doc-folders, .hv-notes-main, .fi-wi) > :nth-child(3) { animation-delay: .09s; }
+:is(.hv-home-top, .hv-home-grid, .hv-ins-grid, .hv-kanban, .hv-meet-list, .hv-doc-folders, .hv-notes-main, .fi-wi) > :nth-child(4) { animation-delay: .13s; }
+:is(.hv-home-top, .hv-home-grid, .hv-ins-grid, .hv-kanban, .hv-meet-list, .hv-doc-folders, .hv-notes-main, .fi-wi) > :nth-child(n+5) { animation-delay: .16s; }
+
+/* ── Cards answer the pointer ─────────────────────────────────────────── */
+.fi-ta-content-grid .fi-ta-record,
+.hv-home-card, .hv-ins-card, .hv-card, .hv-meet-row, .hv-doc-folder, .hv-doc-origin, .hv-milo,
+.fi-wi-stats-overview-stat, .hv-notes-section .hv-note {
+    transition: transform .22s var(--hv-ease-out), box-shadow .22s var(--hv-ease-out), border-color .18s ease, background-color .18s ease;
+}
+.fi-ta-content-grid .fi-ta-record { animation: hv-rise .44s var(--hv-ease-out) backwards; }
+.fi-ta-content-grid .fi-ta-record:nth-child(2) { animation-delay: .03s; }
+.fi-ta-content-grid .fi-ta-record:nth-child(3) { animation-delay: .06s; }
+.fi-ta-content-grid .fi-ta-record:nth-child(4) { animation-delay: .09s; }
+.fi-ta-content-grid .fi-ta-record:nth-child(5) { animation-delay: .12s; }
+.fi-ta-content-grid .fi-ta-record:nth-child(n+6) { animation-delay: .15s; }
+@media (hover: hover) {
+    .fi-ta-content-grid .fi-ta-record:hover,
+    .hv-meet-row:hover, .hv-doc-folder:hover, .hv-doc-origin:hover,
+    .fi-wi-stats-overview-stat:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--hv-lift);
+    }
+    .hv-home-card:hover, .hv-ins-card:hover, .hv-milo:hover { box-shadow: var(--hv-lift); }
+    .hv-card:hover { box-shadow: var(--hv-lift); }
+    .hv-home-item, .hv-home-event, .hv-ins-task, .hv-ins-project, .hv-cal-agrow, .hv-day-list > *, .hv-note {
+        transition: background-color .16s ease, transform .2s var(--hv-ease-out);
+    }
+    .hv-home-item:hover, .hv-home-event:hover, .hv-ins-task:hover, .hv-cal-agrow:hover { transform: translateX(3px); }
+}
+
+/* Table rows: a soft wash that follows the pointer */
+.fi-ta-row { transition: background-color .16s ease; }
+.fi-ta-table > tbody > .fi-ta-row { animation: hv-fade .35s var(--hv-ease-std) backwards; }
+
+/* ── Buttons, links, icons ─────────────────────────────────────────────── */
+.fi-btn, .fi-icon-btn, .fi-link, .fi-badge, .fi-tabs-item, .fi-topbar-item > a, .fi-topbar-item > button,
+.fi-sidebar-item-btn, .fi-dropdown-list-item, .hv-home-btn, .hv-chip-btn, .hv-link-btn, .hv-timer-start, .hv-timer-stop,
+.hv-wl-play, .hv-star, .hv-check, .hv-milo-refresh {
+    transition: transform .16s var(--hv-ease-std), background-color .16s ease, color .16s ease, box-shadow .2s ease, border-color .16s ease, opacity .16s ease;
+}
+.fi-btn:active, .fi-icon-btn:active, .hv-home-btn:active, .hv-chip-btn:active, .hv-timer-start:active,
+.hv-timer-stop:active, .hv-wl-play:active, .hv-check:active { transform: scale(.96); }
+@media (hover: hover) {
+    .fi-btn:not(:disabled):hover { transform: translateY(-1px); }
+    .fi-btn.fi-color-primary:not(.fi-outlined):not(:disabled):hover { box-shadow: 0 6px 16px -8px rgba(0, 117, 222, .6); }
+    .fi-icon-btn:hover { transform: scale(1.08); }
+    .hv-milo-refresh:hover { transform: rotate(-35deg); }
+    .fi-dropdown-list-item:hover .fi-dropdown-list-item-icon { transform: translateX(2px); }
+}
+.fi-dropdown-list-item-icon { transition: transform .18s var(--hv-ease-out); }
+
+/* Top bar: the hovered area gets a thin line that grows from the centre */
+.fi-topbar-item { position: relative; }
+.fi-topbar-item > a::after, .fi-topbar-item > button::after {
+    content: ""; position: absolute; inset-inline: 12px; bottom: -1px; height: 2px; border-radius: 2px;
+    background: currentColor; opacity: .5; transform: scaleX(0); transition: transform .25s var(--hv-ease-out);
+}
+@media (hover: hover) {
+    .fi-topbar-item:not(.fi-active):not(.fi-topbar-item-active) > a:hover::after,
+    .fi-topbar-item:not(.fi-active):not(.fi-topbar-item-active) > button:hover::after { transform: scaleX(1); }
+}
+
+/* ── Windows: modals pop with a spring, slide-overs glide ──────────────── */
+.fi-modal-close-overlay { transition: opacity .3s ease, backdrop-filter .3s ease; backdrop-filter: blur(2px); }
+.fi-modal > .fi-modal-window-ctn > .fi-modal-window.fi-transition-enter { transition-duration: .34s; transition-timing-function: var(--hv-ease-spring); }
+.fi-modal > .fi-modal-window-ctn > .fi-modal-window.fi-transition-leave { transition-duration: .18s; transition-timing-function: ease-in; }
+.fi-modal:not(.fi-modal-slide-over) > .fi-modal-window-ctn > .fi-modal-window.fi-transition-enter-start {
+    --tw-scale-x: 92%; --tw-scale-y: 92%; translate: 0 12px;
+}
+.fi-modal:not(.fi-modal-slide-over) > .fi-modal-window-ctn > .fi-modal-window.fi-transition-enter-end { translate: 0 0; }
+.fi-modal.fi-modal-slide-over > .fi-modal-window-ctn > .fi-modal-window.fi-transition-enter { transition-duration: .42s; transition-timing-function: var(--hv-ease-out); }
+.fi-modal.fi-modal-open .fi-modal-content > *, .fi-modal.fi-modal-open .fi-modal-header {
+    animation: hv-rise .4s var(--hv-ease-out) .08s backwards;
+}
+.fi-modal.fi-modal-open .fi-modal-footer { animation: hv-fade .4s ease .14s backwards; }
+
+/* Dropdowns and menus open from where they were asked */
+.fi-dropdown-panel { transform-origin: top right; animation: hv-pop .18s var(--hv-ease-out); }
+.fi-dropdown-list-item { animation: hv-fade .22s ease backwards; }
+.fi-dropdown-list > .fi-dropdown-list-item:nth-child(2) { animation-delay: .02s; }
+.fi-dropdown-list > .fi-dropdown-list-item:nth-child(3) { animation-delay: .04s; }
+.fi-dropdown-list > .fi-dropdown-list-item:nth-child(n+4) { animation-delay: .06s; }
+.fi-fo-select .choices__list--dropdown.is-active, .fi-select-input-dropdown { animation: hv-pop .16s var(--hv-ease-out); }
+
+/* Notifications slide in from the side */
+.fi-no-notification { animation: hv-slide-in-end .38s var(--hv-ease-spring) backwards; }
+
+/* Tabs and inputs */
+.fi-tabs-item { position: relative; }
+.fi-tabs-item.fi-active { animation: hv-pop .24s var(--hv-ease-out); }
+.fi-input-wrp { transition: box-shadow .18s ease, border-color .18s ease, background-color .18s ease; }
+.fi-input-wrp:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, #0075de 14%, transparent); }
+
+/* Collapsible sections open smoothly */
+.fi-section-content-ctn { transition: opacity .25s ease; }
+.fi-section.fi-collapsed .fi-section-content-ctn { opacity: 0; }
+
+/* ── Data that grows into place ───────────────────────────────────────── */
+.hv-gauge-fill { animation: hv-gauge 1.1s var(--hv-ease-out) .15s backwards; }
+.hv-ins-fill, .hv-ins-daybar > * { transform-origin: bottom; animation: hv-grow-y .7s var(--hv-ease-out) .1s backwards; }
+.hv-wl-bar, .hv-wl-bars > *, .hv-ins-bar > *, .hv-home-meter > *, .hv-ins-meter > *, .hv-ins-progress > * {
+    transform-origin: left; animation: hv-grow-x .7s var(--hv-ease-out) .1s backwards;
+}
+.hv-tl-bar, .hv-gantt-block { transform-origin: left; animation: hv-grow-x .5s var(--hv-ease-out) backwards; }
+
+/* Kanban: cards settle in their column; the dragged one tilts a touch */
+.hv-card { animation: hv-rise .36s var(--hv-ease-out) backwards; }
+.hv-col-list > .hv-card:nth-child(2) { animation-delay: .03s; }
+.hv-col-list > .hv-card:nth-child(3) { animation-delay: .06s; }
+.hv-col-list > .hv-card:nth-child(n+4) { animation-delay: .09s; }
+.hv-card.is-dragging { transform: rotate(1.5deg) scale(.98); }
+.hv-col { transition: background-color .18s ease, box-shadow .18s ease; }

@@ -59,7 +59,8 @@ class MeetingsPlugin implements Plugin
             // Huvant look (light/dark) for every page of the panel, sign-in included.
             $panel->renderHook(
                 PanelsRenderHook::HEAD_END,
-                fn (): string => '<style id="huvant-theme">'.file_get_contents(__DIR__.'/../resources/css/huvant.css').'</style>',
+                fn (): string => '<style id="huvant-theme">'.file_get_contents(__DIR__.'/../resources/css/huvant.css').'</style>'
+                    .'<style id="huvant-motion">'.file_get_contents(__DIR__.'/../resources/css/motion.css').'</style>',
             );
             $panel->authenticatedRoutes(function (): void {
                 Route::get('huvant/sso', [SessionController::class, 'sso'])->name('huvant.sso');
