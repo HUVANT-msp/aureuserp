@@ -20,6 +20,7 @@ use Filament\Support\Enums\IconPosition;
 use Filament\Support\Enums\TextSize;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection as SupportCollection;
+use Webkul\Employee\Filament\Resources\EmployeeResource;
 use Webkul\Employee\Models\Employee;
 use Webkul\Employee\Models\EmployeeResume;
 use Webkul\Employee\Models\EmployeeResumeAttachment;
@@ -107,6 +108,7 @@ class EmployeeInfolist
                     ->tabs([
                         Tab::make(__('employees::filament/resources/employee.infolist.tabs.resume.title'))
                             ->icon('heroicon-o-clipboard-document-list')
+                            ->hidden(fn (): bool => EmployeeResource::$profileManagedByEmployee)
                             ->schema([
                                 Grid::make(['default' => 1, 'lg' => 2])
                                     ->schema([

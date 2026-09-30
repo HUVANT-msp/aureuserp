@@ -85,3 +85,12 @@
 .hv-ins-date { width: 44px; color: var(--huvant-muted); font-variant-numeric: tabular-nums; }
 @media (max-width: 1024px) { .hv-ins-grid { grid-template-columns: 1fr; } .hv-ins-side { position: static; } }
 @media (max-width: 640px) { .hv-ins-project { grid-template-columns: 26px 1fr; } .hv-ins-spark { display: none; } }
+
+/* Employee tasks: the workload reading, coloured by level */
+.hv-load { margin-bottom: 4px; }
+.hv-load-level b { display: inline-flex; align-items: center; gap: 8px; }
+.hv-load-level b::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.hv-load-level.is-light b { color: #0f9d58; }
+.hv-load-level.is-balanced b { color: #0075de; }
+.hv-load-level.is-busy b { color: #b45309; }
+.hv-load-level.is-overloaded b { color: #d8141d; }

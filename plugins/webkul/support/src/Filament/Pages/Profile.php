@@ -66,10 +66,14 @@ class Profile extends Page implements HasForms
         return $schemas;
     }
 
+    /** @var array<class-string<ProfileExtension>> sections other plugins add to the profile */
+    public static array $extensions = [];
+
     public function editProfileForm(Schema $schema): Schema
     {
         return $schema
             ->components([
+
                 Section::make(__('support::filament/pages/profile.information_section'))
                     ->description(__('support::filament/pages/profile.information_description'))
                     ->icon('heroicon-o-user')
@@ -135,6 +139,7 @@ class Profile extends Page implements HasForms
                                     ->columnSpanFull(),
                             ]),
                     ]),
+                ...collect(static::$extensions)->flatMap(fn (string $extension): array => $extension::components($this->getUser()))->all(),
             ])
             ->model($this->getUser())
             ->statePath('profileData')
@@ -227,6 +232,10 @@ class Profile extends Page implements HasForms
             $user->fill($fill);
 
             $user->save();
+
+            foreach (static::$extensions as $extension) {
+                $extension::save($user, $data);
+            }
 
             $languageChanged = isset($fill['language']) && $fill['language'] !== $previousLanguage;
 
@@ -343,6 +352,10 @@ class Profile extends Page implements HasForms
 
         if (empty($userData['language'])) {
             $userData['language'] = app()->getLocale();
+        }
+
+        foreach (static::$extensions as $extension) {
+            $userData = array_merge($userData, $extension::fill($user));
         }
 
         $this->editProfileForm->fill($userData);

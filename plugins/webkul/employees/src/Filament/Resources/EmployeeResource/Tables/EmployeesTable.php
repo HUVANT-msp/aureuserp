@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Webkul\Chatter\Filament\Actions\ActivityTableAction;
+use Webkul\Employee\Filament\Resources\EmployeeResource;
 use Webkul\Employee\Models\Employee;
 
 class EmployeesTable
@@ -526,7 +527,8 @@ class EmployeesTable
                 ViewAction::make()
                     ->outlined(),
                 EditAction::make()
-                    ->outlined(),
+                    ->outlined()
+                    ->hidden(fn (): bool => EmployeeResource::$profileManagedByEmployee),
                 RestoreAction::make()
                     ->outlined()
                     ->successNotification(

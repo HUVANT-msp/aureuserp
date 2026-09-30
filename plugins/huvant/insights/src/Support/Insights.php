@@ -3,6 +3,7 @@
 namespace Huvant\Insights\Support;
 
 use Carbon\CarbonImmutable;
+use Huvant\Tasks\Support\Board;
 use Huvant\Tasks\Support\Palette;
 use Huvant\Worklog\Support\Worklog;
 use Illuminate\Support\Facades\DB;
@@ -225,5 +226,55 @@ class Insights
         return class_exists(Palette::class)
             ? Palette::project($projectId ? (int) $projectId : null, $color)
             : '#0075de';
+    }
+
+    /**
+     * How busy a person is: their open tasks (by stage, deadline, planned hours)
+     * against the hours they logged this week.
+     *
+     * @return array{open: int, doing: int, overdue: int, dueSoon: int, noDeadline: int, plannedLeft: float, weekHours: float, weekTarget: float, level: string, levelLabel: string}
+     */
+    public static function workload(User $person): array
+    {
+        $today = CarbonImmutable::today();
+        $open = Task::query()
+            ->whereHas('users', fn ($q) => $q->whereKey($person->getKey()))
+            ->whereNotIn('state', [TaskState::DONE->value, TaskState::CANCELLED->value])
+            ->with('stage:id,name')
+            ->get(['projects_tasks.id', 'projects_tasks.stage_id', 'projects_tasks.deadline', 'projects_tasks.allocated_hours', 'projects_tasks.remaining_hours', 'projects_tasks.state']);
+        $doing = $open->filter(fn (Task $t): bool => class_exists(Board::class)
+            && Board::stageKind((string) $t->stage?->name) === 'doing')->count();
+        $overdue = $open->filter(fn (Task $t): bool => $t->deadline && $t->deadline->lt($today))->count();
+        $dueSoon = $open->filter(fn (Task $t): bool => $t->deadline && $t->deadline->gte($today) && $t->deadline->lte($today->addDays(7)->endOfDay()))->count();
+        $plannedLeft = round((float) $open->filter(fn (Task $t): bool => (float) $t->allocated_hours > 0)->sum(fn (Task $t): float => max(0, (float) $t->remaining_hours)), 1);
+
+        $monday = $today->startOfWeek();
+        $week = Worklog::week($person, $monday);
+        $weekHours = round(array_sum($week['totals']), 2);
+        $weekTarget = round(array_sum($week['expected']), 2);
+
+        // A plain reading of the load: open work, raised a step when deadlines already slipped.
+        $levels = ['light' => 'Light', 'balanced' => 'Balanced', 'busy' => 'Busy', 'overloaded' => 'Overloaded'];
+        $step = match (true) {
+            $open->count() <= 3  => 0,
+            $open->count() <= 8  => 1,
+            $open->count() <= 15 => 2,
+            default              => 3,
+        };
+        $step = min(3, $step + ($overdue >= 3 ? 1 : 0));
+        $level = array_keys($levels)[$step];
+
+        return [
+            'open'        => $open->count(),
+            'doing'       => $doing,
+            'overdue'     => $overdue,
+            'dueSoon'     => $dueSoon,
+            'noDeadline'  => $open->whereNull('deadline')->count(),
+            'plannedLeft' => $plannedLeft,
+            'weekHours'   => $weekHours,
+            'weekTarget'  => $weekTarget,
+            'level'       => $level,
+            'levelLabel'  => $levels[$level],
+        ];
     }
 }

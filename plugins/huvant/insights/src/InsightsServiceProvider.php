@@ -3,10 +3,12 @@
 namespace Huvant\Insights;
 
 use Filament\Panel;
+use Huvant\Insights\Support\EmployeeProfile;
 use Webkul\PluginManager\Console\Commands\InstallCommand;
 use Webkul\PluginManager\Console\Commands\UninstallCommand;
 use Webkul\PluginManager\Package;
 use Webkul\PluginManager\PackageServiceProvider;
+use Webkul\Security\Models\User;
 
 class InsightsServiceProvider extends PackageServiceProvider
 {
@@ -27,6 +29,16 @@ class InsightsServiceProvider extends PackageServiceProvider
                 });
             })
             ->hasUninstallCommand(function (UninstallCommand $command): void {});
+    }
+
+    public function packageBooted(): void
+    {
+        // Name and e-mail changed anywhere (profile, users) reach the employee record.
+        User::saved(function (User $user): void {
+            if ($user->wasChanged(['name', 'email']) && Package::isPluginInstalled(static::$name)) {
+                EmployeeProfile::syncIdentity($user);
+            }
+        });
     }
 
     public function packageRegistered(): void

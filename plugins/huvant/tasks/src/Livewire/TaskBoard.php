@@ -32,6 +32,9 @@ class TaskBoard extends Component implements HasActions, HasSchemas
     /** Set when the board lives inside a project: the project filter is fixed. */
     public ?int $projectId = null;
 
+    /** Set when the board shows one person's work (employee page): the assignee filter is fixed. */
+    public ?int $assigneeId = null;
+
     #[Url(as: 'view')]
     public string $view = 'kanban';
 
@@ -47,9 +50,10 @@ class TaskBoard extends Component implements HasActions, HasSchemas
 
     public bool $sortDesc = false;
 
-    public function mount(?int $projectId = null): void
+    public function mount(?int $projectId = null, ?int $assigneeId = null): void
     {
         $this->projectId = $projectId;
+        $this->assigneeId = $assigneeId;
         $this->filters = Board::normalize($this->filters);
         if (! in_array($this->view, ['kanban', 'timeline', 'list'], true)) {
             $this->view = 'kanban';
@@ -95,6 +99,7 @@ class TaskBoard extends Component implements HasActions, HasSchemas
                 }
 
                 return array_filter([
+                    'users'      => $this->assigneeId ? [$this->assigneeId] : null,
                     'project_id' => $projectId,
                     'stage_id'   => $stageId ?? ($projectId ? TaskResource::getDefaultStageId($projectId) : null),
                     'state'      => TaskState::IN_PROGRESS,
@@ -149,6 +154,9 @@ class TaskBoard extends Component implements HasActions, HasSchemas
         if ($this->projectId) {
             $filters['projects'] = [$this->projectId];
         }
+        if ($this->assigneeId) {
+            $filters['assignee'] = (string) $this->assigneeId;
+        }
 
         $data = [
             'projects'  => $this->projectId ? collect() : Board::visibleProjects(),
@@ -202,7 +210,7 @@ class TaskBoard extends Component implements HasActions, HasSchemas
     {
         $f = Board::normalize($this->filters);
 
-        return (int) (! $this->projectId && $f['projects']) + (int) ($f['assignee'] !== 'all') + (int) ($f['due'] !== 'all')
+        return (int) (! $this->projectId && $f['projects']) + (int) (! $this->assigneeId && $f['assignee'] !== 'all') + (int) ($f['due'] !== 'all')
             + (int) ($f['search'] !== '') + (int) $f['cancelled'] + (int) $f['subtasks'];
     }
 

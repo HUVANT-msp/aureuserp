@@ -22,6 +22,14 @@ use Webkul\Support\Enums\NavigationGroup;
 
 class DepartmentResource extends Resource
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     protected static ?string $model = Department::class;
 
     protected static ?SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;

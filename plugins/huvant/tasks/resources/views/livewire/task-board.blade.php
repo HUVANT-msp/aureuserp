@@ -21,9 +21,10 @@
         </div>
 
         <div class="hv-board-quick">
-            @if ($projectId)
+            @if ($projectId || $assigneeId)
                 {{ $this->newTaskAction }}
             @endif
+            @unless ($assigneeId)
             <select wire:model.live="filters.assignee" aria-label="Assignee">
                 <option value="all">Everyone</option>
                 <option value="me">Only mine</option>
@@ -34,6 +35,7 @@
                     @endforeach
                 </optgroup>
             </select>
+            @endunless
             <select wire:model.live="filters.due" aria-label="Deadline">
                 <option value="all">Any deadline</option>
                 <option value="overdue">Overdue</option>

@@ -8,6 +8,14 @@ use Webkul\Support\Enums\NavigationGroup;
 
 class Reportings extends Cluster
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     protected static ?int $navigationSort = 3;
 
     public static function getSlug(?Panel $panel = null): string

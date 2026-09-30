@@ -32,6 +32,12 @@ class EmployeeResource extends Resource
 
     protected static ?string $model = Employee::class;
 
+    /**
+     * Another plugin can make people keep their own record (from their profile):
+     * no edit, skills or resume here; the record is read and worked with only.
+     */
+    public static bool $profileManagedByEmployee = false;
+
     protected static ?SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
     protected static ?string $recordTitleAttribute = 'name';
@@ -99,6 +105,10 @@ class EmployeeResource extends Resource
 
     public static function getRelations(): array
     {
+        if (static::$profileManagedByEmployee) {
+            return [];
+        }
+
         $relations = [
             RelationGroup::make('Manage Skills', [
                 SkillsRelationManager::class,
