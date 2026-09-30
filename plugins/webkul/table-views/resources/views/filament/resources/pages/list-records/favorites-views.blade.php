@@ -38,6 +38,7 @@
             </x-table-views::tabs.item>
         @endforeach
 
+        @if ($this->hasTableViewsMenu())
         <div class="flex items-center">
             <x-filament::dropdown
                 :width="$tableViewsFormWidth"
@@ -60,6 +61,7 @@
                 />
             </x-filament::dropdown>
         </div>
+        @endif
     </x-filament::tabs>
 
     @pushOnce('styles')

@@ -177,13 +177,25 @@ trait HasTableViews
     public function getCachedFavoriteTableViews(): array
     {
         return $this->cachedFavoriteTableViews ??= (
-            [
+            ($this->hasDefaultTableView() ? [
                 'default' => PresetView::make('default')
                     ->label(__('table-views::filament/concerns/has-table-views.default'))
                     ->icon('heroicon-m-queue-list')
                     ->favorite(),
-            ] + $this->getFavoriteTableViews()
+            ] : []) + $this->getFavoriteTableViews()
         );
+    }
+
+    /** Pages whose preset tabs are the whole story can drop the "Default" tab. */
+    public function hasDefaultTableView(): bool
+    {
+        return true;
+    }
+
+    /** Pages can drop the views menu (saving, editing and favouriting views). */
+    public function hasTableViewsMenu(): bool
+    {
+        return true;
     }
 
     /**
