@@ -147,34 +147,6 @@ class Home
         return ['invites' => $invites, 'assigned' => $assigned, 'comments' => $comments, 'count' => $invites->count() + $assigned->count() + $comments->count()];
     }
 
-    /** The person's latest meetings, decisions and actions, from the Minutes (cached 10 minutes). */
-    public static function meetings(User $user, ?CarbonImmutable $today = null): ?array
-    {
-        $today ??= CarbonImmutable::today();
-
-        return cache()->remember('huvant-home:meetings:'.$user->getKey().':'.$today->toDateString(), now()->addMinutes(10), function () use ($user, $today) {
-            $url = static::minutesUrl('/erp/my-meetings');
-            $secret = (string) config('huvant-bridge.webhook.secret');
-            if (! $url || $secret === '') {
-                return null;
-            }
-            $body = json_encode(['email' => $user->email, 'today' => $today->toDateString()], JSON_THROW_ON_ERROR);
-            $timestamp = (string) now()->timestamp;
-            try {
-                $response = Http::timeout(4)->withHeaders([
-                    'X-Huvant-Timestamp' => $timestamp,
-                    'X-Huvant-Signature' => 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, $secret),
-                ])->withBody($body, 'application/json')->post($url)->throw();
-
-                return (array) ($response->json('meetings') ?? []);
-            } catch (\Throwable $e) {
-                report($e);
-
-                return null;
-            }
-        });
-    }
-
     /** What Milo is told: open tasks, the next events and the hours. */
     public static function context(User $user, string $slot, ?CarbonImmutable $now = null): array
     {

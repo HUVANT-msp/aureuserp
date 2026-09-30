@@ -3,6 +3,7 @@
 namespace Huvant\Tasks;
 
 use Filament\Panel;
+use Huvant\Tasks\Http\Controllers\ProjectMinutesController;
 use Huvant\Tasks\Http\Controllers\TaskMinutesController;
 use Huvant\Tasks\Livewire\TaskBoard;
 use Huvant\Tasks\Livewire\TaskPanel;
@@ -48,6 +49,11 @@ class TasksServiceProvider extends PackageServiceProvider
             ->get('admin/huvant/tasks/{task}/minutes.pdf', [TaskMinutesController::class, 'show'])
             ->whereNumber('task')
             ->name('huvant.tasks.minutes');
+        Route::middleware('web')
+            ->get('admin/huvant/projects/{project}/meetings/{meeting}/minutes.pdf', [ProjectMinutesController::class, 'show'])
+            ->whereNumber('project')
+            ->where('meeting', '[0-9a-fA-F-]{36}')
+            ->name('huvant.projects.minutes');
     }
 
     public function packageRegistered(): void

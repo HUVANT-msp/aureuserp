@@ -5,6 +5,7 @@ namespace Huvant\Home\Filament\Pages;
 use Carbon\CarbonImmutable;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Huvant\Calendar\Filament\Concerns\EditsEvents;
 use Huvant\Calendar\Models\Event;
 use Huvant\Calendar\Support\Calendar;
 use Huvant\Home\Jobs\RefreshBriefing;
@@ -13,13 +14,16 @@ use Huvant\Worklog\Filament\Concerns\LogsTime;
 use Huvant\Worklog\Support\Worklog;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\On;
+use RuntimeException;
 use Webkul\Security\Models\User;
 use Webkul\Support\Enums\NavigationGroup;
 
 /** One's own day: what is coming up, Milo's brief, and one's tasks by urgency. */
 class HomePage extends Page
 {
-    use LogsTime;
+    use EditsEvents, LogsTime;
+
+    public string $stopNote = '';
 
     protected string $view = 'huvant-home::filament.pages.home';
 
@@ -72,12 +76,42 @@ class HomePage extends Page
 
     protected function getHeaderActions(): array
     {
-        return [$this->logTimeAction()->color('gray')];
+        return [
+            $this->eventAction('newEvent')->label('New event')->icon('heroicon-m-calendar-days')->color('gray'),
+            $this->logTimeAction()->color('gray'),
+        ];
     }
 
     public function startTimer(int $taskId): void
     {
         $this->attemptEntry(fn () => Worklog::start($this->user(), $taskId), 'Timer started');
+    }
+
+    public function stopTimer(): void
+    {
+        try {
+            $entry = Worklog::stop($this->user(), $this->stopNote);
+        } catch (RuntimeException $e) {
+            Notification::make()->danger()->title($e->getMessage())->send();
+
+            return; // the dialog stays open
+        }
+        Notification::make()->success()->title($entry ? 'Logged '.Worklog::format((float) $entry->unit_amount).' h' : 'Timer stopped (under a minute, nothing logged)')->send();
+        $this->stopNote = '';
+        $this->dispatch('close-modal', id: 'hv-home-stop');
+        $this->dispatch('huvant-worklog-changed');
+    }
+
+    public function discardTimer(): void
+    {
+        Worklog::discard($this->user());
+        $this->dispatch('close-modal', id: 'hv-home-stop');
+        $this->dispatch('huvant-worklog-changed');
+    }
+
+    protected function calendarUser(): User
+    {
+        return $this->user();
     }
 
     public function respondInvite(int $eventId, string $response): void
@@ -107,7 +141,6 @@ class HomePage extends Page
             'brief'    => Home::latest($user),
             'today'    => Home::today($user),
             'waiting'  => Home::waiting($user),
-            'meetings' => Home::meetings($user),
             'now'      => CarbonImmutable::now(),
         ];
     }

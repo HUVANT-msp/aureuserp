@@ -2,16 +2,19 @@
 
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Huvant\Calendar\Models\Event;
 use Huvant\Calendar\Support\Calendar;
 use Huvant\Home\Filament\Pages\HomePage;
 use Huvant\Home\Support\Home;
 use Huvant\Worklog\Support\Worklog;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Webkul\Project\Models\Project;
+use Webkul\Project\Models\Task;
 use Webkul\Security\Models\User;
 
 require_once __DIR__.'/../../../../webkul/support/tests/Helpers/TestBootstrapHelper.php';
@@ -90,12 +93,12 @@ it('renders the home page and schedules the briefs at 8 and 13 on weekdays', fun
     expect($events->map(fn ($e) => $e->expression)->values()->all())->toBe(['0 8 * * 1-5', '0 13 * * 1-5']);
 });
 
-it('shows what is waiting, today\'s time and the meetings from the Minutes', function () {
+it('shows what is waiting, the week ahead and today\'s time', function () {
     $user = homeUser();
     $boss = User::withoutEvents(fn (): User => User::factory()->create(['is_active' => true, 'name' => 'Boss']));
     $task = homeTask($user, 'Appena assegnato', null);
     DB::table('projects_task_users')->where('task_id', $task)->delete();
-    \Webkul\Project\Models\Task::query()->findOrFail($task)->users()->attach($user->getKey()); // a real assignment, dated
+    Task::query()->findOrFail($task)->users()->attach($user->getKey()); // a real assignment, dated
     Calendar::save($boss, ['kind' => 'meeting', 'title' => 'Kick-off', 'date' => now()->addDay()->toDateString(), 'from' => '10:00', 'to' => '11:00', 'attendees' => [$user->id]]);
     Worklog::addEntry($user, $task, now()->toDateString(), 1.5, 'Studio del capitolato');
     Http::fake(['minutes.test/api/v1/erp/my-meetings' => Http::response(['meetings' => [
@@ -111,8 +114,29 @@ it('shows what is waiting, today\'s time and the meetings from the Minutes', fun
 
     $event = $waiting['invites']->first();
     Livewire::test(HomePage::class)->assertOk()
-        ->assertSee('Waiting on you')->assertSee('Kick-off')->assertSee('Studio del capitolato')->assertSee('Planning Atlas')->assertSee('Preparare')
-        ->assertActionExists('logTime')
+        ->assertSee('Waiting on you')->assertSee('Kick-off')->assertSee('1:30')->assertDontSee('From your meetings')
+        ->assertSee('Coming up')->assertSee('Start timer')->assertActionExists('logTime')->assertActionExists('newEvent')
         ->call('respondInvite', $event->id, 'accepted');
     expect(Calendar::pendingFor($user))->toHaveCount(0);
+});
+
+it('creates an event and starts and stops the timer from the home page', function () {
+    $user = homeUser();
+    $task = homeTask($user, 'Montaggio', null);
+    $this->actingAs($user);
+
+    $page = Livewire::test(HomePage::class)
+        ->callAction('newEvent', ['kind' => 'meeting', 'title' => 'Allineamento', 'date' => now()->addDay()->toDateString(), 'from' => '10:00', 'to' => '11:00', 'all_day' => false, 'attendees' => []])
+        ->assertHasNoActionErrors()
+        ->call('startTimer', $task);
+    expect(Event::query()->where('title', 'Allineamento')->exists())->toBeTrue()
+        ->and(Worklog::running($user))->not->toBeNull();
+
+    Carbon::setTestNow(now()->addHour());
+    $page->set('stopNote', '')->call('stopTimer');
+    expect(Worklog::running($user))->not->toBeNull(); // no description: still running
+    $page->set('stopNote', 'Montaggio del banco')->call('stopTimer');
+    Carbon::setTestNow();
+    expect(Worklog::running($user))->toBeNull()
+        ->and(DB::table('analytic_records')->where('name', 'Montaggio del banco')->exists())->toBeTrue();
 });

@@ -2,7 +2,7 @@
 
 namespace Webkul\Project\Filament\Resources\ProjectResource\Schemas;
 
-use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -18,6 +18,7 @@ use Webkul\Partner\Filament\Resources\PartnerResource;
 use Webkul\Project\Enums\ProjectVisibility;
 use Webkul\Project\Filament\Clusters\Configurations\Resources\TagResource;
 use Webkul\Project\Filament\Resources\ProjectResource;
+use Webkul\Project\Models\Project;
 use Webkul\Project\Models\ProjectStage;
 use Webkul\Security\Filament\Resources\CompanyResource;
 use Webkul\Security\Filament\Resources\UserResource;
@@ -65,18 +66,10 @@ class ProjectForm
                                     ->preload()
                                     ->createOptionForm(fn (Schema $schema) => PartnerResource::form($schema))
                                     ->editOptionForm(fn (Schema $schema) => PartnerResource::form($schema)),
-                                DatePicker::make('start_date')
-                                    ->label(__('projects::filament/resources/project.form.sections.additional.fields.start-date'))
-                                    ->native(false)
-                                    ->suffixIcon('heroicon-o-calendar')
-                                    ->requiredWith('end_date')
-                                    ->beforeOrEqual('start_date'),
-                                DatePicker::make('end_date')
-                                    ->label(__('projects::filament/resources/project.form.sections.additional.fields.end-date'))
-                                    ->native(false)
-                                    ->suffixIcon('heroicon-o-calendar')
-                                    ->requiredWith('start_date')
-                                    ->afterOrEqual('start_date'),
+                                ColorPicker::make('color')
+                                    ->label('Color')
+                                    ->helperText('Used for this project on boards, calendars and the Meeting Canvas.')
+                                    ->default(fn (): string => Project::nextColor()),
                                 TextInput::make('allocated_hours')
                                     ->label(__('projects::filament/resources/project.form.sections.additional.fields.allocated-hours'))
                                     ->suffixIcon('heroicon-o-clock')

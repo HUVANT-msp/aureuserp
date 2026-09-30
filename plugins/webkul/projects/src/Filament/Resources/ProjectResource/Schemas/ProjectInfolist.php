@@ -2,6 +2,7 @@
 
 namespace Webkul\Project\Filament\Resources\ProjectResource\Schemas;
 
+use Filament\Infolists\Components\ColorEntry;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
@@ -60,16 +61,9 @@ class ProjectInfolist
                                             ->icon('heroicon-o-phone')
                                             ->placeholder('—'),
 
-                                        TextEntry::make('planned_date')
-                                            ->label(__('projects::filament/resources/project.infolist.sections.additional.entries.project-timeline'))
-                                            ->icon('heroicon-o-calendar')
-                                            ->state(function (Project $record): ?string {
-                                                if (! $record->start_date || ! $record->end_date) {
-                                                    return '—';
-                                                }
-
-                                                return $record->start_date->format('d M Y').' - '.$record->end_date->format('d M Y');
-                                            }),
+                                        ColorEntry::make('color')
+                                            ->label('Color')
+                                            ->state(fn (Project $record): string => $record->displayColor()),
 
                                         TextEntry::make('allocated_hours')
                                             ->label(__('projects::filament/resources/project.infolist.sections.additional.entries.allocated-hours'))

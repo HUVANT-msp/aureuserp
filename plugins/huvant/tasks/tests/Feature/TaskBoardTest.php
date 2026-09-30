@@ -2,6 +2,7 @@
 
 use Filament\Facades\Filament;
 use Huvant\Tasks\Filament\Pages\ManageProjectBoard;
+use Huvant\Tasks\Filament\Pages\ManageProjectMeetings;
 use Huvant\Tasks\Filament\Pages\ManageProjectNotes;
 use Huvant\Tasks\Filament\Pages\ManageTaskWork;
 use Huvant\Tasks\Filament\Pages\TaskBoardPage;
@@ -15,6 +16,7 @@ use Livewire\Livewire;
 use Webkul\Project\Enums\TaskState;
 use Webkul\Project\Filament\Clusters\Configurations\Resources\TaskStageResource;
 use Webkul\Project\Filament\Clusters\PluginSettings;
+use Webkul\Project\Filament\Resources\ProjectResource\Pages\ListProjects;
 use Webkul\Project\Filament\Resources\TaskResource;
 use Webkul\Project\Models\Project;
 use Webkul\Project\Models\Task;
@@ -206,4 +208,49 @@ it('shows the meeting minutes as an attachment and downloads the PDF through the
         ->and($response->headers->get('Content-Disposition'))->toContain('attachment; filename="Minutes Planning Atlas 2026-09-28.pdf"');
 
     $this->get(route('huvant.tasks.minutes', ['task' => 999999]))->assertNotFound();
+});
+
+it('lists the project meetings and downloads their minutes PDF', function () {
+    $admin = boardAdmin();
+    [$project] = boardProject();
+    $final = '11111111-1111-1111-1111-111111111111';
+    $review = '22222222-2222-2222-2222-222222222222';
+    config(['huvant-bridge.webhook.url' => 'http://minutes.test/api/v1/erp/webhook', 'huvant-bridge.webhook.secret' => 'meet-secret']);
+    $meeting = fn (string $id, string $title, string $state, bool $pdf) => [
+        'source'       => 'minutes', 'id' => $id, 'title' => $title, 'date' => '2026-09-28', 'state' => $state, 'pdf' => $pdf,
+        'participants' => 3, 'duration_minutes' => 42, 'recorded_in_canvas' => false,
+    ];
+    Http::fake([
+        'minutes.test/api/v1/erp/project-meetings' => Http::response(['meetings' => [
+            $meeting($final, 'Planning Atlas', 'final', true), $meeting($review, 'Kick-off Atlas', 'review', false),
+        ]]),
+        'minutes.test/api/v1/erp/minutes-pdf' => Http::response('%PDF-1.4 minutes', 200, ['Content-Type' => 'application/pdf']),
+    ]);
+    $this->actingAs($admin);
+
+    Livewire::test(ManageProjectMeetings::class, ['record' => $project->getKey()])->assertOk()
+        ->assertSee('Planning Atlas')->assertSee('Final')->assertSee('Kick-off Atlas')->assertSee('In review')->assertSee('42 min')
+        ->assertSee(route('huvant.projects.minutes', ['project' => $project->getKey(), 'meeting' => $final]))
+        ->set('search', 'kick')->assertDontSee('Planning Atlas');
+
+    $response = $this->get(route('huvant.projects.minutes', ['project' => $project->getKey(), 'meeting' => $final]));
+    $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    expect($response->headers->get('Content-Disposition'))->toContain('Minutes Planning Atlas 2026-09-28.pdf');
+    // Minutes still in review, or of another project, are not downloadable.
+    $this->get(route('huvant.projects.minutes', ['project' => $project->getKey(), 'meeting' => $review]))->assertNotFound();
+    $this->get(route('huvant.projects.minutes', ['project' => $project->getKey(), 'meeting' => '33333333-3333-3333-3333-333333333333']))->assertNotFound();
+});
+
+it('gives every project its own colour and no project dates in the list', function () {
+    $this->actingAs(boardAdmin());
+    Project::query()->update(['color' => null]);
+    [$project] = boardProject();
+    $project->forceFill(['color' => Project::nextColor(), 'start_date' => '2026-01-01', 'end_date' => '2026-12-31'])->save();
+    [$other] = boardProject();
+    $other->forceFill(['color' => Project::nextColor()])->save();
+
+    expect($project->color)->toBe(Project::PALETTE[0])->and($other->color)->toBe(Project::PALETTE[1]);
+    Livewire::test(ListProjects::class)->assertOk()
+        ->assertSee('background:'.Project::PALETTE[0], false)
+        ->assertDontSee('01 Jan 2026 - 31 Dec 2026');
 });

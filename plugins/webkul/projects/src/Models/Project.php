@@ -37,6 +37,22 @@ class Project extends Model implements Sortable
         'sort_when_creating' => true,
     ];
 
+    /** Distinct project colours, handed out in turn to projects that have none. */
+    public const PALETTE = ['#0075DE', '#BE185D', '#0F766E', '#C2410C', '#7C3AED', '#16803B', '#B42318', '#4338CA', '#A16207', '#0E7490', '#9D174D', '#475569'];
+
+    public static function nextColor(): string
+    {
+        $used = static::withTrashed()->whereNotNull('color')->pluck('color')->map(fn ($c) => strtoupper((string) $c))->all();
+
+        return collect(self::PALETTE)->first(fn (string $c): bool => ! in_array($c, $used, true))
+            ?? self::PALETTE[static::withTrashed()->count() % count(self::PALETTE)];
+    }
+
+    public function displayColor(): string
+    {
+        return preg_match('/^#[0-9a-f]{6}$/i', (string) $this->color) ? $this->color : self::PALETTE[((int) $this->getKey()) % count(self::PALETTE)];
+    }
+
     public function getModelTitle(): string
     {
         return __('projects::models/project.title');

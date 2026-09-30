@@ -45,6 +45,8 @@ class ProjectsTable
                     Stack::make([
                         TextColumn::make('name')
                             ->weight(FontWeight::Bold)
+                            ->html()
+                            ->formatStateUsing(fn (string $state, Project $record): string => '<span style="display:inline-flex;align-items:center;gap:10px"><span aria-hidden="true" style="flex:none;width:12px;height:12px;border-radius:4px;background:'.e($record->displayColor()).'"></span>'.e($state).'</span>')
                             ->label(__('projects::filament/resources/project.table.columns.name'))
                             ->searchable()
                             ->sortable(),
@@ -57,21 +59,6 @@ class ProjectsTable
                             ->sortable(),
                     ])
                         ->visible(fn (Project $record) => filled($record->partner)),
-                    Stack::make([
-                        TextColumn::make('start_date')
-                            ->label(__('projects::filament/resources/project.table.columns.start-date'))
-                            ->sortable()
-                            ->extraAttributes(['class' => 'hidden']),
-                        TextColumn::make('end_date')
-                            ->label(__('projects::filament/resources/project.table.columns.end-date'))
-                            ->sortable()
-                            ->extraAttributes(['class' => 'hidden']),
-                        TextColumn::make('planned_date')
-                            ->icon('heroicon-o-calendar')
-                            ->tooltip(__('projects::filament/resources/project.table.columns.planned-date'))
-                            ->state(fn (Project $record): string => $record->start_date->format('d M Y').' - '.$record->end_date->format('d M Y')),
-                    ])
-                        ->visible(fn (Project $record) => filled($record->start_date) && filled($record->end_date)),
                     Stack::make([
                         TextColumn::make('remaining_hours')
                             ->icon('heroicon-o-clock')
@@ -106,7 +93,8 @@ class ProjectsTable
                     ])
                         ->visible(fn (Project $record): bool => (bool) $record->tags?->count()),
                 ])
-                    ->space(3),
+                    ->space(3)
+                    ->extraAttributes(fn (Project $record): array => ['style' => 'border-top:4px solid '.$record->displayColor().';margin:-1rem -1rem 0;padding:.75rem 1rem 0;border-radius:.75rem .75rem 0 0']),
             ], $customColumns))
             ->groups([
                 Tables\Grouping\Group::make('stage.name')

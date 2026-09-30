@@ -294,3 +294,35 @@
 .hv-note-form label span { color: var(--huvant-muted); font-weight: 400; }
 .hv-note-form textarea { padding: 8px 10px; border: 1px solid var(--huvant-hairline); border-radius: 8px; background: var(--huvant-surface); color: var(--huvant-ink); font-size: 13.5px; font-weight: 400; }
 @media (max-width: 1100px) { .hv-notes-grid { grid-template-columns: 1fr; } .hv-notes-side { position: static; } .hv-note { flex-direction: column; } .hv-note-actions { max-width: none; justify-content: flex-start; } }
+
+/* Project meetings: one row per meeting, the whole row downloads its minutes */
+.hv-meet { display: grid; gap: 14px; }
+.hv-meet-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.hv-meet-count { color: var(--huvant-muted); font-size: 14px; }
+.hv-meet-count b { color: var(--huvant-ink); font-weight: 650; }
+.hv-meet-list { display: grid; gap: 8px; }
+.hv-meet-row {
+    display: grid; grid-template-columns: 56px minmax(0, 1fr) auto auto; align-items: center; gap: 14px;
+    padding: 12px 16px; border: 1px solid var(--huvant-hairline); border-radius: 12px;
+    background: var(--huvant-surface); box-shadow: var(--huvant-shadow-1);
+    transition: border-color 160ms ease, transform 160ms ease;
+}
+.hv-meet-row:hover { border-color: #9fcdf7; transform: translateY(-1px); }
+.hv-meet-row:focus-visible { outline: 2px solid #0075de; outline-offset: 2px; }
+.hv-meet-date { display: grid; justify-items: center; padding: 4px 0; border-radius: 10px; background: color-mix(in srgb, #0075de 8%, transparent); line-height: 1.1; }
+.hv-meet-date b { color: #0075de; font-size: 20px; font-weight: 700; }
+.hv-meet-date small { color: var(--huvant-muted); font-size: 11px; white-space: nowrap; }
+.hv-meet-main { display: grid; min-width: 0; }
+.hv-meet-main b { overflow: hidden; color: var(--huvant-ink); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.hv-meet-main small { color: var(--huvant-muted); font-size: 12px; }
+.hv-meet-state { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.hv-meet-state.tone-final { background: color-mix(in srgb, #0f9d58 14%, transparent); color: #0b7a44; }
+.hv-meet-state.tone-review { background: color-mix(in srgb, #ee7113 16%, transparent); color: #b45309; }
+.hv-meet-state.tone-processing { background: color-mix(in srgb, var(--huvant-hairline) 70%, transparent); color: var(--huvant-muted); }
+.hv-meet-state.tone-failed { background: color-mix(in srgb, #d8141d 14%, transparent); color: #b91c1c; }
+.hv-meet-state.tone-live { background: color-mix(in srgb, #e30d7f 14%, transparent); color: #be185d; }
+.hv-meet-action { display: inline-flex; align-items: center; gap: 6px; color: #0075de; font-size: 13px; font-weight: 600; }
+@media (max-width: 640px) {
+    .hv-meet-row { grid-template-columns: 48px minmax(0, 1fr) auto; }
+    .hv-meet-state { display: none; }
+}

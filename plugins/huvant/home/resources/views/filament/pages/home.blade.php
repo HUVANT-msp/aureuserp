@@ -6,27 +6,96 @@
 @endphp
 <x-filament-panels::page>
     <div class="hv-home">
-        {{-- What is coming up --}}
-        <section class="hv-home-strip" aria-label="Coming up">
-            @foreach ($upcoming as $i => $day)
-                <div @class(['hv-home-day', 'is-today' => $i === 0])>
-                    <header>
-                        <span>{{ $i === 0 ? 'Today' : ($i === 1 ? 'Tomorrow' : $day['date']->format('D j')) }}</span>
-                        @if (! in_array($day['presence'], ['office', 'weekend'], true))
-                            <em class="hv-home-where where-{{ $day['presence'] }}">{{ \Huvant\Calendar\Support\Calendar::PRESENCE[$day['presence']][0] }}</em>
-                        @endif
-                    </header>
-                    @forelse ($day['items'] as $item)
-                        <a class="hv-home-event" href="{{ $calendarUrl ? \Huvant\Calendar\Filament\Pages\CalendarPage::getUrl(['view' => 'agenda', 'event' => $item['id'], 'week' => $day['date']->startOfWeek()->toDateString()]) : '#' }}" style="--ec: {{ $item['color'] }}">
-                            <b>{{ $item['time'] }}</b> {{ $item['title'] }}
-                            @if ($item['pending'])<small>reply</small>@endif
-                        </a>
-                    @empty
-                        <p class="hv-home-free">{{ $day['date']->isWeekend() ? '' : 'Nothing planned' }}</p>
-                    @endforelse
+        <div class="hv-home-top">
+            {{-- Coming up: one widget for the week --}}
+            @php
+                $next = collect($upcoming)->flatMap(fn ($day) => collect($day['items'])->map(fn ($item) => $item + ['day' => $day['date']]))->take(6);
+            @endphp
+            <section class="hv-home-card hv-home-upcoming" aria-label="Coming up">
+                <header class="hv-home-head">
+                    <h2>Coming up</h2>
+                    @if ($calendarUrl)<a href="{{ $calendarUrl }}" class="hv-home-link">Calendar</a>@endif
+                </header>
+                <ol class="hv-home-week">
+                    @foreach ($upcoming as $i => $day)
+                        <li @class(['is-today' => $i === 0, 'is-weekend' => $day['date']->isWeekend()]) title="{{ $day['date']->format('l j F') }}{{ in_array($day['presence'], ['office', 'weekend'], true) ? '' : ' · '.\Huvant\Calendar\Support\Calendar::PRESENCE[$day['presence']][0] }}">
+                            <small>{{ $day['date']->format('D') }}</small>
+                            <b>{{ $day['date']->day }}</b>
+                            <span class="hv-home-dots">
+                                @foreach (array_slice($day['items'], 0, 3) as $item)<i style="background: {{ $item['color'] }}"></i>@endforeach
+                            </span>
+                            @if (! in_array($day['presence'], ['office', 'weekend'], true))
+                                <em class="where-{{ $day['presence'] }}">{{ ['remote' => 'Remote', 'travel' => 'Travel', 'away' => 'Away', 'leave' => 'Leave'][$day['presence']] ?? '' }}</em>
+                            @endif
+                        </li>
+                    @endforeach
+                </ol>
+                @if ($next->isEmpty())
+                    <p class="hv-home-muted">Nothing planned in the next seven days.</p>
+                @else
+                    <ul class="hv-home-agenda">
+                        @foreach ($next as $item)
+                            <li>
+                                <a href="{{ $calendarUrl ? \Huvant\Calendar\Filament\Pages\CalendarPage::getUrl(['view' => 'agenda', 'event' => $item['id'], 'week' => $item['day']->startOfWeek()->toDateString()]) : '#' }}" style="--ec: {{ $item['color'] }}">
+                                    <span class="hv-home-when">{{ $item['day']->isToday() ? 'Today' : ($item['day']->isTomorrow() ? 'Tomorrow' : $item['day']->format('D j')) }} <b>{{ $item['time'] }}</b></span>
+                                    <span class="hv-home-what">{{ $item['title'] }}</span>
+                                    @if ($item['pending'])<small>reply</small>@endif
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </section>
+
+            {{-- My time today: a gauge and two buttons --}}
+            @php
+                $pct = $today['expected'] > 0 ? min(1, $today['hours'] / $today['expected']) : 0;
+                $arc = 2 * M_PI * 52 * 0.75;
+            @endphp
+            <section class="hv-home-card hv-home-time">
+                <header class="hv-home-head">
+                    <h2>My time today</h2>
+                    <a href="{{ \Huvant\Worklog\Filament\Pages\MyWeek::getUrl() }}" class="hv-home-link">My time</a>
+                </header>
+                <div @class(['hv-gauge', 'is-running' => (bool) $today['running']]) role="img" aria-label="{{ \Huvant\Worklog\Support\Worklog::format($today['hours']) }} of {{ \Huvant\Worklog\Support\Worklog::format($today['expected']) }} hours today">
+                    <svg viewBox="0 0 120 120" aria-hidden="true">
+                        <circle class="hv-gauge-track" cx="60" cy="60" r="52" stroke-dasharray="{{ round($arc, 2) }} 999" />
+                        <circle class="hv-gauge-fill" cx="60" cy="60" r="52" stroke-dasharray="{{ round($arc * $pct, 2) }} 999" />
+                    </svg>
+                    <div class="hv-gauge-text">
+                        <b>{{ \Huvant\Worklog\Support\Worklog::format($today['hours']) }}</b>
+                        <small>of {{ \Huvant\Worklog\Support\Worklog::format($today['expected']) }} h</small>
+                    </div>
                 </div>
-            @endforeach
-        </section>
+                @if ($today['running'])
+                    <p class="hv-home-running" x-data="{ start: {{ \Carbon\Carbon::parse($today['running']->started_at)->getTimestamp() }} * 1000, now: Date.now() }" x-init="setInterval(() => now = Date.now(), 1000)">
+                        <span></span><em>{{ \Illuminate\Support\Str::limit($today['running']->task_title, 40) }}</em>
+                        <b x-text="(() => { const s = Math.max(0, Math.floor((now - start) / 1000)); return Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') })()"></b>
+                    </p>
+                @endif
+                <div class="hv-home-time-actions">
+                    @if ($today['running'])
+                        <button type="button" class="hv-home-btn is-stop" x-on:click="$dispatch('open-modal', { id: 'hv-home-stop' })">
+                            <x-filament::icon icon="heroicon-m-stop" class="h-4 w-4" />Stop
+                        </button>
+                    @else
+                        <div class="hv-home-btn is-start" x-data="{ open: false }" x-on:click.outside="open = false">
+                            <button type="button" x-on:click="open = ! open" :aria-expanded="open" @disabled($today['tasks']->isEmpty())>
+                                <x-filament::icon icon="heroicon-m-play" class="h-4 w-4" />Start timer
+                            </button>
+                            <ul class="hv-home-pick" x-show="open" x-cloak x-transition.opacity>
+                                @foreach ($today['tasks'] as $task)
+                                    <li><button type="button" wire:click="startTimer({{ $task->id }})" x-on:click="open = false">{{ \Illuminate\Support\Str::limit($task->title, 80) }}<small>{{ $task->project?->name }}</small></button></li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    <button type="button" class="hv-home-btn" wire:click="mountAction('logTime')">
+                        <x-filament::icon icon="heroicon-m-pencil-square" class="h-4 w-4" />Log time
+                    </button>
+                </div>
+            </section>
+        </div>
 
         <div class="hv-home-grid">
             <div class="hv-home-col">
@@ -63,36 +132,6 @@
                 @endforeach
             </section>
 
-            {{-- From your meetings --}}
-            <section class="hv-home-card">
-                <header class="hv-home-head"><h2>From your meetings</h2></header>
-                @if ($meetings === null)
-                    <p class="hv-home-muted">Meetings are not reachable right now.</p>
-                @elseif (empty($meetings))
-                    <p class="hv-home-muted">No meetings in the last three weeks.</p>
-                @else
-                    @foreach ($meetings as $meeting)
-                        <div class="hv-home-meeting">
-                            <a href="{{ $meeting['url'] }}" class="hv-home-meeting-title">
-                                <x-filament::icon :icon="($meeting['system'] ?? '') === 'canvas' ? 'heroicon-m-presentation-chart-bar' : 'heroicon-m-document-text'" class="h-4 w-4" />
-                                {{ $meeting['title'] }}
-                                <small>{{ $meeting['date'] ? \Carbon\Carbon::parse($meeting['date'])->format('D j M') : '' }}</small>
-                                @if (($meeting['mine'] ?? 0) > 0)<em>{{ $meeting['mine'] }} for you</em>@endif
-                            </a>
-                            @if (! empty($meeting['items']))
-                                <ul>
-                                    @foreach ($meeting['items'] as $item)
-                                        <li @class(['is-mine' => $item['mine']])>
-                                            <span class="hv-home-kind kind-{{ $item['kind'] }}">{{ ['action' => 'To do', 'decision' => 'Decided', 'open_point' => 'Open'][$item['kind']] ?? $item['kind'] }}</span>
-                                            <span class="hv-home-item">{{ $item['text'] }}@if ($item['owner'] && ! $item['mine']) <small>· {{ $item['owner'] }}</small>@endif</span>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @endif
-                        </div>
-                    @endforeach
-                @endif
-            </section>
             </div>
 
             <div class="hv-home-col">
@@ -170,39 +209,19 @@
                 <a class="hv-milo-ask" href="/riunioni/milo">Ask Milo <x-filament::icon icon="heroicon-m-arrow-right" class="h-4 w-4" /></a>
             </section>
 
-            {{-- My time today --}}
-            <section class="hv-home-card">
-                <header class="hv-home-head">
-                    <h2>My time today</h2>
-                    <a href="{{ \Huvant\Worklog\Filament\Pages\MyWeek::getUrl() }}" class="hv-home-link">My time</a>
-                </header>
-                @php $pct = $today['expected'] > 0 ? min(100, round($today['hours'] / $today['expected'] * 100)) : 0; @endphp
-                <div class="hv-home-meter">
-                    <b>{{ \Huvant\Worklog\Support\Worklog::format($today['hours']) }}</b><span>of {{ \Huvant\Worklog\Support\Worklog::format($today['expected']) }} h</span>
-                    <i><span style="width: {{ $pct }}%"></span></i>
-                </div>
-                @if ($today['running'])
-                    <p class="hv-home-running"><span></span>Timer on “{{ $today['running']->task_title }}” since {{ \Carbon\Carbon::parse($today['running']->started_at)->format('H:i') }} <small>(stop it from the top bar)</small></p>
-                @elseif ($today['tasks']->isNotEmpty())
-                    <label class="hv-home-start">
-                        <x-filament::icon icon="heroicon-m-play" class="h-4 w-4" />
-                        <select x-on:change="if ($event.target.value) { $wire.startTimer(Number($event.target.value)); $event.target.value = '' }" aria-label="Start the timer on a task">
-                            <option value="">Start the timer on…</option>
-                            @foreach ($today['tasks'] as $task)<option value="{{ $task->id }}">{{ \Illuminate\Support\Str::limit($task->title, 70) }}</option>@endforeach
-                        </select>
-                    </label>
-                @endif
-                @if ($today['entries'])
-                    <ul class="hv-home-entries">
-                        @foreach ($today['entries'] as $entry)
-                            <li><span class="hv-home-grow">{{ $entry->name }}<small>{{ $entry->task }}</small></span><b>{{ \Huvant\Worklog\Support\Worklog::format((float) $entry->unit_amount) }}</b></li>
-                        @endforeach
-                    </ul>
-                @endif
-            </section>
             </div>
 
         </div>
     </div>
+    <x-filament::modal id="hv-home-stop" width="md">
+        <x-slot name="heading">What did you do?</x-slot>
+        <form class="hv-home-stop" wire:submit="stopTimer">
+            <textarea wire:model="stopNote" rows="3" maxlength="255" required placeholder="Required"></textarea>
+            <div>
+                <button type="button" class="hv-home-discard" wire:click="discardTimer" wire:confirm="Discard the timer without logging any time?">Discard timer</button>
+                <x-filament::button type="submit">Stop and log</x-filament::button>
+            </div>
+        </form>
+    </x-filament::modal>
     @livewire('huvant-task-panel')
 </x-filament-panels::page>
