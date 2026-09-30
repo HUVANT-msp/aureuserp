@@ -4,11 +4,12 @@ namespace Huvant\Meetings;
 
 use Filament\Contracts\Plugin;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\View\PanelsRenderHook;
+use Huvant\Meetings\Filament\Pages\CanvasPage;
+use Huvant\Meetings\Filament\Pages\MiloPage;
+use Huvant\Meetings\Filament\Pages\MinutesPage;
 use Huvant\Meetings\Http\Controllers\SessionController;
-use Huvant\Meetings\Support\MeetingsSso;
 use Illuminate\Support\Facades\Route;
 use Webkul\PluginManager\Package;
 
@@ -37,25 +38,13 @@ class MeetingsPlugin implements Plugin
                 'Meetings' => NavigationGroup::make('Meetings')->icon('huvant-meetings'),
                 'Milo'     => NavigationGroup::make('Milo')->icon('huvant-milo'),
             ]);
-            // Minutes and Canvas live on the same domain under /riunioni.
-            $panel->navigationItems([
-                NavigationItem::make('Minutes')
-                    ->url(MeetingsSso::HOME)
-                    ->icon('heroicon-o-document-text')
-                    ->group('Meetings')
-                    ->sort(1),
-                NavigationItem::make('Canvas')
-                    ->url(MeetingsSso::HOME.'canvas')
-                    ->icon('heroicon-o-microphone')
-                    ->group('Meetings')
-                    ->sort(2),
-                // Milo lives on its own page, outside Minutes and Canvas.
-                NavigationItem::make('Ask Milo')
-                    ->url(MeetingsSso::HOME.'milo')
-                    ->icon('heroicon-o-chat-bubble-left-right')
-                    ->group('Milo')
-                    ->sort(1),
-            ]);
+            // Minutes, Canvas and Milo are ERP pages: the ERP top bar stays on top, the tool fills the page.
+            $panel->pages([MinutesPage::class, CanvasPage::class, MiloPage::class]);
+            // An ERP page opened inside the tool frame (a link, the sign-in page) takes the whole window.
+            $panel->renderHook(
+                PanelsRenderHook::HEAD_START,
+                fn (): string => '<script>if (window.self !== window.top) { try { if (window.top.location.origin === window.location.origin) window.top.location.replace(window.location.href); } catch (e) {} }</script>',
+            );
             // Huvant look (light/dark) for every page of the panel, sign-in included.
             $panel->renderHook(
                 PanelsRenderHook::HEAD_END,

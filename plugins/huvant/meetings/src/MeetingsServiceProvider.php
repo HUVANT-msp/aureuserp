@@ -20,6 +20,7 @@ class MeetingsServiceProvider extends PackageServiceProvider
     {
         $package->name(static::$name)
             ->hasConfigFile('huvant-meetings')
+            ->hasViews()
             ->hasInstallCommand(function (InstallCommand $command): void {})
             ->hasUninstallCommand(function (UninstallCommand $command): void {});
     }
