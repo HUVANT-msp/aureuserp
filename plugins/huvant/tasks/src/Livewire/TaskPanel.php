@@ -5,6 +5,7 @@ namespace Huvant\Tasks\Livewire;
 use Carbon\CarbonImmutable;
 use Filament\Notifications\Notification;
 use Huvant\Tasks\Support\Board;
+use Huvant\Tasks\Support\TaskOrigin;
 use Huvant\Tasks\Support\TaskWork;
 use Huvant\Worklog\Support\Worklog;
 use Illuminate\Contracts\View\View;
@@ -155,6 +156,7 @@ class TaskPanel extends Component
             'canEdit'    => Gate::allows('update', $task),
             'isAssignee' => $task->users->contains('id', $this->user()->getKey()),
             'running'    => class_exists(Worklog::class) ? Worklog::running($this->user()) : null,
+            'origin'     => TaskOrigin::for($task),
         ] : ['task' => null]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace Huvant\Bridge\Support;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -23,6 +24,12 @@ class MinutesApi
     /** @return array<string, mixed> */
     public static function post(string $path, array $payload, int $timeout = 8): array
     {
+        return (array) static::send($path, $payload, $timeout)->json();
+    }
+
+    /** The raw response (e.g. a PDF), already checked for errors. */
+    public static function send(string $path, array $payload, int $timeout = 8): Response
+    {
         $url = static::url($path);
         $secret = (string) config('huvant-bridge.webhook.secret');
         if (! $url || $secret === '') {
@@ -31,12 +38,12 @@ class MinutesApi
         $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $timestamp = (string) now()->timestamp;
 
-        return (array) Http::timeout($timeout)
+        return Http::timeout($timeout)
             ->withHeaders([
                 'X-Huvant-Timestamp' => $timestamp,
                 'X-Huvant-Signature' => 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, $secret),
             ])
             ->withBody($body, 'application/json')
-            ->post($url)->throw()->json();
+            ->post($url)->throw();
     }
 }

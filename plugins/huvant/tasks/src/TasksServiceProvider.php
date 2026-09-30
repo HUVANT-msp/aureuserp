@@ -3,8 +3,10 @@
 namespace Huvant\Tasks;
 
 use Filament\Panel;
+use Huvant\Tasks\Http\Controllers\TaskMinutesController;
 use Huvant\Tasks\Livewire\TaskBoard;
 use Huvant\Tasks\Livewire\TaskPanel;
+use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Webkul\PluginManager\Console\Commands\InstallCommand;
 use Webkul\PluginManager\Console\Commands\UninstallCommand;
@@ -40,6 +42,12 @@ class TasksServiceProvider extends PackageServiceProvider
     {
         Livewire::component('huvant-task-board', TaskBoard::class);
         Livewire::component('huvant-task-panel', TaskPanel::class);
+
+        // The minutes of the meeting a task came from, downloaded through the ERP session.
+        Route::middleware('web')
+            ->get('admin/huvant/tasks/{task}/minutes.pdf', [TaskMinutesController::class, 'show'])
+            ->whereNumber('task')
+            ->name('huvant.tasks.minutes');
     }
 
     public function packageRegistered(): void

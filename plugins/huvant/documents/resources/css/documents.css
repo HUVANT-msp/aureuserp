@@ -2,6 +2,13 @@
 .hv-doc-hint { margin: -8px 0 0; color: var(--huvant-muted); font-size: 13px; }
 .hv-doc-muted { color: var(--huvant-muted); }
 
+/* The meeting a task came from, as its first attachment */
+.hv-doc-origin { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--huvant-hairline); border-radius: 12px; background: var(--huvant-surface); box-shadow: var(--huvant-shadow-1); }
+.hv-doc-origin > div { display: grid; flex: 1; min-width: 0; }
+.hv-doc-origin b { overflow: hidden; color: var(--huvant-ink); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.hv-doc-origin small { color: var(--huvant-muted); font-size: 12px; }
+.hv-doc-origin-icon { flex: none; width: 28px; height: 28px; color: #d8141d; }
+
 .hv-doc-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: -8px; font-size: 14px; }
 .hv-doc-trail button {
     display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px;

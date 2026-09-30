@@ -184,3 +184,26 @@ it('shows the project notes from the meetings and changes their state', function
         && $request['status'] === 'resolved' && $request['note'] === 'Approvato dal cliente' && $request['email'] === $admin->email);
     Http::assertSent(fn ($request) => str_ends_with($request->url(), '/project-notes/move') && $request['meeting_id'] === 'm1');
 });
+
+it('shows the meeting minutes as an attachment and downloads the PDF through the ERP', function () {
+    $admin = boardAdmin();
+    [$project, $stages] = boardProject();
+    $id = boardTask($project, $stages['To Do'], ['title' => 'Contattare l\'Agenzia', 'description' => '<p><strong>Obiettivo:</strong> Avere i documenti.</p>']);
+    config(['huvant-bridge.webhook.url' => 'http://minutes.test/api/v1/erp/webhook', 'huvant-bridge.webhook.secret' => 'pdf-secret']);
+    Http::fake([
+        'minutes.test/api/v1/erp/task-origin' => Http::response(['origin' => [
+            'source' => 'minutes', 'meeting_id' => 'm1', 'title' => 'Planning Atlas', 'date' => '2026-09-28', 'pdf' => true, 'url' => '/riunioni/?meeting=m1',
+        ]]),
+        'minutes.test/api/v1/erp/minutes-pdf' => Http::response('%PDF-1.4 minutes', 200, ['Content-Type' => 'application/pdf']),
+    ]);
+    $this->actingAs($admin);
+
+    Livewire::test(TaskPanel::class)->call('open', $id)->assertSee('Meeting minutes')->assertSee('Planning Atlas')->assertSee('Obiettivo:', false);
+
+    $response = $this->get(route('huvant.tasks.minutes', ['task' => $id]));
+    $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    expect($response->getContent())->toBe('%PDF-1.4 minutes')
+        ->and($response->headers->get('Content-Disposition'))->toContain('attachment; filename="Minutes Planning Atlas 2026-09-28.pdf"');
+
+    $this->get(route('huvant.tasks.minutes', ['task' => 999999]))->assertNotFound();
+});

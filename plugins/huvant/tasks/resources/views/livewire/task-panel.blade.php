@@ -90,10 +90,30 @@
                     </dd>
                 </dl>
 
-                @if (filled($task->description))
+                @if (filled($task->description) || $origin)
                     <section class="hv-section">
-                        <h3>Description</h3>
-                        <div class="hv-desc fi-prose">{!! str($task->description)->sanitizeHtml() !!}</div>
+                        <div class="hv-desc-head">
+                            <h3>Description</h3>
+                            @if ($origin)
+                                @if ($origin['pdf'] ?? false)
+                                    <a class="hv-attachment" href="{{ \Huvant\Tasks\Support\TaskOrigin::downloadUrl($task) }}" title="Download the minutes of “{{ $origin['title'] }}”">
+                                        <x-filament::icon icon="heroicon-m-document-arrow-down" class="h-4 w-4" />
+                                        <span>Meeting minutes <small>PDF</small></span>
+                                    </a>
+                                @else
+                                    <a class="hv-attachment" href="{{ $origin['url'] }}" title="{{ $origin['title'] }}">
+                                        <x-filament::icon :icon="$origin['source'] === 'canvas' ? 'heroicon-m-presentation-chart-bar' : 'heroicon-m-document-text'" class="h-4 w-4" />
+                                        <span>{{ $origin['source'] === 'canvas' ? 'Open the Canvas' : 'Minutes (not final yet)' }}</span>
+                                    </a>
+                                @endif
+                            @endif
+                        </div>
+                        @if ($origin)
+                            <p class="hv-desc-origin">From “{{ $origin['title'] }}”{{ $origin['date'] ? ', '.\Carbon\Carbon::parse($origin['date'])->format('j M Y') : '' }}</p>
+                        @endif
+                        @if (filled($task->description))
+                            <div class="hv-desc fi-prose">{!! str($task->description)->sanitizeHtml() !!}</div>
+                        @endif
                     </section>
                 @endif
 
