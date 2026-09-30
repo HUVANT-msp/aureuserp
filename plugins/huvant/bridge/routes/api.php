@@ -1,6 +1,7 @@
 <?php
 
 use Huvant\Bridge\Http\Controllers\API\V1\EmployeeController;
+use Huvant\Bridge\Http\Controllers\API\V1\ExternalContactController;
 use Huvant\Bridge\Http\Controllers\API\V1\NoteController;
 use Huvant\Bridge\Http\Controllers\API\V1\ProjectColorController;
 use Huvant\Bridge\Http\Controllers\API\V1\TimesheetController;
@@ -20,6 +21,8 @@ Route::name('admin.api.v1.huvant.')
         Route::match(['put', 'patch'], 'users/{user}', [UserController::class, 'update'])->middleware(EnsureIdempotentBridgeRequest::class)->name('users.update');
         Route::get('employees', [EmployeeController::class, 'index'])->name('employees.index');
         Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
+        Route::post('externals', [ExternalContactController::class, 'store'])->middleware(EnsureIdempotentBridgeRequest::class)->name('externals.store');
+        Route::put('externals/{partner}', [ExternalContactController::class, 'update'])->middleware(EnsureIdempotentBridgeRequest::class)->name('externals.update');
         Route::patch('projects/{project}/color', [ProjectColorController::class, 'update'])->middleware(EnsureIdempotentBridgeRequest::class)->name('projects.color.update');
         Route::post('projects/{project}/notes', [NoteController::class, 'project'])->middleware(EnsureIdempotentBridgeRequest::class)->name('projects.notes.store');
         Route::post('tasks/{task}/notes', [NoteController::class, 'task'])->middleware(EnsureIdempotentBridgeRequest::class)->name('tasks.notes.store');
