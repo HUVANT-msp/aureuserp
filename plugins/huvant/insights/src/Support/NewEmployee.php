@@ -35,8 +35,10 @@ class NewEmployee
             ->label('New employee')
             ->icon('heroicon-o-user-plus')
             ->modalHeading('New employee')
-            ->modalDescription('They get an account, appear among employees and internal contacts, and receive an e-mail to set their password.')
-            ->modalSubmitActionLabel('Add and invite')
+            ->modalDescription(fn (): string => static::invitesOn()
+                ? 'They get an account, appear among employees and internal contacts, and receive an e-mail to set their password.'
+                : 'They get an account and appear among employees and internal contacts. No e-mail is sent for now.')
+            ->modalSubmitActionLabel(fn (): string => static::invitesOn() ? 'Add and invite' : 'Add')
             ->modalWidth('lg')
             ->schema([
                 TextInput::make('name')->label('Full name')->required()->maxLength(255)->autofocus(),
@@ -54,7 +56,12 @@ class NewEmployee
             ])
             ->action(function (array $data): void {
                 $employee = static::create($data, auth()->user());
-                static::invite($employee->user, auth()->user());
+                if (static::invitesOn()) {
+                    static::invite($employee->user, auth()->user());
+                } else {
+                    Notification::make()->success()->title($employee->name.' added')
+                        ->body('They are among employees and internal contacts. Invitations are off for now: no e-mail was sent.')->send();
+                }
             });
     }
 
@@ -91,19 +98,31 @@ class NewEmployee
         });
     }
 
+    /** Invitations go out only once the ERP is in use (config huvant-insights.send_invites). */
+    public static function invitesOn(): bool
+    {
+        return (bool) config('huvant-insights.send_invites', false);
+    }
+
     /** E-mail the "set your password" link (sent by Meetings); if it cannot go, hand the link to the admin. */
-    public static function invite(User $user, ?User $by = null): bool
+    public static function invite(User $user, ?User $by = null, bool $notify = true): bool
     {
         $token = Password::broker(Filament::getPanel('admin')->getAuthPasswordBroker())->createToken($user);
         $url = Filament::getPanel('admin')->getResetPasswordUrl($token, $user);
         try {
             MinutesApi::post('welcome-email', ['email' => $user->email, 'name' => $user->name, 'url' => $url, 'invited_by' => $by?->name], 20);
+            if (! $notify) {
+                return true;
+            }
             Notification::make()->success()->title($user->name.' added')
                 ->body('They are among employees and internal contacts, and got an e-mail to set their password.')->send();
 
             return true;
         } catch (\Throwable $e) {
             report($e);
+            if (! $notify) {
+                return false;
+            }
             Notification::make()->warning()->persistent()->title($user->name.' added, but the e-mail could not be sent')
                 ->body('Send them this link to set their password (valid 3 days): '.$url)
                 ->actions([NotificationAction::make('open')->label('Open link')->url($url, shouldOpenInNewTab: true)])

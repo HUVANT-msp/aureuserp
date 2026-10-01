@@ -3,6 +3,7 @@
 namespace Huvant\Insights;
 
 use Filament\Panel;
+use Huvant\Insights\Console\SendInvites;
 use Huvant\Insights\Support\EmployeeProfile;
 use Huvant\Insights\Support\Onboarding;
 use Webkul\PluginManager\Console\Commands\InstallCommand;
@@ -19,6 +20,7 @@ class InsightsServiceProvider extends PackageServiceProvider
     {
         $package->name(static::$name)
             ->hasViews()
+            ->hasConfigFile('huvant-insights')
             ->hasDependencies(['projects', 'employees'])
             ->hasInstallCommand(function (InstallCommand $command): void {
                 $command->startWith(function (InstallCommand $command): void {
@@ -34,6 +36,10 @@ class InsightsServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        if ($this->app->runningInConsole()) {
+            $this->commands([SendInvites::class]);
+        }
+
         // Invitations to new colleagues set a password through the reset link: give them 3 days.
         config(['auth.passwords.users.expire' => max((int) config('auth.passwords.users.expire', 60), 4320)]);
 

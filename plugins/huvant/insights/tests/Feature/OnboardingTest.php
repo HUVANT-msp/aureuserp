@@ -56,7 +56,7 @@ it('makes every new user an employee and an internal contact, joining what was a
 it('adds a colleague from Employees in one step and invites them', function () {
     $admin = onboardingAdmin();
     $this->actingAs($admin);
-    config(['huvant-bridge.webhook.url' => 'http://minutes.test/api/v1/erp/webhook', 'huvant-bridge.webhook.secret' => 'welcome-secret']);
+    config(['huvant-bridge.webhook.url' => 'http://minutes.test/api/v1/erp/webhook', 'huvant-bridge.webhook.secret' => 'welcome-secret', 'huvant-insights.send_invites' => true]);
     Http::fake(['minutes.test/api/v1/erp/welcome-email' => Http::response(['sent' => true])]);
     $manager = Employee::withoutGlobalScopes()->where('user_id', $admin->getKey())->first() ?? Onboarding::onboard($admin);
 
@@ -76,4 +76,19 @@ it('adds a colleague from Employees in one step and invites them', function () {
     Livewire::test(ListEmployees::class)
         ->callAction('newEmployee', ['name' => 'Altra', 'email' => 'g.nuova@huvant.test', 'access' => 'team'])
         ->assertHasActionErrors(['email']);
+});
+
+it('sends no invitation while invitations are off, and the command sends it later', function () {
+    $this->actingAs(onboardingAdmin());
+    config(['huvant-bridge.webhook.url' => 'http://minutes.test/api/v1/erp/webhook', 'huvant-bridge.webhook.secret' => 'welcome-secret', 'huvant-insights.send_invites' => false]);
+    Http::fake(['minutes.test/api/v1/erp/welcome-email' => Http::response(['sent' => true])]);
+
+    Livewire::test(ListEmployees::class)
+        ->callAction('newEmployee', ['name' => 'Paolo Quieto', 'email' => 'p.quieto@huvant.test', 'access' => 'team'])
+        ->assertHasNoActionErrors();
+    expect(User::query()->where('email', 'p.quieto@huvant.test')->exists())->toBeTrue();
+    Http::assertNothingSent();
+
+    $this->artisan('huvant:invite', ['emails' => ['p.quieto@huvant.test']])->assertSuccessful();
+    Http::assertSent(fn ($request) => $request['email'] === 'p.quieto@huvant.test');
 });
