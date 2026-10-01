@@ -17,8 +17,15 @@ class ListEmployees extends ListRecords
 
     protected static string $resource = EmployeeResource::class;
 
+    /** Another plugin can replace "New employee" (e.g. one that creates the user too). */
+    public static ?\Closure $createActionUsing = null;
+
     protected function getHeaderActions(): array
     {
+        if (static::$createActionUsing) {
+            return [(static::$createActionUsing)()];
+        }
+
         return [
             CreateAction::make()
                 ->icon('heroicon-o-plus-circle')

@@ -83,8 +83,8 @@ it('shows an employee\'s tasks and how busy they are, without edit, skills or re
 
 it('keeps the employee record from the person\'s own profile', function () {
     $anna = User::factory()->create(['is_active' => true, 'name' => 'Anna Rossi', 'email' => 'anna@huvant.test']);
-    $card = Partner::withoutEvents(fn () => Partner::query()->create(['account_type' => 'individual', 'sub_type' => 'employee', 'name' => 'Anna Rossi']));
-    $employee = Employee::withoutEvents(fn (): Employee => Employee::factory()->create(['user_id' => $anna->getKey(), 'name' => 'Anna Rossi', 'job_title' => null, 'partner_id' => $card->getKey()]));
+    // Every new user is an employee already (Onboarding).
+    $employee = Employee::withoutGlobalScopes()->where('user_id', $anna->getKey())->firstOrFail();
     $this->actingAs($anna);
 
     expect(Profile::$extensions)->toContain(EmployeeProfile::class);

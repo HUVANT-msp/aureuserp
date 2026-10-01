@@ -9,11 +9,13 @@ use Huvant\Insights\Filament\Pages\ManageEmployeeTasks;
 use Huvant\Insights\Filament\Pages\ManageEmployeeWork;
 use Huvant\Insights\Filament\Pages\ProjectsOverview;
 use Huvant\Insights\Support\EmployeeProfile;
+use Huvant\Insights\Support\NewEmployee;
 use Webkul\Employee\Filament\Clusters\Configurations as EmployeeConfigurations;
 use Webkul\Employee\Filament\Clusters\Reportings as EmployeeReportings;
 use Webkul\Employee\Filament\Resources\DepartmentResource;
 use Webkul\Employee\Filament\Resources\EmployeeResource;
 use Webkul\Employee\Filament\Resources\EmployeeResource\Pages\EditEmployee;
+use Webkul\Employee\Filament\Resources\EmployeeResource\Pages\ListEmployees;
 use Webkul\Employee\Filament\Resources\EmployeeResource\Pages\ManageResume;
 use Webkul\Employee\Filament\Resources\EmployeeResource\Pages\ManageSkill;
 use Webkul\PluginManager\Package;
@@ -43,6 +45,8 @@ class InsightsPlugin implements Plugin
             EmployeeResource::registerRecordPage('tasks', ManageEmployeeTasks::class, '/{record}/tasks');
             // People keep their own record from their profile: here it is read and worked with only.
             EmployeeResource::$profileManagedByEmployee = true;
+            // One way to add a colleague: their account, employee record and contact together.
+            ListEmployees::$createActionUsing = fn () => NewEmployee::action();
             Profile::$extensions[EmployeeProfile::class] = EmployeeProfile::class;
             EmployeeResource::hideRecordPage(EditEmployee::class);
             EmployeeResource::hideRecordPage(ManageSkill::class);
