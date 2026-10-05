@@ -191,7 +191,8 @@ class ProductForm
                         ->required()
                         ->default(0.00)
                         ->minValue(0)
-                        ->columnSpan(2),
+                        ->columnSpan(2)
+                        ->visible(fn (): bool => ProductResource::canSeePrices()),
                     Select::make('uom_id')
                         ->placeholder(__('products::filament/resources/product.form.sections.pricing.fields.uom-placeholder'))
                         ->native(false)
@@ -202,14 +203,17 @@ class ProductForm
                         ->live()
                         ->afterStateUpdated(fn (Set $set, ?string $state) => $set('uom_po_id', $state)),
                 ])
-                    ->label(__('products::filament/resources/product.form.sections.pricing.fields.price'))
+                    ->label(fn (): string => ProductResource::canSeePrices()
+                        ? __('products::filament/resources/product.form.sections.pricing.fields.price')
+                        : __('products::filament/resources/product.form.sections.pricing.fields.uom-placeholder'))
                     ->columns(3),
                 FusedGroup::make([
                     TextInput::make('cost')
                         ->numeric()
                         ->default(0.00)
                         ->minValue(0)
-                        ->columnSpan(2),
+                        ->columnSpan(2)
+                        ->visible(fn (): bool => ProductResource::canSeePrices()),
                     Select::make('uom_po_id')
                         ->placeholder(__('products::filament/resources/product.form.sections.pricing.fields.uom-placeholder'))
                         ->native(false)
@@ -220,7 +224,9 @@ class ProductForm
                         ->live()
                         ->afterStateUpdated(fn (Set $set, ?string $state) => $set('uom_id', $state)),
                 ])
-                    ->label(__('products::filament/resources/product.form.sections.pricing.fields.cost'))
+                    ->label(fn (): string => ProductResource::canSeePrices()
+                        ? __('products::filament/resources/product.form.sections.pricing.fields.cost')
+                        : __('products::filament/resources/product.form.sections.pricing.fields.uom-placeholder'))
                     ->columns(3),
             ], Registry::renderForm('right.pricing.fields')));
     }

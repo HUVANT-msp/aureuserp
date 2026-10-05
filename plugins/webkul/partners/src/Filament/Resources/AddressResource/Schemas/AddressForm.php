@@ -12,12 +12,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Webkul\Partner\Enums\AddressType;
 use Webkul\Partner\Filament\Resources\PartnerResource;
 use Webkul\Partner\Filament\Resources\PartnerResource\Pages\ManageAddresses;
+use Webkul\Partner\Filament\Resources\PartnerResource\Support\PartnerSchemaRegistry;
 
 class AddressForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->components(array_merge([
             Radio::make('sub_type')
                 ->hiddenLabel()
                 ->options(AddressType::class)
@@ -101,7 +102,7 @@ class AddressForm
                 })
                 ->searchable()
                 ->preload(),
-        ])
+        ], PartnerSchemaRegistry::renderForm('address.append')))
             ->columns(2);
     }
 }

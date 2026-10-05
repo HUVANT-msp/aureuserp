@@ -10,6 +10,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Webkul\Product\Enums\ProductType;
+use Webkul\Product\Filament\Resources\ProductResource;
 use Webkul\Product\Filament\Resources\ProductResource\Support\ProductSchemaRegistry as Registry;
 
 class ProductInfolist
@@ -151,6 +152,7 @@ class ProductInfolist
     public static function pricingSection(): Section
     {
         return Section::make(__('products::filament/resources/product.infolist.sections.pricing.title'))
+            ->visible(fn (): bool => ProductResource::canSeePrices())
             ->schema([
                 TextEntry::make('price')
                     ->label(__('products::filament/resources/product.infolist.sections.pricing.entries.price'))

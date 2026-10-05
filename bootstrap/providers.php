@@ -9,6 +9,7 @@ use Huvant\Documents\DocumentsServiceProvider;
 use Huvant\Home\HomeServiceProvider;
 use Huvant\Insights\InsightsServiceProvider;
 use Huvant\Meetings\MeetingsServiceProvider;
+use Huvant\Orders\OrdersServiceProvider;
 use Huvant\Tasks\TasksServiceProvider;
 use Huvant\Teams\TeamsServiceProvider;
 use Huvant\Worklog\WorklogServiceProvider;
@@ -76,6 +77,7 @@ return [
     MeetingsServiceProvider::class,
     TeamsServiceProvider::class,
     WorklogServiceProvider::class,
+    OrdersServiceProvider::class,
     DocumentsServiceProvider::class,
     TasksServiceProvider::class,
     InsightsServiceProvider::class,

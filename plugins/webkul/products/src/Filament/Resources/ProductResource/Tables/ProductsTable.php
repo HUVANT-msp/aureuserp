@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Webkul\Product\Enums\ProductType;
+use Webkul\Product\Filament\Resources\ProductResource;
 use Webkul\Product\Filament\Resources\ProductResource\Support\ProductSchemaRegistry as Registry;
 use Webkul\Product\Models\Product;
 
@@ -237,11 +238,13 @@ class ProductsTable
                 ->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('price')
                 ->label(__('products::filament/resources/product.table.columns.price'))
+                ->visible(fn (): bool => ProductResource::canSeePrices())
                 ->money()
                 ->suffix(fn (Product $record): string => $record->uom ? ' / '.$record->uom->name : '')
                 ->sortable(),
             TextColumn::make('cost')
                 ->label(__('products::filament/resources/product.table.columns.cost'))
+                ->visible(fn (): bool => ProductResource::canSeePrices())
                 ->money()
                 ->suffix(fn (Product $record): string => $record->uomPO ? ' / '.$record->uomPO->name : '')
                 ->sortable(),

@@ -65,6 +65,9 @@
         <testsuite name="HuvantHomeFeature">
             <directory>plugins/huvant/home/tests/Feature</directory>
         </testsuite>
+        <testsuite name="HuvantOrdersFeature">
+            <directory>plugins/huvant/orders/tests/Feature</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

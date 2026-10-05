@@ -1,0 +1,23 @@
+{
+    "name": "huvant/orders",
+    "description": "Offers and orders: from the commercial offer to production and delivery, replacing the lab's order register.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Huvant\\Orders\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Huvant\\Orders\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Huvant\\Orders\\OrdersServiceProvider"
+            ]
+        }
+    }
+}

@@ -3,6 +3,7 @@
 namespace Webkul\Product\Filament\Resources;
 
 use BackedEnum;
+use Closure;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -21,6 +22,14 @@ use Webkul\Support\Models\UOM;
 class ProductResource extends Resource
 {
     use HasCustomFields;
+
+    /** Who may see sale prices and costs; a plugin can narrow it (e.g. to administrators). */
+    public static ?Closure $pricesVisibleUsing = null;
+
+    public static function canSeePrices(): bool
+    {
+        return static::$pricesVisibleUsing === null || (bool) (static::$pricesVisibleUsing)();
+    }
 
     protected static ?string $model = Product::class;
 
