@@ -26,6 +26,14 @@ use Webkul\Inventory\Settings\WarehouseSettings;
 
 class StorageCategoryResource extends Resource
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     protected static ?string $model = StorageCategory::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-folder';

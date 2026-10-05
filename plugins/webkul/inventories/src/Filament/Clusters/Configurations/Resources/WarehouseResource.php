@@ -22,6 +22,14 @@ use Webkul\Inventory\Settings\WarehouseSettings;
 
 class WarehouseResource extends Resource
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     use HasCustomFields;
 
     protected static ?string $model = Warehouse::class;

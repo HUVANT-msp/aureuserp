@@ -18,6 +18,14 @@ use Webkul\Inventory\Models\OperationType;
 
 class OperationTypeResource extends Resource
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     protected static ?string $model = OperationType::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-queue-list';

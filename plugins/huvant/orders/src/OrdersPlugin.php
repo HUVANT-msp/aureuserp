@@ -4,6 +4,7 @@ namespace Huvant\Orders;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Huvant\Orders\Support\Navigation;
 use Huvant\Orders\Support\Orders;
 use Huvant\Orders\Support\RecordFields;
 use Webkul\PluginManager\Package;
@@ -31,6 +32,7 @@ class OrdersPlugin implements Plugin
             $panel->discoverResources(in: __DIR__.'/Filament/Resources', for: 'Huvant\\Orders\\Filament\\Resources');
             $panel->discoverPages(in: __DIR__.'/Filament/Pages', for: 'Huvant\\Orders\\Filament\\Pages');
             RecordFields::register();
+            Navigation::hide();
             ProductResource::$pricesVisibleUsing = fn (): bool => Orders::canSeePrices();
         });
     }

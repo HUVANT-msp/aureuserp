@@ -20,6 +20,14 @@ use Webkul\PluginManager\Package;
 
 class ProductResource extends BaseProductResource
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     protected static ?string $model = Product::class;
 
     protected static ?string $cluster = Products::class;
