@@ -1,8 +1,8 @@
 <?php
 
+use Filament\Actions\Testing\TestAction;
 use Huvant\Documents\Support\Documents;
 use Huvant\Documents\Support\DocumentSpace;
-use Filament\Actions\Testing\TestAction;
 use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Enums\LabArea;
 use Huvant\Orders\Enums\ShelfLifeUnit;
@@ -185,6 +185,48 @@ it('adds packages to the lab and pieces to stock from the pages', function () {
         ->assertCanSeeTableRecords([$unit])
         ->mountAction(TestAction::make('materials')->table($unit))
         ->assertMountedActionModalSee('GLY-7');
+});
+
+it('moves an available piece to the trash with a required note and restores it', function () {
+    $pva = LabInventory::addPackages($this->pva, 'PVA-TRASH', null)->first();
+    $glycerine = LabInventory::addPackages($this->glycerine, 'GLY-TRASH', null)->first();
+    $units = LabInventory::produce($this->brain, today(), 2, [$this->pva->id => $pva->id, $this->glycerine->id => $glycerine->id]);
+    $available = $units[0];
+    $sold = $units[1];
+    $sold->update(['status' => UnitStatus::Sold, 'status_since' => today()]);
+
+    $component = Livewire::test(ManageStock::class, ['record' => $this->brain->getRouteKey()])
+        ->assertOk()
+        ->filterTable('status', null)
+        ->assertActionVisible(TestAction::make('delete')->table($available))
+        ->assertActionHidden(TestAction::make('delete')->table($sold))
+        ->callAction(TestAction::make('delete')->table($available))
+        ->assertHasActionErrors(['deletion_note']);
+
+    expect(ProductUnit::find($available->id))->not->toBeNull();
+
+    Livewire::test(ManageStock::class, ['record' => $this->brain->getRouteKey()])
+        ->filterTable('status', null)
+        ->callAction(TestAction::make('delete')->table($available), data: ['deletion_note' => 'Controllo qualità non superato'])
+        ->assertHasNoActionErrors();
+
+    $trashed = ProductUnit::withTrashed()->findOrFail($available->id);
+
+    expect(ProductUnit::find($available->id))->toBeNull()
+        ->and($trashed->trashed())->toBeTrue()
+        ->and($trashed->deletion_note)->toBe('Controllo qualità non superato')
+        ->and($trashed->deleted_by)->toBe($this->admin->id)
+        ->and($trashed->materials()->count())->toBe(2)
+        ->and((float) $glycerine->refresh()->remaining_quantity)->toBe(400.0);
+
+    Livewire::test(ManageStock::class, ['record' => $this->brain->getRouteKey()])
+        ->filterTable('status', null)
+        ->filterTable('trashed', false)
+        ->assertCanSeeTableRecords([$trashed])
+        ->assertActionVisible(TestAction::make('deletionDetails')->table($trashed))
+        ->callAction(TestAction::make('restore')->table($trashed));
+
+    expect(ProductUnit::find($available->id))->not->toBeNull();
 });
 
 it('shows materials by product, pieces in the lab, stock cards, out and sold', function () {

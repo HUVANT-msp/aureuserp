@@ -3,6 +3,8 @@
 namespace Huvant\Orders\Filament\Clusters\FinishedProducts\Resources\RecipeResource\Pages;
 
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\RestoreAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -17,6 +19,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Huvant\Orders\Enums\UnitStatus;
 use Huvant\Orders\Filament\Clusters\FinishedProducts\Resources\RecipeResource;
@@ -28,6 +31,7 @@ use Huvant\Orders\Settings\OrdersSettings;
 use Huvant\Orders\Support\LabInventory;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use RuntimeException;
 use Webkul\Product\Models\Product;
 
@@ -162,7 +166,7 @@ class ManageStock extends Page implements HasTable
         $warningDays = app(OrdersSettings::class)->expiry_warning_days;
 
         return $table
-            ->query(ProductUnit::query()->where('product_id', $this->record->getKey())->withCount('materials'))
+            ->query(ProductUnit::query()->where('product_id', $this->record->getKey())->with('deletedBy')->withCount('materials'))
             ->defaultSort('code', 'desc')
             ->columns([
                 TextColumn::make('code')->label(__('huvant-orders::lab.code'))->fontFamily('mono')->searchable()->copyable(),
@@ -181,12 +185,80 @@ class ManageStock extends Page implements HasTable
                 TextColumn::make('status_since')->label(__('huvant-orders::lab.since'))->date('d/m/Y')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('materials_count')->label(__('huvant-orders::lab.material_lots')),
                 TextColumn::make('notes')->label(__('huvant-orders::lab.notes'))->limit(40)->placeholder('—')->toggleable(),
+                TextColumn::make('deletion_note')->label(__('huvant-orders::lab.deletion_note'))->limit(40)->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('deletedBy.name')->label(__('huvant-orders::lab.deleted_by'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('deleted_at')->label(__('huvant-orders::lab.deleted_at'))->dateTime('d/m/Y H:i')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')->label(__('huvant-orders::lab.where'))->options(UnitStatus::class)->default(UnitStatus::InLab->value),
+                TrashedFilter::make(),
             ])
-            ->recordActions([$this->materialsAction()])
+            ->recordActions([
+                $this->materialsAction(),
+                $this->deletionDetailsAction(),
+                DeleteAction::make()
+                    ->label(__('huvant-orders::lab.remove_from_stock'))
+                    ->modalHeading(fn (ProductUnit $record): string => __('huvant-orders::lab.remove_piece_heading', ['code' => $record->code]))
+                    ->modalDescription(__('huvant-orders::lab.remove_piece_help'))
+                    ->schema([
+                        Textarea::make('deletion_note')
+                            ->label(__('huvant-orders::lab.deletion_note'))
+                            ->helperText(__('huvant-orders::lab.deletion_note_help'))
+                            ->rows(3)
+                            ->maxLength(2000)
+                            ->required(),
+                    ])
+                    ->databaseTransaction()
+                    ->visible(fn (ProductUnit $record): bool => $this->canMoveToTrash($record))
+                    ->before(function (DeleteAction $action, ProductUnit $record, array $data): void {
+                        $current = ProductUnit::query()->lockForUpdate()->find($record->getKey());
+
+                        if (! $current || ! $this->canMoveToTrash($current)) {
+                            Notification::make()->danger()->title(__('huvant-orders::lab.piece_cannot_be_removed'))->send();
+                            $action->halt(shouldRollBackDatabaseTransaction: true);
+                        }
+
+                        $record->forceFill([
+                            'deletion_note' => $data['deletion_note'],
+                            'deleted_by'    => Auth::id(),
+                        ])->save();
+                    })
+                    ->successNotificationTitle(__('huvant-orders::lab.moved_to_trash')),
+                RestoreAction::make()
+                    ->label(__('huvant-orders::lab.restore_to_stock'))
+                    ->modalHeading(fn (ProductUnit $record): string => __('huvant-orders::lab.restore_piece_heading', ['code' => $record->code]))
+                    ->successNotificationTitle(__('huvant-orders::lab.restored_to_stock')),
+            ])
             ->emptyStateHeading(__('huvant-orders::lab.no_pieces'))
             ->emptyStateDescription(__('huvant-orders::lab.no_pieces_help'));
+    }
+
+    protected function deletionDetailsAction(): Action
+    {
+        return Action::make('deletionDetails')
+            ->label(__('huvant-orders::lab.deletion_details'))
+            ->icon('heroicon-o-information-circle')
+            ->color('gray')
+            ->visible(fn (ProductUnit $record): bool => $record->trashed())
+            ->modalHeading(fn (ProductUnit $record): string => __('huvant-orders::lab.deletion_details_heading', ['code' => $record->code]))
+            ->modalDescription(fn (ProductUnit $record): string => __('huvant-orders::lab.deleted_by_on', [
+                'user' => $record->deletedBy?->name ?? '—',
+                'date' => $record->deleted_at?->format('d/m/Y H:i') ?? '—',
+            ]))
+            ->schema([
+                Placeholder::make('deletion_note')
+                    ->label(__('huvant-orders::lab.deletion_note'))
+                    ->content(fn (ProductUnit $record): string => $record->deletion_note ?: '—'),
+            ])
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel(__('huvant-orders::lab.close'));
+    }
+
+    protected function canMoveToTrash(ProductUnit $unit): bool
+    {
+        return ! $unit->trashed()
+            && $unit->status === UnitStatus::InLab
+            && $unit->order_id === null
+            && $unit->order_line_id === null;
     }
 }

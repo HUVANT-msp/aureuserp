@@ -6,6 +6,7 @@ use Huvant\Orders\Enums\UnitStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Product\Models\Product;
 use Webkul\Security\Models\User;
@@ -13,9 +14,11 @@ use Webkul\Security\Models\User;
 /** One finished piece, identified by its code, with the material lots it was made from. */
 class ProductUnit extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'huvant_product_units';
 
-    protected $fillable = ['product_id', 'order_id', 'order_line_id', 'code', 'production_date', 'expiry_date', 'status', 'status_since', 'notes', 'quality_rating', 'creator_id'];
+    protected $fillable = ['product_id', 'order_id', 'order_line_id', 'code', 'production_date', 'expiry_date', 'status', 'status_since', 'notes', 'quality_rating', 'creator_id', 'deletion_note', 'deleted_by'];
 
     /** @var array<string, mixed> */
     protected $attributes = ['status' => 'in_lab'];
@@ -54,6 +57,11 @@ class ProductUnit extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_id');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     public function materials(): HasMany
