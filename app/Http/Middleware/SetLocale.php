@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Session;
 use Symfony\Component\HttpFoundation\Response;
+use Webkul\Security\Models\User;
 
 class SetLocale
 {
@@ -21,7 +22,7 @@ class SetLocale
 
         $fallback = $this->pick(config('app.locale'), $supported)
             ?? $this->pick(config('app.fallback_locale'), $supported)
-            ?? ($supported[0] ?? 'en');
+            ?? ($supported[0] ?? 'it');
 
         $queryLang = $this->pick($request->query('lang'), $supported);
 
@@ -29,11 +30,17 @@ class SetLocale
 
         $locale = $queryLang
             ?? $this->pick(Session::get('locale'), $supported)
+            ?? $this->pick($request->cookie('filament_language_switch_locale'), $supported)
             ?? $this->pick($user?->language ?? null, $supported)
             ?? $fallback;
 
-        if ($queryLang !== null && Session::get('locale') !== $queryLang) {
+        if ($queryLang !== null) {
             Session::put('locale', $queryLang);
+            cookie()->queue(cookie()->forever('filament_language_switch_locale', $queryLang));
+        }
+
+        if ($user instanceof User && $user->language !== $locale) {
+            $user->update(['language' => $locale]);
         }
 
         if (App::getLocale() !== $locale) {

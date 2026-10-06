@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'title' => 'Assenza',
+    'log-attributes' => [
+        'user' => 'Utente',
+        'manager' => 'Responsabile',
+        'holiday_status' => 'Stato di assenza',
+        'employee' => 'Collaboratore',
+        'employee_company' => 'L\'azienda del dipendente',
+        'department' => 'Reparto',
+        'calendar' => 'Calendario',
+        'first_approver' => 'Primo approvatore',
+        'last_approver' => 'Ultimo approvatore',
+        'description' => 'Descrizione',
+        'state' => 'Stato',
+        'duration_display' => 'Visualizzazione della durata',
+        'request_date_from_period' => 'Periodo della data di inizio della domanda',
+        'request_date_from' => 'Data di inizio della domanda',
+        'request_date_to' => 'Data di fine della domanda',
+        'notes' => 'Nota',
+        'request_unit_half' => 'Richiesta mezza giornata',
+        'request_unit_hours' => 'Richiesta oraria',
+        'date_from' => 'Dalla data',
+        'date_to' => 'Data fino al',
+        'number_of_days' => 'Numero di giorni',
+        'number_of_hours' => 'Numero di ore',
+        'request_hour_from' => 'Ora di inizio dell\'applicazione',
+        'request_hour_to' => 'Richiedi l\'ora di fine',
+    ],
+];

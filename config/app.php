@@ -78,11 +78,11 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'it'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'it'),
 
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    'faker_locale' => env('APP_FAKER_LOCALE', 'it_IT'),
 
     /*
     |--------------------------------------------------------------------------
@@ -97,34 +97,16 @@ return [
     */
 
     'supported_locales' => [
+        'it' => [
+            'label'  => 'Italian',
+            'native' => 'Italiano',
+            'flag'   => 'it',
+            'rtl'    => false,
+        ],
         'en' => [
             'label'  => 'English',
             'native' => 'English',
-            'flag'   => 'us',
-            'rtl'    => false,
-        ],
-        'ar' => [
-            'label'  => 'Arabic',
-            'native' => 'العربية',
-            'flag'   => 'sa',
-            'rtl'    => true,
-        ],
-        'es' => [
-            'label'  => 'Spanish',
-            'native' => 'Español',
-            'flag'   => 'es',
-            'rtl'    => false,
-        ],
-        'pt_BR' => [
-            'label'  => 'Portuguese (Brazil)',
-            'native' => 'Português (Brasil)',
-            'flag'   => 'br',
-            'rtl'    => false,
-        ],
-        'fr' => [
-            'label'  => 'French',
-            'native' => 'Français',
-            'flag'   => 'fr',
+            'flag'   => 'en',
             'rtl'    => false,
         ],
     ],

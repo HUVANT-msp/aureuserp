@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'title' => 'Assegnazione delle assenze',
+    'log-attributes' => [
+        'time_off_type' => 'Tipo di assenza',
+        'employee' => 'Collaboratore',
+        'employee_company' => 'L\'azienda del dipendente',
+        'approver' => 'Approvatore',
+        'second_approver' => 'Secondo approvatore',
+        'department' => 'Reparto',
+        'accrual_plan' => 'Piano di accumulo',
+        'created_by' => 'Creato da',
+        'name' => 'Nome',
+        'state' => 'Stato',
+        'allocation_type' => 'Tipo di incarico',
+        'date_from' => 'Dalla data',
+        'date_to' => 'Data fino al',
+        'last_executed_carryover_date' => 'Data dell\'ultimo trasferimento eseguito',
+        'last_called' => 'Ultima chiamata',
+        'actual_last_called' => 'L\'ultima vera chiamata',
+        'next_call' => 'Prossima chiamata',
+        'carried_over_days_expiration_date' => 'Data di scadenza dei giorni trasferiti',
+        'notes' => 'Nota',
+        'already_accrued' => 'Già accumulato',
+        'number_of_days' => 'Numero di giorni',
+        'number_of_hours_display' => 'Visualizzazione del numero di ore',
+        'yearly_accrued_amount' => 'Importo cumulato annuo',
+        'expiring_carryover_days' => 'Giorni di trasferimento che scadono',
+    ],
+];

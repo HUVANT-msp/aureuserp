@@ -15,6 +15,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -50,6 +51,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->unsavedChangesAlerts()
             ->topNavigation()
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_END,
+                fn () => view('filament.components.language-switcher'),
+            )
             ->maxContentWidth(Width::Full)
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')

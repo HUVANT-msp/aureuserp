@@ -1,0 +1,35 @@
+<?php
+
+return [
+    'title' => 'Operazione',
+    'titles' => [
+        'incoming' => 'Ricezione',
+        'outgoing' => 'Spedizione',
+        'internal' => 'Trasferimento interno',
+        'dropship' => 'Consegna a domicilio',
+    ],
+    'log-attributes' => [
+        'name' => 'Nome',
+        'origin' => 'Origine',
+        'move_type' => 'Tipo di movimento',
+        'state' => 'Stato',
+        'is_favorite' => 'Preferito',
+        'description' => 'Descrizione',
+        'has_deadline_issue' => 'Problema di scadenza',
+        'is_printed' => 'Stampato',
+        'is_locked' => 'Bloccato',
+        'deadline' => 'Scadenza',
+        'scheduled_at' => 'Previsto per',
+        'closed_at' => 'Chiuso',
+        'user' => 'Utente',
+        'owner' => 'Proprietario',
+        'operation-type' => 'Tipo di operazione',
+        'source-location' => 'Posizione di origine',
+        'destination-location' => 'Località di destinazione',
+        'back-order' => 'Ordine in sospeso',
+        'return' => 'Ritorno',
+        'partner' => 'Partner',
+        'company' => 'Azienda',
+        'creator' => 'Creato da',
+    ],
+];
