@@ -2,6 +2,7 @@
 
 namespace Huvant\Orders\Console;
 
+use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Support\LabStock;
 use Huvant\Orders\Support\LabUnits;
 use Huvant\Orders\Support\Orders;
@@ -9,12 +10,10 @@ use Huvant\Orders\Support\Shipping;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Webkul\Inventory\Enums\ProductTracking;
 use Webkul\Inventory\Models\Product as InventoryProduct;
 use Webkul\Partner\Enums\AccountType;
 use Webkul\Partner\Enums\AddressType;
 use Webkul\Partner\Models\Partner;
-use Webkul\Product\Enums\ProductType;
 use Webkul\Product\Models\Category;
 use Webkul\Product\Models\Product;
 use Webkul\Security\Models\User;
@@ -146,8 +145,7 @@ class ImportRegisters extends Command
     }
 
     /**
-     * Simulators and kits are made in the lab and tracked by lot; rentals and staff are services;
-     * consumable inserts are stocked goods.
+     * Simulators, kits and inserts are products; rentals and staff keep their role.
      *
      * @param  array<int, array<string, mixed>>  $products
      */
@@ -166,27 +164,22 @@ class ImportRegisters extends Command
                 continue;
             }
 
-            $isService = in_array($row['kind'], ['rental', 'service'], true);
-
+            // The role sets stock type and tracking (ItemRoles): pads and kits by lot, rentals as pieces.
             $product = Product::query()->create([
-                'type'                   => $isService ? ProductType::SERVICE : ProductType::GOODS,
+                'huvant_role'            => match ($row['kind']) {
+                    'rental'  => ItemRole::Rental,
+                    'service' => ItemRole::Service,
+                    default   => ItemRole::Product,
+                },
                 'name'                   => $row['name'],
                 'reference'              => $row['reference'],
                 'price'                  => $row['price'] ?? 0,
                 'uom_id'                 => $units->id,
                 'uom_po_id'              => $units->id,
                 'category_id'            => $this->category($row['category']),
-                'enable_sales'           => true,
                 'huvant_production_days' => $row['production_days'],
                 'huvant_hs_code'         => $row['hs_code'] ?? null,
             ]);
-
-            if (! $isService) {
-                InventoryProduct::query()->whereKey($product->id)->update([
-                    'is_storable' => true,
-                    'tracking'    => $row['kind'] === 'manufactured' ? ProductTracking::LOT : ProductTracking::QTY,
-                ]);
-            }
 
             $this->count('products created');
         }
@@ -216,7 +209,7 @@ class ImportRegisters extends Command
             $mainUnit = $packageUnit ?? $units;
 
             $product = Product::query()->create([
-                'type'                    => ProductType::GOODS,
+                'huvant_role'             => ItemRole::Material,
                 'name'                    => $row['name'],
                 'reference'               => $row['reference'],
                 'price'                   => 0,
@@ -225,7 +218,6 @@ class ImportRegisters extends Command
                 'huvant_package_quantity' => $packageQuantity,
                 'huvant_package_uom_id'   => $packageUnit?->id,
                 'category_id'             => $this->category('Lab'),
-                'enable_sales'            => false,
                 'enable_purchase'         => true,
                 'description_purchase'    => $row['notes'],
                 'huvant_lab_kind'         => $row['kind'],
@@ -234,12 +226,6 @@ class ImportRegisters extends Command
                 'huvant_supplier'         => $row['supplier'],
                 'huvant_supplier_code'    => $row['supplier_code'],
                 'huvant_storage_position' => $row['position'],
-            ]);
-
-            InventoryProduct::query()->whereKey($product->id)->update([
-                'is_storable'         => true,
-                'tracking'            => ProductTracking::LOT,
-                'use_expiration_date' => true,
             ]);
 
             // The sheet counted the minimum in packages.

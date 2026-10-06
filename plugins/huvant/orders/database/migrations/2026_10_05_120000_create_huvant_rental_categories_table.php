@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    // What can be rented, by kind (e.g. "Renal biopsy torso"), with how many physical units exist.
+    // Superseded on 2026-10-06 by rentals counted from stock (2026_10_06_100000_item_roles_replace_rental_categories).
     public function up(): void
     {
         Schema::create('huvant_rental_categories', function (Blueprint $table) {

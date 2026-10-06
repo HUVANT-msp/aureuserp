@@ -1,11 +1,11 @@
 <?php
 
+use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Enums\LabItemKind;
 use Huvant\Orders\Filament\Pages\LabStockPage;
 use Huvant\Orders\Filament\Pages\ManageOrdersSettings;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\EditOrder;
 use Huvant\Orders\Filament\Resources\OrderResource\RelationManagers\ProductionRelationManager;
-use Huvant\Orders\Filament\Resources\RentalCategoryResource;
 use Huvant\Orders\Settings\OrdersSettings;
 use Huvant\Orders\Support\ErpSetup;
 use Huvant\Orders\Support\LabStock;
@@ -49,7 +49,7 @@ beforeEach(function () {
     $this->reagent = Product::query()->findOrFail(InventoryHelper::lotTrackedProduct([
         'name'            => 'EMIM-BF4, 99%', 'reference' => 'H-102', 'cost' => 0.5,
         'uom_id'          => $this->mL->id, 'uom_po_id' => $this->mL->id,
-        'huvant_lab_kind' => LabItemKind::Substance->value, 'huvant_cas_number' => '143314-16-3',
+        'huvant_role'     => ItemRole::Material->value, 'huvant_lab_kind' => LabItemKind::Substance->value, 'huvant_cas_number' => '143314-16-3',
         'huvant_density'  => 1.29, 'huvant_package_quantity' => 250, 'huvant_package_uom_id' => $this->mL->id,
     ])->id);
 });
@@ -152,10 +152,6 @@ it('lets everyone load, move to R&D and report R&D, and only administrators set 
         ->assertTableActionVisible('toResearch', $this->reagent)
         ->assertTableActionVisible('researchLeft', $this->reagent)
         ->assertTableActionHidden('minimum', $this->reagent);
-
-    expect(RentalCategoryResource::canCreate())->toBeFalse();
-    $this->actingAs(User::query()->firstOrFail());
-    expect(RentalCategoryResource::canCreate())->toBeTrue();
 });
 
 it('works out the margin from components, lab hours and shipping', function () {

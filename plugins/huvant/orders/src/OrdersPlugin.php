@@ -4,11 +4,16 @@ namespace Huvant\Orders;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Huvant\Orders\Enums\ItemRole;
+use Huvant\Orders\Support\ItemRoles;
 use Huvant\Orders\Support\Navigation;
 use Huvant\Orders\Support\Orders;
 use Huvant\Orders\Support\RecordFields;
+use Illuminate\Database\Eloquent\Builder;
+use Webkul\Manufacturing\Filament\Clusters\Products\Resources\BillsOfMaterialResource\Schemas\BillOfMaterialForm;
 use Webkul\PluginManager\Package;
 use Webkul\Product\Filament\Resources\ProductResource;
+use Webkul\Product\Filament\Resources\ProductResource\Pages\ListProducts;
 
 class OrdersPlugin implements Plugin
 {
@@ -34,6 +39,8 @@ class OrdersPlugin implements Plugin
             RecordFields::register();
             Navigation::hide();
             ProductResource::$pricesVisibleUsing = fn (): bool => Orders::canSeePrices();
+            ListProducts::$presetViewsUsing = fn (): array => ItemRoles::presetViews();
+            BillOfMaterialForm::$componentQueryUsing = fn (Builder $query) => ItemRoles::scope($query, ItemRole::components());
         });
     }
 

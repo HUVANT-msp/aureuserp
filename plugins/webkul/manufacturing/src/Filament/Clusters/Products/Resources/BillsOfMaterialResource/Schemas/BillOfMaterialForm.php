@@ -45,6 +45,9 @@ use Webkul\Support\Models\Company;
 
 class BillOfMaterialForm
 {
+    /** A plugin can narrow what may be a component (e.g. raw materials and products only). */
+    public static ?Closure $componentQueryUsing = null;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -349,7 +352,8 @@ class BillOfMaterialForm
                                 ->where('is_configurable', false)
                                 ->orWhereNull('is_configurable');
                         })
-                        ->where(owned_by_company($get('../../company_id'))))
+                        ->where(owned_by_company($get('../../company_id')))
+                        ->when(static::$componentQueryUsing, fn (Builder $productQuery) => (static::$componentQueryUsing)($productQuery)))
                     ->searchable()
                     ->preload()
                     ->required()

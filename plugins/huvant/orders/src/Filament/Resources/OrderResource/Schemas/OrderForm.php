@@ -13,8 +13,10 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Huvant\Orders\Enums\Fulfilment;
+use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Enums\SupplyType;
 use Huvant\Orders\Models\Order;
+use Huvant\Orders\Support\ItemRoles;
 use Huvant\Orders\Support\Orders;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Number;
@@ -114,7 +116,7 @@ class OrderForm
                     ])))
                     ->schema([
                         Select::make('product_id')
-                            ->relationship('product', 'name')
+                            ->relationship('product', 'name', fn (Builder $query) => ItemRoles::scope($query, ItemRole::sellable()))
                             ->getOptionLabelFromRecordUsing(fn (Product $record): string => $record->reference ? "[{$record->reference}] {$record->name}" : $record->name)
                             ->searchable(['name', 'reference'])
                             ->preload()
@@ -261,7 +263,7 @@ class OrderForm
             ->visible(Orders::canSeePrices());
     }
 
-    /** A loan, or any line renting something from a rental category. */
+    /** A loan, or any line renting an item. */
     protected static function rents(Get $get): bool
     {
         if (static::supplyType($get) === SupplyType::Loan) {
@@ -270,7 +272,7 @@ class OrderForm
 
         $productIds = collect($get('lines') ?? [])->pluck('product_id')->filter()->all();
 
-        return $productIds !== [] && Product::query()->whereIn('id', $productIds)->whereNotNull('huvant_rental_category_id')->exists();
+        return $productIds !== [] && Product::query()->whereIn('id', $productIds)->where('huvant_role', ItemRole::Rental->value)->exists();
     }
 
     protected static function supplyType(Get $get): SupplyType

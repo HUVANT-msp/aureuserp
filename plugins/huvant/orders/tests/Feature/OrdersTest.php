@@ -48,7 +48,7 @@ beforeEach(function () {
     ]));
 
     // A pad made in the lab from two components, and a service with no bill of materials.
-    $this->pad = ManufacturingHelper::product(['name' => 'High Grade Brain Pad', 'reference' => 'HGBP', 'price' => 450]);
+    $this->pad = ManufacturingHelper::product(['name' => 'High Grade Brain Pad', 'reference' => 'HGBP', 'price' => 450, 'huvant_role' => 'product']);
     $this->silicone = ManufacturingHelper::product(['name' => 'Silicone']);
     $this->mould = ManufacturingHelper::product(['name' => 'Mould insert']);
     $bom = ManufacturingHelper::bom($this->pad);

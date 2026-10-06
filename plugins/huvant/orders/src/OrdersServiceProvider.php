@@ -5,14 +5,18 @@ namespace Huvant\Orders;
 use Filament\Panel;
 use Huvant\Orders\Console\ExpireOffers;
 use Huvant\Orders\Console\ImportRegisters;
+use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Http\Controllers\DeliveryNotePdfController;
 use Huvant\Orders\Http\Controllers\OfferPdfController;
 use Huvant\Orders\Support\ErpSetup;
+use Huvant\Orders\Support\ItemRoles;
 use Huvant\Orders\Support\OrdersSchema;
 use Huvant\Orders\Support\Shipping;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Route;
 use Webkul\Inventory\Models\Operation;
+use Webkul\Inventory\Models\Product as InventoryProduct;
+use Webkul\Manufacturing\Models\Product as ManufacturingProduct;
 use Webkul\Partner\Models\Partner;
 use Webkul\PluginManager\Console\Commands\InstallCommand;
 use Webkul\PluginManager\Console\Commands\UninstallCommand;
@@ -32,6 +36,7 @@ class OrdersServiceProvider extends PackageServiceProvider
             ->hasMigrations([
                 '2026_10_05_100000_create_huvant_orders_tables',
                 '2026_10_05_120000_create_huvant_rental_categories_table',
+                '2026_10_06_100000_item_roles_replace_rental_categories',
             ])
             ->runsMigrations()
             ->hasSettings(['2026_10_05_130000_create_huvant_orders_settings'])
@@ -48,6 +53,7 @@ class OrdersServiceProvider extends PackageServiceProvider
                     ->runsMigrations()
                     ->endWith(function (): void {
                         OrdersSchema::ensureColumns();
+                        ItemRoles::backfill();
                         ErpSetup::apply();
                     });
             })
@@ -69,8 +75,13 @@ class OrdersServiceProvider extends PackageServiceProvider
 
         Partner::contributeFillable(['huvant_sdi_code', 'huvant_pec', 'huvant_customs_code', 'huvant_event_date', 'huvant_onsite_contact']);
         Partner::contributeCasts(['huvant_event_date' => 'date']);
-        Product::contributeFillable(['huvant_hs_code', 'huvant_production_days', 'huvant_rental_category_id', 'huvant_cas_number', 'huvant_lab_kind', 'huvant_lab_use', 'huvant_supplier', 'huvant_supplier_code', 'huvant_package_quantity', 'huvant_package_uom_id', 'huvant_density', 'huvant_storage_position']);
-        Product::contributeCasts(['huvant_production_days' => 'integer', 'huvant_density' => 'decimal:4', 'huvant_package_quantity' => 'decimal:4']);
+        Product::contributeFillable(['huvant_hs_code', 'huvant_production_days', 'huvant_role', 'huvant_cas_number', 'huvant_lab_kind', 'huvant_lab_use', 'huvant_supplier', 'huvant_supplier_code', 'huvant_package_quantity', 'huvant_package_uom_id', 'huvant_density', 'huvant_storage_position']);
+        // The role of an item sets its stock type, tracking and sale flag, whichever product page saves it.
+        foreach ([Product::class, InventoryProduct::class, ManufacturingProduct::class] as $productClass) {
+            $productClass::saving(fn ($product) => ItemRoles::apply($product));
+        }
+
+        Product::contributeCasts(['huvant_role' => ItemRole::class, 'huvant_production_days' => 'integer', 'huvant_density' => 'decimal:4', 'huvant_package_quantity' => 'decimal:4']);
 
         // A validated delivery of an order gets its delivery note number; a validated return closes the loop.
         Operation::saved(function (Operation $operation): void {

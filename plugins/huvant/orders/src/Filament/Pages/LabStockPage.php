@@ -22,6 +22,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Enums\LabItemKind;
 use Huvant\Orders\Support\LabStock;
 use Huvant\Orders\Support\LabUnits;
@@ -31,13 +32,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use RuntimeException;
 use Webkul\Inventory\Enums\ProductTracking;
+use Webkul\Inventory\Filament\Clusters\Products\Resources\ProductResource as InventoryProductResource;
 use Webkul\Inventory\Models\Lot;
 use Webkul\Inventory\Models\Product;
 use Webkul\Inventory\Models\ProductQuantity;
 use Webkul\Inventory\Models\Warehouse;
 use Webkul\Support\Enums\NavigationGroup;
 
-/** The lab's "Inventario": every lab item with its stock for production and R&D, minimum and expiring lots. */
+/** The lab's "Inventario": every raw material with its stock for production and R&D, minimum and expiring lots. */
 class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
 {
     use InteractsWithActions;
@@ -46,7 +48,7 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
 
     protected string $view = 'huvant-orders::filament.pages.lab-stock';
 
-    protected static ?string $slug = 'huvant/lab-stock';
+    protected static ?string $slug = 'huvant/raw-materials';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-beaker';
 
@@ -59,12 +61,27 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
 
     public static function getNavigationLabel(): string
     {
-        return 'Lab stock';
+        return 'Raw materials';
     }
 
     public function getTitle(): string
     {
-        return 'Lab stock';
+        return 'Raw materials';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Stock for production (consumed by manufacturing orders) and for R&D (portions handed over, use not tracked).';
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('newMaterial')
+                ->label('New raw material')
+                ->icon('heroicon-o-plus-circle')
+                ->url(InventoryProductResource::getUrl('create', ['role' => ItemRole::Material->value])),
+        ];
     }
 
     protected function warehouse(): Warehouse
@@ -79,7 +96,7 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
         $research = LabStock::location($warehouse, LabStock::RESEARCH);
 
         return $table
-            ->query(Product::query()->with('uom')->whereNotNull('huvant_lab_kind'))
+            ->query(Product::query()->with('uom')->where('huvant_role', ItemRole::Material->value))
             ->defaultSort('name')
             ->columns([
                 TextColumn::make('reference')->label('Code')->searchable()->placeholder('—'),
@@ -135,7 +152,7 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
     {
         $production = LabStock::location($this->warehouse(), LabStock::PRODUCTION);
 
-        return Product::query()->whereNotNull('huvant_lab_kind')->get()
+        return Product::query()->where('huvant_role', ItemRole::Material->value)->get()
             ->filter(fn (Product $product): bool => ($minimum = LabStock::minimum($product)) !== null && LabStock::onHand($product, $production) < $minimum)
             ->pluck('id')
             ->all();

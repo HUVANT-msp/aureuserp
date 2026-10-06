@@ -2,6 +2,7 @@
 
 namespace Webkul\Product\Filament\Resources\ProductResource\Pages;
 
+use Closure;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
@@ -26,8 +27,20 @@ class ListProducts extends ListRecords
             });
     }
 
+    /** A plugin can replace the preset tabs (e.g. one per role of an item). */
+    public static ?Closure $presetViewsUsing = null;
+
+    public function hasDefaultTableView(): bool
+    {
+        return static::$presetViewsUsing === null;
+    }
+
     public function getPresetTableViews(): array
     {
+        if (static::$presetViewsUsing) {
+            return (static::$presetViewsUsing)();
+        }
+
         return array_merge([
             'goods_products' => PresetView::make(__('products::filament/resources/product/pages/list-products.tabs.goods'))
                 ->icon('heroicon-s-squares-plus')

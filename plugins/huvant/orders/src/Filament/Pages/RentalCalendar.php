@@ -7,12 +7,11 @@ use Carbon\CarbonPeriod;
 use Filament\Pages\Page;
 use Huvant\Orders\Filament\Resources\OrderResource;
 use Huvant\Orders\Models\OrderLine;
-use Huvant\Orders\Models\RentalCategory;
 use Huvant\Orders\Support\Rentals;
 use Illuminate\Support\Carbon;
 use Webkul\Support\Enums\NavigationGroup;
 
-/** One row per rental category, one column per day of the month: units booked against units owned. */
+/** One row per rental item, one column per day of the month: pieces booked against pieces owned. */
 class RentalCalendar extends Page
 {
     protected string $view = 'huvant-orders::filament.pages.rental-calendar';
@@ -59,11 +58,12 @@ class RentalCalendar extends Page
         return [
             'monthLabel' => $from->translatedFormat('F Y'),
             'days'       => collect(CarbonPeriod::create($from, $until))->map(fn ($day) => Carbon::instance($day))->all(),
-            'categories' => RentalCategory::query()->orderBy('name')->get(),
+            'items'      => Rentals::items(),
+            'units'      => Rentals::items()->mapWithKeys(fn ($item): array => [$item->id => Rentals::units($item)])->all(),
             'occupancy'  => Rentals::occupancy($from, $until),
             'bookings'   => Rentals::bookings($from, $until)
                 ->sortBy(fn (OrderLine $line) => $line->order->rental_starts_on)
-                ->groupBy(fn (OrderLine $line) => $line->product->huvant_rental_category_id),
+                ->groupBy('product_id'),
             'orderUrl'   => fn (OrderLine $line): string => OrderResource::getUrl('edit', ['record' => $line->order]),
         ];
     }

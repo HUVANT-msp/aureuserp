@@ -23,7 +23,7 @@ class OrdersSchema
         'products_products' => [
             'huvant_hs_code'            => 'string:20',
             'huvant_production_days'    => 'smallint',
-            'huvant_rental_category_id' => 'foreign',
+            'huvant_role'               => 'string:20',
             'huvant_cas_number'         => 'string:30',
             'huvant_lab_kind'           => 'string:20',
             'huvant_lab_use'            => 'string:20',
