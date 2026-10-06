@@ -17,8 +17,10 @@ use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Enums\SupplyType;
 use Huvant\Orders\Models\Order;
 use Huvant\Orders\Support\ItemRoles;
+use Huvant\Orders\Support\ManufacturingFlow;
 use Huvant\Orders\Support\Orders;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Number;
 use Webkul\Partner\Enums\AccountType;
 use Webkul\Partner\Enums\AddressType;
@@ -114,6 +116,7 @@ class OrderForm
                         RepeaterTableColumn::make('product_id')->label($isIt ? 'Articolo' : 'Product')->markAsRequired(),
                         RepeaterTableColumn::make('description')->label($isIt ? 'Descrizione' : 'Description'),
                         RepeaterTableColumn::make('quantity')->label($isIt ? 'Quantità' : 'Quantity')->markAsRequired(),
+                        RepeaterTableColumn::make('stock_availability')->label($isIt ? 'Giacenza' : 'Stock'),
                         $canSeePrices ? RepeaterTableColumn::make('unit_price')->label($isIt ? 'Prezzo unitario' : 'Unit price') : null,
                         $canSeePrices ? RepeaterTableColumn::make('discount')->label($isIt ? 'Sconto %' : 'Discount %') : null,
                     ])))
@@ -136,7 +139,11 @@ class OrderForm
                             ->numeric()
                             ->minValue(0.0001)
                             ->default(1)
-                            ->required(),
+                            ->required()
+                            ->live(debounce: 300),
+                        Placeholder::make('stock_availability')
+                            ->hiddenLabel()
+                            ->content(fn (Get $get): HtmlString|string => static::stockAvailability($get, $isIt)),
                         TextInput::make('unit_price')
                             ->numeric()
                             ->minValue(0)
@@ -296,5 +303,31 @@ class OrderForm
         $value = $get('fulfilment');
 
         return $value instanceof Fulfilment ? $value : (Fulfilment::tryFrom((string) $value) ?? Fulfilment::Courier);
+    }
+
+    protected static function stockAvailability(Get $get, bool $isIt): HtmlString|string
+    {
+        $product = Product::query()->find($get('product_id'));
+
+        if (! $product || $product->huvant_role !== ItemRole::Product) {
+            return '—';
+        }
+
+        $requested = max(0, (int) ceil((float) ($get('quantity') ?: 0)));
+        $available = ManufacturingFlow::stockAvailable($product);
+        $usable = min($requested, $available);
+        $enough = $requested > 0 && $available >= $requested;
+        $text = $isIt
+            ? "{$usable} di {$requested} disponibili in giacenza"
+            : "{$usable} of {$requested} available in stock";
+
+        return new HtmlString(sprintf(
+            '<span class="hv-stock-availability %s" title="%s" aria-label="%s"><span class="hv-stock-dot"></span><span>%d/%d</span></span>',
+            $enough ? 'is-available' : 'is-short',
+            e($text),
+            e($text),
+            $usable,
+            $requested,
+        ));
     }
 }

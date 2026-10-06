@@ -133,6 +133,7 @@ return [
     'production' => 'Production',
     'research' => 'R&D',
     'status_in_lab' => 'In the lab',
+    'status_allocated' => 'Assigned to an offer',
     'status_out' => 'Out',
     'status_sold' => 'Sold',
     'shelf_days' => 'days',

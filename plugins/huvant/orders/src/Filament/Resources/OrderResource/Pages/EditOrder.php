@@ -63,8 +63,8 @@ class EditOrder extends EditRecord
                 ->requiresConfirmation()
                 ->modalDescription(function () use ($isIt): string {
                     $description = $isIt
-                        ? 'I prodotti con distinta base generano un ordine di produzione per il laboratorio; le merci generano una spedizione.'
-                        : 'Products with a bill of materials get a manufacturing order for the lab; goods get a delivery.';
+                        ? 'L’offerta entrerà in Manufacturing › Offerte, dove il laboratorio sceglierà cosa prelevare dalla giacenza e cosa produrre.'
+                        : 'The offer will enter Manufacturing › Offers, where the lab chooses what to take from stock and what to produce.';
 
                     if ($conflicts = Rentals::conflicts($this->record)) {
                         $description .= ($isIt ? ' Attenzione, date in conflitto per noleggi: ' : ' Warning, rentals overbooked: ').implode('; ', $conflicts).'.';
@@ -87,7 +87,7 @@ class EditOrder extends EditRecord
                 $this->stateAction('reject', $isIt ? 'Rifiutata dal cliente' : 'Rejected by the customer', 'danger', fn () => Orders::reject($this->record), $isOffer),
                 $this->stateAction('cancel', $isIt ? 'Annulla' : 'Cancel', 'danger', fn () => Orders::cancel($this->record), fn (): bool => $this->record->state->isOffer() || $this->record->state === OrderState::Confirmed)
                     ->requiresConfirmation()
-                    ->modalDescription($isIt ? 'Verranno annullati anche gli ordini di produzione non ancora completati.' : 'Manufacturing orders not yet finished are cancelled too.'),
+                    ->modalDescription($isIt ? 'Le unità assegnate torneranno disponibili e le produzioni aperte verranno annullate.' : 'Allocated units return to stock and open production tasks are cancelled.'),
             ]),
         ];
     }

@@ -27,6 +27,7 @@ class Order extends Model
         'name', 'order_number', 'state', 'supply_type', 'fulfilment',
         'partner_id', 'contact_id', 'delivery_address_id', 'hand_delivery_user_id',
         'event', 'subject', 'offer_date', 'validity_date', 'expected_delivery_date', 'confirmed_at',
+        'manufacturing_managed_at', 'manufacturing_managed_by',
         'rental_starts_on', 'rental_ends_on', 'expected_return_date',
         'payment_terms', 'vat_rate', 'notes', 'closing_state', 'company_id', 'creator_id',
     ];
@@ -43,18 +44,19 @@ class Order extends Model
     protected function casts(): array
     {
         return [
-            'state'                  => OrderState::class,
-            'supply_type'            => SupplyType::class,
-            'fulfilment'             => Fulfilment::class,
-            'closing_state'          => ClosingState::class,
-            'offer_date'             => 'date',
-            'validity_date'          => 'date',
-            'expected_delivery_date' => 'date',
-            'confirmed_at'           => 'datetime',
-            'rental_starts_on'       => 'date',
-            'rental_ends_on'         => 'date',
-            'expected_return_date'   => 'date',
-            'vat_rate'               => 'decimal:2',
+            'state'                    => OrderState::class,
+            'supply_type'              => SupplyType::class,
+            'fulfilment'               => Fulfilment::class,
+            'closing_state'            => ClosingState::class,
+            'offer_date'               => 'date',
+            'validity_date'            => 'date',
+            'expected_delivery_date'   => 'date',
+            'confirmed_at'             => 'datetime',
+            'manufacturing_managed_at' => 'datetime',
+            'rental_starts_on'         => 'date',
+            'rental_ends_on'           => 'date',
+            'expected_return_date'     => 'date',
+            'vat_rate'                 => 'decimal:2',
         ];
     }
 
@@ -97,6 +99,11 @@ class Order extends Model
         return $this->belongsTo(User::class, 'creator_id');
     }
 
+    public function manufacturingManagedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manufacturing_managed_by');
+    }
+
     public function lines(): HasMany
     {
         return $this->hasMany(OrderLine::class)->orderBy('sort')->orderBy('id');
@@ -110,6 +117,11 @@ class Order extends Model
     public function deliveries(): HasMany
     {
         return $this->hasMany(Delivery::class, 'huvant_order_id');
+    }
+
+    public function productionTasks(): HasMany
+    {
+        return $this->hasMany(ProductionTask::class);
     }
 
     public function untaxedAmount(): float

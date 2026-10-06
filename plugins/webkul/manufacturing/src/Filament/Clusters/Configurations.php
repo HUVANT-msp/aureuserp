@@ -7,6 +7,14 @@ use Webkul\Support\Enums\NavigationGroup;
 
 class Configurations extends Cluster
 {
+    /** Another plugin can replace this cluster in the menu without removing its routes. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     protected static ?string $slug = 'manufacturing/configurations';
 
     protected static ?int $navigationSort = 3;

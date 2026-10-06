@@ -133,6 +133,7 @@ return [
     'production' => 'Produzione',
     'research' => 'R&S',
     'status_in_lab' => 'In laboratorio',
+    'status_allocated' => 'Assegnato a un’offerta',
     'status_out' => 'Fuori sede',
     'status_sold' => 'Venduto',
     'shelf_days' => 'giorni',

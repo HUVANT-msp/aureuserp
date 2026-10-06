@@ -57,3 +57,57 @@ a.hv-lab-card:hover, a.hv-lab-card:focus-visible { border-color: var(--primary-5
 .dark .hv-cal-full { color: var(--warning-300); }
 .dark .hv-cal-over { color: var(--danger-300); }
 @media (prefers-reduced-motion: reduce) { a.hv-lab-card { transition: none; } }
+
+/* Live finished-product availability inside offer lines. */
+.hv-stock-availability { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--gray-600); cursor: help; white-space: nowrap; }
+.dark .hv-stock-availability { color: var(--gray-300); }
+.hv-stock-availability .hv-stock-dot { width: 9px; height: 9px; border-radius: 999px; flex: none; background: var(--warning-500); box-shadow: 0 0 0 3px color-mix(in oklab, var(--warning-500) 16%, transparent); }
+.hv-stock-availability.is-available .hv-stock-dot { background: var(--success-500); box-shadow: 0 0 0 3px color-mix(in oklab, var(--success-500) 16%, transparent); }
+
+/* Manufacturing inbox: a deliberately simple two-column handoff. */
+.hv-offer-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.hv-offer-column { min-width: 0; border-radius: 14px; background: var(--gray-50); border: 1px solid var(--gray-200); padding: 14px; }
+.dark .hv-offer-column { background: rgb(255 255 255 / .025); border-color: rgb(255 255 255 / .08); }
+.hv-offer-column-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 2px 2px 14px; }
+.hv-offer-column-head h2 { font-size: 15px; line-height: 1.4; font-weight: 700; color: var(--gray-950); }
+.dark .hv-offer-column-head h2 { color: white; }
+.hv-offer-column-head p { margin-top: 2px; font-size: 12px; line-height: 1.45; color: var(--gray-500); }
+.hv-offer-count { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 700; color: var(--gray-600); background: white; border: 1px solid var(--gray-200); }
+.dark .hv-offer-count { color: var(--gray-300); background: var(--gray-900); border-color: rgb(255 255 255 / .1); }
+.hv-offer-stack { display: flex; flex-direction: column; gap: 10px; }
+.hv-offer-card { display: block; padding: 14px; border-radius: 11px; color: inherit; text-decoration: none; background: white; border: 1px solid var(--gray-200); transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.dark .hv-offer-card { background: var(--gray-900); border-color: rgb(255 255 255 / .1); }
+.hv-offer-card:hover, .hv-offer-card:focus-visible { border-color: var(--primary-500); box-shadow: 0 6px 18px rgb(0 0 0 / .07); transform: translateY(-1px); outline: none; }
+.hv-offer-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.hv-offer-card-head > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hv-offer-card-head strong { font-size: 14px; }
+.hv-offer-card-head span { color: var(--gray-500); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hv-offer-products { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+.hv-offer-products li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; }
+.hv-offer-products li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hv-offer-products li strong { flex: none; font-variant-numeric: tabular-nums; }
+.hv-offer-meta { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--gray-100); color: var(--gray-500); font-size: 11px; }
+.dark .hv-offer-meta { border-color: rgb(255 255 255 / .07); }
+.hv-offer-empty { min-height: 108px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px; text-align: center; border: 1px dashed var(--gray-300); border-radius: 11px; color: var(--gray-500); font-size: 13px; }
+.dark .hv-offer-empty { border-color: rgb(255 255 255 / .14); }
+
+/* One clear decision per product: stock amount, with production as the visible remainder. */
+.hv-allocation-list { display: flex; flex-direction: column; gap: 10px; }
+.hv-allocation-row { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(190px, .7fr) minmax(130px, .45fr); align-items: center; gap: 16px; padding: 14px; border: 1px solid var(--gray-200); border-radius: 11px; }
+.dark .hv-allocation-row { border-color: rgb(255 255 255 / .1); }
+.hv-allocation-product, .hv-allocation-row > div:first-child { display: flex; flex-direction: column; gap: 3px; }
+.hv-allocation-product span, .hv-allocation-row > div:first-child span { font-size: 12px; color: var(--gray-500); }
+.hv-allocation-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hv-allocation-control label { display: flex; flex-direction: column; font-size: 13px; font-weight: 600; }
+.hv-allocation-control small { color: var(--gray-500); font-size: 11px; font-weight: 400; }
+.hv-allocation-control select { width: 72px; border: 1px solid var(--gray-300); border-radius: 8px; background: white; padding: 7px 28px 7px 10px; font-size: 13px; }
+.dark .hv-allocation-control select { color: white; background: var(--gray-900); border-color: rgb(255 255 255 / .16); }
+.hv-allocation-production { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-left: 1px solid var(--gray-200); padding-left: 16px; font-size: 13px; }
+.dark .hv-allocation-production { border-color: rgb(255 255 255 / .1); }
+.hv-allocation-production strong { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; border-radius: 8px; color: var(--warning-700); background: color-mix(in oklab, var(--warning-500) 14%, transparent); font-variant-numeric: tabular-nums; }
+.hv-allocation-result { display: flex; grid-column: span 2; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.hv-allocation-result span { padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.hv-allocation-result .is-stock { color: var(--success-700); background: color-mix(in oklab, var(--success-500) 14%, transparent); }
+.hv-allocation-result .is-production { color: var(--warning-700); background: color-mix(in oklab, var(--warning-500) 14%, transparent); }
+@media (max-width: 800px) { .hv-offer-board { grid-template-columns: 1fr; } .hv-allocation-row { grid-template-columns: 1fr; } .hv-allocation-production { border-left: 0; border-top: 1px solid var(--gray-200); padding: 12px 0 0; } .hv-allocation-result { grid-column: auto; justify-content: flex-start; } }
+@media (prefers-reduced-motion: reduce) { .hv-offer-card { transition: none; } }

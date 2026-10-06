@@ -19,7 +19,10 @@ use Webkul\Inventory\Filament\Clusters\Settings\Pages\ManageProducts;
 use Webkul\Inventory\Filament\Clusters\Settings\Pages\ManageTraceability;
 use Webkul\Inventory\Filament\Clusters\Settings\Pages\ManageWarehouses;
 use Webkul\Inventory\Filament\Pages\Overview as InventoryOverview;
+use Webkul\Manufacturing\Filament\Clusters\Configurations as ManufacturingConfigurations;
+use Webkul\Manufacturing\Filament\Clusters\Operations as ManufacturingOperations;
 use Webkul\Manufacturing\Filament\Clusters\PluginSettings as ManufacturingPluginSettings;
+use Webkul\Manufacturing\Filament\Clusters\Products as ManufacturingProducts;
 use Webkul\Manufacturing\Filament\Clusters\Products\Resources\LotResource as ManufacturingLotResource;
 use Webkul\Manufacturing\Filament\Clusters\Products\Resources\ProductResource as ManufacturingProductResource;
 use Webkul\Manufacturing\Filament\Clusters\Settings\Pages\ManageOperations as ManageManufacturingOperations;
@@ -30,7 +33,7 @@ use Webkul\Manufacturing\Filament\Clusters\Settings\Pages\ManageOperations as Ma
  *
  * The Inventory menu shows only the lab's Raw materials and Finished products; the ERP's own
  * inventory pages (transfers behind delivery notes and returns included) stay reachable by link.
- * Manufacturing keeps its orders and bills of materials.
+ * Manufacturing is replaced in the menu by the two-step Offers and Production workflow.
  */
 class Navigation
 {
@@ -59,6 +62,9 @@ class Navigation
         ManageTraceability::class,
         ManageWarehouses::class,
         ManufacturingPluginSettings::class,
+        ManufacturingOperations::class,
+        ManufacturingProducts::class,
+        ManufacturingConfigurations::class,
         ManageManufacturingOperations::class,
         // Duplicates of Inventory › Products and Lots.
         ManufacturingProductResource::class,

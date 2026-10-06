@@ -10,7 +10,6 @@ use Huvant\Orders\Filament\Resources\OrderResource\Pages\CreateOrder;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\EditOrder;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\ListOrders;
 use Huvant\Orders\Filament\Resources\OrderResource\RelationManagers\DeliveriesRelationManager;
-use Huvant\Orders\Filament\Resources\OrderResource\RelationManagers\ProductionRelationManager;
 use Huvant\Orders\Filament\Resources\OrderResource\Schemas\OrderForm;
 use Huvant\Orders\Filament\Resources\OrderResource\Tables\OrdersTable;
 use Huvant\Orders\Models\Order;
@@ -60,7 +59,7 @@ class OrderResource extends Resource
 
     public static function getRelations(): array
     {
-        return [ProductionRelationManager::class, DeliveriesRelationManager::class];
+        return [DeliveriesRelationManager::class];
     }
 
     public static function getPages(): array

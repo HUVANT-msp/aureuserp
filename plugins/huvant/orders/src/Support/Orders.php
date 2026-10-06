@@ -3,9 +3,11 @@
 namespace Huvant\Orders\Support;
 
 use Carbon\CarbonInterface;
+use Filament\Notifications\Notification;
 use Huvant\Orders\Enums\ClosingState;
 use Huvant\Orders\Enums\OrderState;
 use Huvant\Orders\Enums\ProductionStatus;
+use Huvant\Orders\Enums\ProductionTaskStatus;
 use Huvant\Orders\Models\Delivery;
 use Huvant\Orders\Models\Order;
 use Huvant\Orders\Models\OrderLine;
@@ -78,11 +80,7 @@ class Orders
         return $order;
     }
 
-    /**
-     * The offer becomes an order: every line whose product has a bill of materials gets a draft
-     * manufacturing order, which the lab confirms when it takes the work on, and the goods get
-     * an outgoing transfer that waits for them in stock.
-     */
+    /** The offer becomes an order and enters the shared manufacturing inbox. */
     public static function confirm(Order $order, bool $allowOverbooking = false): Order
     {
         static::guard($order, [OrderState::Draft, OrderState::Sent, OrderState::Pending], 'This offer can no longer be confirmed.');
@@ -103,16 +101,12 @@ class Orders
             throw new RuntimeException('Not enough units for rent. '.implode('; ', $conflicts).'.');
         }
 
-        return DB::transaction(function () use ($order): Order {
+        $confirmed = DB::transaction(function () use ($order): Order {
             $order->update([
                 'state'        => OrderState::Confirmed,
                 'confirmed_at' => now(),
                 'order_number' => $order->order_number ?? DocumentNumber::next(DocumentNumber::ORDER, now()),
             ]);
-
-            $order->lines()->with('product')->get()
-                ->filter(fn (OrderLine $line): bool => ! $line->manufacturing_order_id)
-                ->each(fn (OrderLine $line) => static::raiseManufacturingOrder($order, $line));
 
             if ($order->deliveries()->doesntExist()) {
                 Shipping::createDelivery($order);
@@ -120,6 +114,10 @@ class Orders
 
             return $order->refresh();
         });
+
+        static::notifyManufacturing($confirmed);
+
+        return $confirmed;
     }
 
     public static function reject(Order $order): Order
@@ -146,6 +144,8 @@ class Orders
         static::guard($order, [OrderState::Draft, OrderState::Sent, OrderState::Pending, OrderState::Confirmed], 'This order is already closed.');
 
         DB::transaction(function () use ($order): void {
+            ManufacturingFlow::release($order);
+
             static::manufacturingOrders($order)
                 ->reject(fn (ManufacturingOrder $mo): bool => in_array($mo->state, [ManufacturingOrderState::DONE, ManufacturingOrderState::CANCEL], true))
                 ->each(fn (ManufacturingOrder $mo) => Manufacturing::cancelManufacturingOrder($mo));
@@ -226,11 +226,33 @@ class Orders
 
     public static function productionStatus(Order $order): ProductionStatus
     {
+        if ($order->state === OrderState::Cancelled) {
+            return ProductionStatus::None;
+        }
+
+        if ($order->manufacturing_managed_at) {
+            $tasks = $order->productionTasks()->get();
+
+            if ($tasks->isEmpty() || $tasks->every(fn ($task): bool => $task->status === ProductionTaskStatus::Completed)) {
+                return ProductionStatus::Done;
+            }
+
+            if ($order->expected_delivery_date?->endOfDay()->isPast()) {
+                return ProductionStatus::Late;
+            }
+
+            if ($tasks->contains(fn ($task): bool => $task->completed_quantity > 0)) {
+                return ProductionStatus::InProgress;
+            }
+
+            return ProductionStatus::ToStart;
+        }
+
         $orders = static::manufacturingOrders($order)
             ->reject(fn (ManufacturingOrder $mo): bool => $mo->state === ManufacturingOrderState::CANCEL);
 
         if ($orders->isEmpty()) {
-            return ProductionStatus::None;
+            return $order->state === OrderState::Confirmed ? ProductionStatus::NotTakenOn : ProductionStatus::None;
         }
 
         if ($orders->every(fn (ManufacturingOrder $mo): bool => $mo->state === ManufacturingOrderState::DONE)) {
@@ -306,6 +328,22 @@ class Orders
         $line->update(['manufacturing_order_id' => $manufacturingOrder->id]);
 
         return $manufacturingOrder;
+    }
+
+    protected static function notifyManufacturing(Order $order): void
+    {
+        $users = User::query()->where('is_active', true)->get();
+
+        if ($users->isEmpty()) {
+            return;
+        }
+
+        Notification::make()
+            ->title(__('huvant-orders::manufacturing.notification_title'))
+            ->body(__('huvant-orders::manufacturing.notification_body', ['order' => $order->order_number]))
+            ->icon('heroicon-o-wrench-screwdriver')
+            ->iconColor('warning')
+            ->sendToDatabase($users);
     }
 
     /** @param  array<int, OrderState>  $allowed */

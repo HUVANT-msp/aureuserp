@@ -14,7 +14,7 @@ class ProductUnit extends Model
 {
     protected $table = 'huvant_product_units';
 
-    protected $fillable = ['product_id', 'code', 'production_date', 'expiry_date', 'status', 'status_since', 'notes', 'creator_id'];
+    protected $fillable = ['product_id', 'order_id', 'order_line_id', 'code', 'production_date', 'expiry_date', 'status', 'status_since', 'notes', 'creator_id'];
 
     /** @var array<string, mixed> */
     protected $attributes = ['status' => 'in_lab'];
@@ -37,6 +37,16 @@ class ProductUnit extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id')->withTrashed();
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function orderLine(): BelongsTo
+    {
+        return $this->belongsTo(OrderLine::class);
     }
 
     public function materials(): HasMany

@@ -1,6 +1,9 @@
 <?php
 
 use Huvant\Orders\Filament\Clusters\FinishedProducts;
+use Huvant\Orders\Filament\Clusters\Manufacturing;
+use Huvant\Orders\Filament\Clusters\Manufacturing\Pages\Production;
+use Huvant\Orders\Filament\Clusters\Manufacturing\Resources\OfferResource;
 use Huvant\Orders\Filament\Clusters\RawMaterials;
 use Huvant\Orders\Filament\Resources\OrderResource;
 use Huvant\Orders\Support\ErpSetup;
@@ -11,8 +14,6 @@ use Webkul\Inventory\Filament\Clusters\Operations\Resources\ScrapResource;
 use Webkul\Inventory\Settings\LogisticSettings;
 use Webkul\Inventory\Settings\TraceabilitySettings;
 use Webkul\Inventory\Settings\WarehouseSettings;
-use Webkul\Manufacturing\Filament\Clusters\Operations\Resources\ManufacturingOrderResource;
-use Webkul\Manufacturing\Filament\Clusters\Products\Resources\BillsOfMaterialResource;
 use Webkul\PluginManager\Models\Plugin;
 use Webkul\PluginManager\Package;
 use Webkul\Product\Settings\ProductSettings;
@@ -37,7 +38,7 @@ it('takes out of the menu what the lab registers never covered, and keeps what t
         expect($class::shouldRegisterNavigation())->toBeFalse($class);
     }
 
-    foreach ([RawMaterials::class, FinishedProducts::class, ManufacturingOrderResource::class, BillsOfMaterialResource::class, OrderResource::class] as $kept) {
+    foreach ([RawMaterials::class, FinishedProducts::class, Manufacturing::class, OfferResource::class, Production::class, OrderResource::class] as $kept) {
         expect($kept::shouldRegisterNavigation())->toBeTrue($kept);
     }
 
@@ -57,4 +58,8 @@ it('turns on lots, expiry dates and units, and off variants, packagings, package
         ->and(app(LogisticSettings::class)->enable_dropshipping)->toBeFalse()
         ->and(app(WarehouseSettings::class)->enable_multi_steps_routes)->toBeFalse()
         ->and(app(WarehouseSettings::class)->enable_locations)->toBeTrue();
+});
+
+it('offers only Italian and English in the language selector', function () {
+    expect(array_keys(config('app.supported_locales')))->toBe(['it', 'en']);
 });

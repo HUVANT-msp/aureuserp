@@ -1,15 +1,24 @@
 <?php
 
+use Filament\Actions\Testing\TestAction;
 use Huvant\Orders\Enums\ClosingState;
 use Huvant\Orders\Enums\Fulfilment;
 use Huvant\Orders\Enums\OrderState;
 use Huvant\Orders\Enums\ProductionStatus;
+use Huvant\Orders\Enums\ProductionTaskStatus;
 use Huvant\Orders\Enums\SupplyType;
+use Huvant\Orders\Enums\UnitStatus;
+use Huvant\Orders\Filament\Clusters\Manufacturing\Pages\Production;
+use Huvant\Orders\Filament\Clusters\Manufacturing\Resources\OfferResource\Pages\ListOffers as ManufacturingOffers;
+use Huvant\Orders\Filament\Clusters\Manufacturing\Resources\OfferResource\Pages\ManageOffer;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\CreateOrder;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\EditOrder;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\ListOrders;
 use Huvant\Orders\Models\Order;
+use Huvant\Orders\Models\ProductUnit;
 use Huvant\Orders\Support\ErpSetup;
+use Huvant\Orders\Support\LabInventory;
+use Huvant\Orders\Support\ManufacturingFlow;
 use Huvant\Orders\Support\Orders;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +27,6 @@ use Livewire\Livewire;
 use Webkul\Contact\Filament\Resources\PartnerResource\Pages\EditPartner;
 use Webkul\Contact\Filament\Resources\PartnerResource\Pages\ManageAddresses;
 use Webkul\Inventory\Filament\Clusters\Products\Resources\ProductResource\Pages\EditProduct;
-use Webkul\Manufacturing\Enums\ManufacturingOrderState;
-use Webkul\Manufacturing\Facades\Manufacturing;
 use Webkul\Manufacturing\Settings\OperationSettings;
 use Webkul\Partner\Enums\AccountType;
 use Webkul\Partner\Models\Partner;
@@ -99,32 +106,96 @@ it('totals the lines with their discount, then VAT', function () {
         ->and($order->totalAmount())->toBe(2946.3);
 });
 
-it('raises a draft manufacturing order for each line with a bill of materials when confirmed', function () {
+it('queues a confirmed offer, then splits each product between stock and production', function () {
     $order = offerFor($this->customer, [[$this->pad, 3, 450, 0], [$this->support, 1, 600, 0]]);
+    $colleague = User::withoutEvents(fn (): User => User::factory()->create(['is_active' => true]));
+
+    foreach (range(1, 2) as $piece) {
+        ProductUnit::query()->create([
+            'product_id'      => $this->pad->id,
+            'code'            => 'PAD-20261006-0'.$piece,
+            'production_date' => '2026-10-06',
+            'status'          => UnitStatus::InLab,
+        ]);
+    }
 
     Orders::confirm($order);
 
     $padLine = $order->lines()->where('product_id', $this->pad->id)->first();
-    $mo = $padLine->manufacturingOrder;
+
+    Livewire::test(EditOrder::class, ['record' => $order->getRouteKey()])
+        ->assertSee('2 of 3 available in stock');
 
     expect($order->refresh()->state)->toBe(OrderState::Confirmed)
         ->and($order->confirmed_at)->not->toBeNull()
-        ->and($order->lines()->where('product_id', $this->support->id)->value('manufacturing_order_id'))->toBeNull()
-        ->and($mo->state)->toBe(ManufacturingOrderState::DRAFT)
-        ->and((float) $mo->quantity)->toBe(3.0)
-        ->and($mo->origin)->toBe($order->order_number)
-        ->and($mo->rawMaterialMoves->pluck('product_id')->sort()->values()->all())->toBe(collect([$this->silicone->id, $this->mould->id])->sort()->values()->all())
-        ->and((float) $mo->rawMaterialMoves->firstWhere('product_id', $this->silicone->id)->product_uom_qty)->toBe(1.5)
+        ->and($order->manufacturing_managed_at)->toBeNull()
+        ->and(Orders::manufacturingOrders($order))->toBeEmpty()
+        ->and($colleague->notifications()->count())->toBe(1)
         ->and(Orders::productionStatus($order))->toBe(ProductionStatus::NotTakenOn);
 
-    // The lab takes the work on by confirming the manufacturing order.
-    Manufacturing::confirmManufacturingOrder($mo->refresh());
-    expect(Orders::productionStatus($order))->toBe(ProductionStatus::ToStart);
+    ManufacturingFlow::manage($order, [$padLine->id => 2]);
+
+    expect($order->refresh()->manufacturing_managed_at)->not->toBeNull()
+        ->and($padLine->refresh()->stock_quantity)->toBe(2)
+        ->and($padLine->production_quantity)->toBe(1)
+        ->and(ProductUnit::query()->where('status', UnitStatus::Allocated)->where('order_id', $order->id)->count())->toBe(2)
+        ->and($order->productionTasks()->sole()->quantity)->toBe(1)
+        ->and(Orders::productionStatus($order))->toBe(ProductionStatus::ToStart);
+});
+
+it('shows the shared offers inbox and records requested production against the offer', function () {
+    $this->silicone->update(['huvant_role' => 'material', 'huvant_package_unit' => 'g', 'huvant_package_quantity' => 1000]);
+    $this->mould->update(['huvant_role' => 'material', 'huvant_package_unit' => 'piece', 'huvant_package_quantity' => 10]);
+    LabInventory::saveRecipe($this->pad, [
+        ['material_id' => $this->silicone->id, 'quantity' => 100],
+        ['material_id' => $this->mould->id, 'quantity' => 1],
+    ]);
+    $siliconeLot = LabInventory::addPackages($this->silicone, 'SIL-1', null)->first();
+    $mouldLot = LabInventory::addPackages($this->mould, 'MLD-1', null)->first();
+
+    $order = offerFor($this->customer, [[$this->pad, 2, 450, 0]]);
+    Orders::confirm($order);
+
+    Livewire::test(ManufacturingOffers::class)
+        ->assertOk()
+        ->assertSee($order->order_number)
+        ->assertSee('To manage');
+
+    $line = $order->lines()->sole();
+    Livewire::test(ManageOffer::class, ['record' => $order->getRouteKey()])
+        ->assertOk()
+        ->set("stockQuantities.{$line->id}", 0)
+        ->call('manage')
+        ->assertHasNoErrors();
+
+    $task = $order->productionTasks()->sole();
+    Livewire::test(Production::class)
+        ->assertOk()
+        ->assertCanSeeTableRecords([$task])
+        ->mountAction(TestAction::make('produce')->table($task))
+        ->set('mountedActions.0.data', [
+            'production_date' => '2026-10-06',
+            'pieces'          => 2,
+            'lots'            => [
+                $this->silicone->id => $siliconeLot->id,
+                $this->mould->id    => $mouldLot->id,
+            ],
+        ])
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    $units = ProductUnit::query()->where('order_id', $order->id)->get();
+
+    expect($task->refresh()->status)->toBe(ProductionTaskStatus::Completed)
+        ->and($units)->toHaveCount(2)
+        ->and($units->every(fn (ProductUnit $unit): bool => $unit->status === UnitStatus::Allocated && $unit->order_id === $order->id))->toBeTrue()
+        ->and(LabInventory::counts($this->pad)['in_lab'])->toBe(0);
 });
 
 it('reports production as late once the deadline has passed', function () {
     $order = offerFor($this->customer, [[$this->pad, 1, 450, 0]], ['expected_delivery_date' => today()->subDay()]);
     Orders::confirm($order);
+    ManufacturingFlow::manage($order, [$order->lines()->sole()->id => 0]);
 
     expect(Orders::productionStatus($order))->toBe(ProductionStatus::Late);
 });
@@ -142,17 +213,27 @@ it('needs a customer and a product before confirming, except production for stoc
     Orders::confirm($forStock->refresh());
 
     expect($forStock->state)->toBe(OrderState::Confirmed)
-        ->and(Orders::manufacturingOrders($forStock))->toHaveCount(1);
+        ->and(Orders::manufacturingOrders($forStock))->toBeEmpty()
+        ->and($forStock->manufacturing_managed_at)->toBeNull();
 });
 
-it('cancels the unfinished manufacturing orders with the order', function () {
+it('cancels open production and releases assigned stock with the order', function () {
     $order = offerFor($this->customer, [[$this->pad, 2, 450, 0]]);
+    $unit = ProductUnit::query()->create([
+        'product_id'      => $this->pad->id,
+        'code'            => 'PAD-20261006-01',
+        'production_date' => '2026-10-06',
+        'status'          => UnitStatus::InLab,
+    ]);
     Orders::confirm($order);
+    ManufacturingFlow::manage($order, [$order->lines()->sole()->id => 1]);
 
     Orders::cancel($order);
 
     expect($order->refresh()->state)->toBe(OrderState::Cancelled)
-        ->and(Orders::manufacturingOrders($order)->first()->state)->toBe(ManufacturingOrderState::CANCEL)
+        ->and($unit->refresh()->status)->toBe(UnitStatus::InLab)
+        ->and($unit->order_id)->toBeNull()
+        ->and($order->productionTasks()->sole()->status)->toBe(ProductionTaskStatus::Cancelled)
         ->and(Orders::productionStatus($order))->toBe(ProductionStatus::None);
 });
 
@@ -227,7 +308,8 @@ it('creates an offer from the form and confirms it from the order page', functio
 
     expect($order->refresh()->state)->toBe(OrderState::Confirmed)
         ->and($order->event)->toBe('ERA Congress')
-        ->and(Orders::manufacturingOrders($order))->toHaveCount(1);
+        ->and($order->manufacturing_managed_at)->toBeNull()
+        ->and(Orders::manufacturingOrders($order))->toBeEmpty();
 });
 
 it('keeps e-invoicing, event and customs data on contacts and products', function () {
