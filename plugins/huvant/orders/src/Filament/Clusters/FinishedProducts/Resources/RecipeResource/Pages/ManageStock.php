@@ -16,6 +16,7 @@ use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
@@ -161,6 +162,27 @@ class ManageStock extends Page implements HasTable
         return $pieces === 1 ? $first : $first.' … '.LabInventory::nextCode($this->record, $date, $pieces - 1);
     }
 
+    public function rateUnit(int $unitId, int $rating): void
+    {
+        if ($rating < 1 || $rating > 5) {
+            Notification::make()->danger()->title(__('huvant-orders::lab.invalid_quality_rating'))->send();
+
+            return;
+        }
+
+        $updated = ProductUnit::query()
+            ->whereKey($unitId)
+            ->where('product_id', $this->record->getKey())
+            ->where('status', UnitStatus::InLab->value)
+            ->whereNull('order_id')
+            ->whereNull('order_line_id')
+            ->update(['quality_rating' => $rating]);
+
+        if (! $updated) {
+            Notification::make()->danger()->title(__('huvant-orders::lab.quality_cannot_be_changed'))->send();
+        }
+    }
+
     public function table(Table $table): Table
     {
         $warningDays = app(OrdersSettings::class)->expiry_warning_days;
@@ -183,6 +205,9 @@ class ManageStock extends Page implements HasTable
                     ->sortable(),
                 TextColumn::make('status')->label(__('huvant-orders::lab.where'))->badge(),
                 TextColumn::make('status_since')->label(__('huvant-orders::lab.since'))->date('d/m/Y')->toggleable(isToggledHiddenByDefault: true),
+                ViewColumn::make('quality_rating')
+                    ->label(__('huvant-orders::lab.quality'))
+                    ->view('huvant-orders::filament.lab.quality-rating'),
                 TextColumn::make('materials_count')->label(__('huvant-orders::lab.material_lots')),
                 TextColumn::make('notes')->label(__('huvant-orders::lab.notes'))->limit(40)->placeholder('—')->toggleable(),
                 TextColumn::make('deletion_note')->label(__('huvant-orders::lab.deletion_note'))->limit(40)->placeholder('—')->toggleable(isToggledHiddenByDefault: true),

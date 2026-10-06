@@ -229,6 +229,34 @@ it('moves an available piece to the trash with a required note and restores it',
     expect(ProductUnit::find($available->id))->not->toBeNull();
 });
 
+it('rates only finished products that are available in stock', function () {
+    $available = ProductUnit::query()->create([
+        'product_id'      => $this->brain->id,
+        'code'            => 'BRN-RATING-01',
+        'production_date' => today(),
+        'status'          => UnitStatus::InLab,
+    ]);
+    $sold = ProductUnit::query()->create([
+        'product_id'      => $this->brain->id,
+        'code'            => 'BRN-RATING-02',
+        'production_date' => today(),
+        'status'          => UnitStatus::Sold,
+        'status_since'    => today(),
+    ]);
+
+    $component = Livewire::test(ManageStock::class, ['record' => $this->brain->getRouteKey()])
+        ->assertOk()
+        ->call('rateUnit', $available->id, 4);
+
+    expect($available->refresh()->quality_rating)->toBe(4);
+
+    $component->call('rateUnit', $sold->id, 5)->assertNotified();
+    expect($sold->refresh()->quality_rating)->toBeNull();
+
+    $component->call('rateUnit', $available->id, 6)->assertNotified();
+    expect($available->refresh()->quality_rating)->toBe(4);
+});
+
 it('shows materials by product, pieces in the lab, stock cards, out and sold', function () {
     $pva = LabInventory::addPackages($this->pva, 'PVA-1', null)->first();
     $glycerine = LabInventory::addPackages($this->glycerine, 'GLY-1', null, 1, 900)->first();
