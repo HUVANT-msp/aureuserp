@@ -15,21 +15,37 @@ enum ItemRole: string implements HasDescription, HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::Product  => 'Product',
-            self::Material => 'Raw material',
-            self::Rental   => 'Rental',
-            self::Service  => 'Service',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::Product  => 'Prodotto',
+                self::Material => 'Materia prima',
+                self::Rental   => 'Noleggio',
+                self::Service  => 'Servizio',
+            },
+            default => match ($this) {
+                self::Product  => 'Product',
+                self::Material => 'Raw material',
+                self::Rental   => 'Rental',
+                self::Service  => 'Service',
+            },
         };
     }
 
     public function getDescription(): string
     {
-        return match ($this) {
-            self::Product  => 'Made or sold by Huvant: pads, kits, simulators. Tracked by lot.',
-            self::Material => 'Used to make products: reagents, consumables, PPE. Lab stock, by lot.',
-            self::Rental   => 'Lent for a period: torsos, stations. Units are the pieces in stock.',
-            self::Service  => 'No stock: support staff, shipping costs.',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::Product  => 'Fabbricato o venduto da Huvant: pad, kit, simulatori. Tracciato per lotto.',
+                self::Material => 'Utilizzato per la produzione: reagenti, consumabili, DPI. Giacenza di laboratorio, per lotto.',
+                self::Rental   => 'Concesso a noleggio per un periodo: manichini, postazioni. Le unità corrispondono ai pezzi a magazzino.',
+                self::Service  => 'Nessuna giacenza: personale di supporto, spese di spedizione.',
+            },
+            default => match ($this) {
+                self::Product  => 'Made or sold by Huvant: pads, kits, simulators. Tracked by lot.',
+                self::Material => 'Used to make products: reagents, consumables, PPE. Lab stock, by lot.',
+                self::Rental   => 'Lent for a period: torsos, stations. Units are the pieces in stock.',
+                self::Service  => 'No stock: support staff, shipping costs.',
+            },
         };
     }
 

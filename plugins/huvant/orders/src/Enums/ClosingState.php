@@ -13,10 +13,17 @@ enum ClosingState: string implements HasColor, HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::Open      => 'Open',
-            self::Closed    => 'Closed',
-            self::Contested => 'Contested',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::Open      => 'Aperto',
+                self::Closed    => 'Chiuso',
+                self::Contested => 'Contestato',
+            },
+            default => match ($this) {
+                self::Open      => 'Open',
+                self::Closed    => 'Closed',
+                self::Contested => 'Contested',
+            },
         };
     }
 

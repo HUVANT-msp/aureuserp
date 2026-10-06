@@ -15,12 +15,21 @@ enum LabItemKind: string implements HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::Substance  => 'Substance',
-            self::Consumable => 'Consumable',
-            self::Cleaning   => 'Cleaning product',
-            self::Instrument => 'Instrument',
-            self::Ppe        => 'PPE',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::Substance  => 'Sostanza',
+                self::Consumable => 'Materiale di consumo',
+                self::Cleaning   => 'Prodotto per pulizia',
+                self::Instrument => 'Strumento',
+                self::Ppe        => 'DPI',
+            },
+            default => match ($this) {
+                self::Substance  => 'Substance',
+                self::Consumable => 'Consumable',
+                self::Cleaning   => 'Cleaning product',
+                self::Instrument => 'Instrument',
+                self::Ppe        => 'PPE',
+            },
         };
     }
 }

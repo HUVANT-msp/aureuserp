@@ -30,12 +30,17 @@ class OrderResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return 'Order';
+        return app()->getLocale() === 'it' ? 'Ordine' : 'Order';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return app()->getLocale() === 'it' ? 'Offerte e ordini' : 'Offers and orders';
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Offers and orders';
+        return app()->getLocale() === 'it' ? 'Offerte e ordini' : 'Offers and orders';
     }
 
     public static function getNavigationGroup(): string|\UnitEnum

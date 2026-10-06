@@ -18,14 +18,25 @@ enum OrderState: string implements HasColor, HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::Draft     => 'Draft',
-            self::Sent      => 'Sent',
-            self::Pending   => 'Pending',
-            self::Confirmed => 'Confirmed',
-            self::Rejected  => 'Rejected',
-            self::Expired   => 'Expired',
-            self::Cancelled => 'Cancelled',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::Draft     => 'Bozza',
+                self::Sent      => 'Inviato',
+                self::Pending   => 'In attesa',
+                self::Confirmed => 'Confermato',
+                self::Rejected  => 'Rifiutato',
+                self::Expired   => 'Scaduto',
+                self::Cancelled => 'Annullato',
+            },
+            default => match ($this) {
+                self::Draft     => 'Draft',
+                self::Sent      => 'Sent',
+                self::Pending   => 'Pending',
+                self::Confirmed => 'Confirmed',
+                self::Rejected  => 'Rejected',
+                self::Expired   => 'Expired',
+                self::Cancelled => 'Cancelled',
+            },
         };
     }
 

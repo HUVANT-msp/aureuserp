@@ -15,12 +15,21 @@ enum ShippingStatus: string implements HasColor, HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::ToShip    => 'To ship',
-            self::InTransit => 'In transit',
-            self::Delivered => 'Delivered',
-            self::Problem   => 'Problem',
-            self::Returned  => 'Returned',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::ToShip    => 'Da spedire',
+                self::InTransit => 'In transito',
+                self::Delivered => 'Consegnato',
+                self::Problem   => 'Anomalia',
+                self::Returned  => 'Reso',
+            },
+            default => match ($this) {
+                self::ToShip    => 'To ship',
+                self::InTransit => 'In transit',
+                self::Delivered => 'Delivered',
+                self::Problem   => 'Problem',
+                self::Returned  => 'Returned',
+            },
         };
     }
 

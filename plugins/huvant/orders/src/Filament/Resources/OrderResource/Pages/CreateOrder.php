@@ -11,6 +11,9 @@ class CreateOrder extends CreateRecord
 {
     protected static string $resource = OrderResource::class;
 
+    /** The offer and its lines are saved together or not at all. */
+    protected ?bool $hasDatabaseTransactions = true;
+
     protected function handleRecordCreation(array $data): Model
     {
         return Orders::open($data);

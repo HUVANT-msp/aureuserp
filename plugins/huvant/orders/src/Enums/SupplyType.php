@@ -17,14 +17,25 @@ enum SupplyType: string implements HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::Sale                => 'Sale',
-            self::CustomSale          => 'Custom sale',
-            self::FreeSample          => 'Free sample',
-            self::Loan                => 'Loan',
-            self::OnApproval          => 'On approval',
-            self::Research            => 'R&D',
-            self::WarrantyReplacement => 'Warranty replacement',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::Sale                => 'Vendita',
+                self::CustomSale          => 'Vendita personalizzata',
+                self::FreeSample          => 'Campione gratuito',
+                self::Loan                => "Comodato d'uso",
+                self::OnApproval          => 'Conto visione',
+                self::Research            => 'R&S',
+                self::WarrantyReplacement => 'Sostituzione in garanzia',
+            },
+            default => match ($this) {
+                self::Sale                => 'Sale',
+                self::CustomSale          => 'Custom sale',
+                self::FreeSample          => 'Free sample',
+                self::Loan                => 'Loan',
+                self::OnApproval          => 'On approval',
+                self::Research            => 'R&D',
+                self::WarrantyReplacement => 'Warranty replacement',
+            },
         };
     }
 

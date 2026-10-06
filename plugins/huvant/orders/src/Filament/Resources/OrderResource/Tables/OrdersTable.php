@@ -15,60 +15,62 @@ class OrdersTable
 {
     public static function configure(Table $table): Table
     {
+        $isIt = app()->getLocale() === 'it';
+
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with(['partner', 'lines']))
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('order_number')
-                    ->label('Order')
+                    ->label($isIt ? 'Ordine' : 'Order')
                     ->placeholder('—')
                     ->searchable()
                     ->weight('bold'),
                 TextColumn::make('name')
-                    ->label('Offer')
+                    ->label($isIt ? 'Offerta' : 'Offer')
                     ->searchable(),
                 TextColumn::make('offer_date')
-                    ->label('Date')
+                    ->label($isIt ? 'Data' : 'Date')
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('partner.name')
-                    ->label('Customer')
-                    ->placeholder('For stock')
+                    ->label($isIt ? 'Cliente' : 'Customer')
+                    ->placeholder($isIt ? 'Per magazzino' : 'For stock')
                     ->searchable(),
                 TextColumn::make('event')
-                    ->label('Event')
+                    ->label($isIt ? 'Evento' : 'Event')
                     ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('supply_type')
-                    ->label('Supply')
+                    ->label($isIt ? 'Fornitura' : 'Supply')
                     ->badge()
                     ->color('gray'),
                 TextColumn::make('state')
-                    ->label('Status')
+                    ->label($isIt ? 'Stato' : 'Status')
                     ->badge(),
                 TextColumn::make('production')
-                    ->label('Production')
+                    ->label($isIt ? 'Produzione' : 'Production')
                     ->badge()
                     ->state(fn (Order $record) => $record->state->isVisibleToProduction() ? Orders::productionStatus($record) : null)
                     ->placeholder('—'),
                 TextColumn::make('expected_delivery_date')
-                    ->label('Expected delivery')
+                    ->label($isIt ? 'Consegna prevista' : 'Expected delivery')
                     ->date('d/m/Y')
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('total')
-                    ->label('Total')
+                    ->label($isIt ? 'Totale' : 'Total')
                     ->state(fn (Order $record): float => $record->totalAmount())
                     ->money('EUR', locale: 'it')
                     ->visible(Orders::canSeePrices()),
                 TextColumn::make('closing_state')
-                    ->label('Closing')
+                    ->label($isIt ? 'Chiusura' : 'Closing')
                     ->badge()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('supply_type')->label('Supply')->options(SupplyType::class),
-                SelectFilter::make('closing_state')->label('Closing')->options(ClosingState::class),
+                SelectFilter::make('supply_type')->label($isIt ? 'Fornitura' : 'Supply')->options(SupplyType::class),
+                SelectFilter::make('closing_state')->label($isIt ? 'Chiusura' : 'Closing')->options(ClosingState::class),
             ])
             ->recordActions([EditAction::make()]);
     }

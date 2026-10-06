@@ -17,13 +17,23 @@ enum ProductionStatus: string implements HasColor, HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::None       => 'Nothing to produce',
-            self::NotTakenOn => 'Not taken on',
-            self::ToStart    => 'To start',
-            self::InProgress => 'In progress',
-            self::Late       => 'Late',
-            self::Done       => 'Done',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::None       => 'Non prevista',
+                self::NotTakenOn => 'Non presa in carico',
+                self::ToStart    => 'Da avviare',
+                self::InProgress => 'In corso',
+                self::Late       => 'In ritardo',
+                self::Done       => 'Completata',
+            },
+            default => match ($this) {
+                self::None       => 'Nothing to produce',
+                self::NotTakenOn => 'Not taken on',
+                self::ToStart    => 'To start',
+                self::InProgress => 'In progress',
+                self::Late       => 'Late',
+                self::Done       => 'Done',
+            },
         };
     }
 

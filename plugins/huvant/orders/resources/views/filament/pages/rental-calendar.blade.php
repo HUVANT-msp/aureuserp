@@ -7,14 +7,14 @@
 
     @if ($items->isEmpty())
         <x-filament::section>
-            Nothing to rent yet: give an item the role Rental in Inventory › Products, then load its pieces in stock.
+            {{ app()->getLocale() === 'it' ? 'Nessun articolo a noleggio disponibile: assegna a un articolo il ruolo "Noleggio" in Magazzino › Prodotti, quindi carica le relative quantità a magazzino.' : 'Nothing to rent yet: give an item the role Rental in Inventory › Products, then load its pieces in stock.' }}
         </x-filament::section>
     @else
         <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-white/10">
             <table class="w-full text-xs">
                 <thead>
                 <tr class="bg-gray-50 dark:bg-white/5">
-                    <th class="sticky left-0 bg-gray-50 px-3 py-2 text-left dark:bg-gray-900">Item · pieces</th>
+                    <th class="sticky left-0 bg-gray-50 px-3 py-2 text-left dark:bg-gray-900">{{ app()->getLocale() === 'it' ? 'Articolo · pezzi' : 'Item · pieces' }}</th>
                     @foreach ($days as $day)
                         <th @class(['px-1 py-2 text-center font-medium', 'text-gray-400' => $day->isWeekend(), 'text-primary-600' => $day->isToday()])>
                             {{ $day->format('j') }}
@@ -61,12 +61,12 @@
                         @foreach ($bookings[$item->id] as $line)
                             <li>
                                 <a href="{{ $orderUrl($line) }}" class="font-medium text-primary-600 hover:underline">{{ $line->order->order_number ?? $line->order->name }}</a>
-                                · {{ $line->order->partner?->name ?? 'Stock' }}
+                                · {{ $line->order->partner?->name ?? (app()->getLocale() === 'it' ? 'Magazzino' : 'Stock') }}
                                 @if ($line->order->event) · {{ $line->order->event }} @endif
                                 · {{ $line->order->rental_starts_on->format('d/m') }}–{{ $line->order->rental_ends_on->format('d/m') }}
-                                · {{ rtrim(rtrim(number_format((float) $line->quantity, 2, ',', ''), '0'), ',') }} pcs
+                                · {{ rtrim(rtrim(number_format((float) $line->quantity, 2, ',', ''), '0'), ',') }} {{ app()->getLocale() === 'it' ? 'pz' : 'pcs' }}
                                 @if ($line->order->state === \Huvant\Orders\Enums\OrderState::Pending)
-                                    <x-filament::badge color="warning" size="sm" class="inline-flex">on hold</x-filament::badge>
+                                    <x-filament::badge color="warning" size="sm" class="inline-flex">{{ app()->getLocale() === 'it' ? 'in attesa' : 'on hold' }}</x-filament::badge>
                                 @endif
                             </li>
                         @endforeach

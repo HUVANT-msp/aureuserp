@@ -32,25 +32,27 @@ class ManageOrdersSettings extends SettingsPage
 
     public static function getNavigationLabel(): string
     {
-        return 'Orders settings';
+        return app()->getLocale() === 'it' ? 'Impostazioni ordini' : 'Orders settings';
     }
 
     public function getTitle(): string
     {
-        return 'Orders settings';
+        return app()->getLocale() === 'it' ? 'Impostazioni ordini' : 'Orders settings';
     }
 
     public function form(Schema $schema): Schema
     {
+        $isIt = app()->getLocale() === 'it';
+
         return $schema->components([
             TextInput::make('hourly_cost')
-                ->label('Cost of one hour of lab work (€)')
-                ->helperText('Used for the margin of each order, with the hours logged on its manufacturing orders.')
+                ->label($isIt ? 'Costo orario lavoro di laboratorio (€)' : 'Cost of one hour of lab work (€)')
+                ->helperText($isIt ? 'Utilizzato per il margine di ogni ordine, in base alle ore registrate sugli ordini di produzione.' : 'Used for the margin of each order, with the hours logged on its manufacturing orders.')
                 ->numeric()
                 ->minValue(0)
                 ->required(),
             TextInput::make('expiry_warning_days')
-                ->label('Warn about lots expiring within (days)')
+                ->label($isIt ? 'Avviso lotti in scadenza entro (giorni)' : 'Warn about lots expiring within (days)')
                 ->integer()
                 ->minValue(1)
                 ->required(),

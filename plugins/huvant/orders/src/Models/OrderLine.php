@@ -24,6 +24,15 @@ class OrderLine extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // An empty price or discount on the form means none.
+        static::saving(function (OrderLine $line): void {
+            $line->unit_price ??= 0;
+            $line->discount ??= 0;
+        });
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

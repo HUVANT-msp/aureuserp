@@ -21,6 +21,9 @@ class EditOrder extends EditRecord
 {
     protected static string $resource = OrderResource::class;
 
+    /** The offer and its lines are saved together or not at all. */
+    protected ?bool $hasDatabaseTransactions = true;
+
     public function getTitle(): string
     {
         return $this->record->order_number

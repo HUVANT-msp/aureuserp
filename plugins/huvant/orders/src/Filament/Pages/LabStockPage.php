@@ -61,24 +61,26 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
 
     public static function getNavigationLabel(): string
     {
-        return 'Raw materials';
+        return app()->getLocale() === 'it' ? 'Materie prime' : 'Raw materials';
     }
 
     public function getTitle(): string
     {
-        return 'Raw materials';
+        return app()->getLocale() === 'it' ? 'Materie prime' : 'Raw materials';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Stock for production (consumed by manufacturing orders) and for R&D (portions handed over, use not tracked).';
+        return app()->getLocale() === 'it'
+            ? 'Giacenze per la produzione (consumate dagli ordini di produzione) e per R&S (quote trasferite, utilizzo non tracciato).'
+            : 'Stock for production (consumed by manufacturing orders) and for R&D (portions handed over, use not tracked).';
     }
 
     protected function getHeaderActions(): array
     {
         return [
             Action::make('newMaterial')
-                ->label('New raw material')
+                ->label(app()->getLocale() === 'it' ? 'Nuova materia prima' : 'New raw material')
                 ->icon('heroicon-o-plus-circle')
                 ->url(InventoryProductResource::getUrl('create', ['role' => ItemRole::Material->value])),
         ];
@@ -94,43 +96,44 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
         $warehouse = $this->warehouse();
         $production = LabStock::location($warehouse, LabStock::PRODUCTION);
         $research = LabStock::location($warehouse, LabStock::RESEARCH);
+        $isIt = app()->getLocale() === 'it';
 
         return $table
             ->query(Product::query()->with('uom')->where('huvant_role', ItemRole::Material->value))
             ->defaultSort('name')
             ->columns([
-                TextColumn::make('reference')->label('Code')->searchable()->placeholder('—'),
-                TextColumn::make('name')->label('Item')->searchable()->wrap(),
+                TextColumn::make('reference')->label($isIt ? 'Codice' : 'Code')->searchable()->placeholder('—'),
+                TextColumn::make('name')->label($isIt ? 'Articolo' : 'Item')->searchable()->wrap(),
                 TextColumn::make('huvant_cas_number')->label('CAS')->searchable()->placeholder('—')->toggleable(),
-                TextColumn::make('huvant_lab_kind')->label('Kind')->formatStateUsing(fn ($state): ?string => LabItemKind::tryFrom((string) $state)?->getLabel())->toggleable(),
+                TextColumn::make('huvant_lab_kind')->label($isIt ? 'Tipo' : 'Kind')->formatStateUsing(fn ($state): ?string => LabItemKind::tryFrom((string) $state)?->getLabel())->toggleable(),
                 TextColumn::make('production')
-                    ->label('Production')
+                    ->label($isIt ? 'Produzione' : 'Production')
                     ->state(fn (Product $record): string => LabUnits::format($record, LabStock::onHand($record, $production)))
                     ->color(fn (Product $record): ?string => ($minimum = LabStock::minimum($record)) !== null && LabStock::onHand($record, $production) < $minimum ? 'danger' : null),
                 TextColumn::make('research')
                     ->label('R&D')
                     ->state(fn (Product $record): string => LabUnits::format($record, LabStock::onHand($record, $research))),
                 TextColumn::make('minimum')
-                    ->label('Minimum')
+                    ->label($isIt ? 'Scorta minima' : 'Minimum')
                     ->state(fn (Product $record): ?string => ($minimum = LabStock::minimum($record)) === null ? null : LabUnits::format($record, $minimum))
                     ->placeholder('—'),
                 TextColumn::make('expiring')
-                    ->label('Expiring lots')
+                    ->label($isIt ? 'Lotti in scadenza' : 'Expiring lots')
                     ->state(fn (Product $record): ?string => LabStock::expiringLots($record)
                         ->map(fn (Lot $lot): string => $lot->name.' '.$lot->expiration_date->format('d/m/y'))
                         ->implode(', ') ?: null)
                     ->color('warning')
                     ->placeholder('—')
                     ->wrap(),
-                TextColumn::make('package')->label('Package')->state(fn (Product $record): ?string => LabUnits::describePackage($record))->placeholder('—')->toggleable(),
-                TextColumn::make('huvant_supplier')->label('Supplier')->placeholder('—')->searchable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('huvant_storage_position')->label('Position')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('package')->label($isIt ? 'Confezione' : 'Package')->state(fn (Product $record): ?string => LabUnits::describePackage($record))->placeholder('—')->toggleable(),
+                TextColumn::make('huvant_supplier')->label($isIt ? 'Fornitore' : 'Supplier')->placeholder('—')->searchable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('huvant_storage_position')->label($isIt ? 'Posizione' : 'Position')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('huvant_lab_kind')->label('Kind')->options(LabItemKind::class),
-                SelectFilter::make('huvant_lab_use')->label('Used for')->options([LabStock::PRODUCTION => 'Production', LabStock::RESEARCH => 'R&D']),
+                SelectFilter::make('huvant_lab_kind')->label($isIt ? 'Tipo' : 'Kind')->options(LabItemKind::class),
+                SelectFilter::make('huvant_lab_use')->label($isIt ? "Destinazione d'uso" : 'Used for')->options($isIt ? [LabStock::PRODUCTION => 'Produzione', LabStock::RESEARCH => 'R&D'] : [LabStock::PRODUCTION => 'Production', LabStock::RESEARCH => 'R&D']),
                 TernaryFilter::make('below_minimum')
-                    ->label('Below minimum')
+                    ->label($isIt ? 'Sotto scorta minima' : 'Below minimum')
                     ->queries(
                         true: fn (Builder $query) => $query->whereIn('id', $this->belowMinimumIds()),
                         false: fn (Builder $query) => $query->whereNotIn('id', $this->belowMinimumIds()),
@@ -159,12 +162,15 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
     }
 
     /** Quantity and the unit it is entered in; the conversion to the item's unit happens on save. @return array<int, mixed> */
-    protected function quantityFields(Product $record, bool $withPackage = false, string $label = 'Quantity'): array
+    /** Quantity and the unit it is entered in; the conversion to the item's unit happens on save. @return array<int, mixed> */
+    protected function quantityFields(Product $record, bool $withPackage = false, ?string $label = null): array
     {
+        $isIt = app()->getLocale() === 'it';
+
         return [
-            TextInput::make('quantity')->label($label)->numeric()->minValue(0)->required(),
+            TextInput::make('quantity')->label($label ?? ($isIt ? 'Quantità' : 'Quantity'))->numeric()->minValue(0)->required(),
             Select::make('unit')
-                ->label('Unit')
+                ->label($isIt ? 'Unità' : 'Unit')
                 ->options(LabUnits::options($record, $withPackage))
                 ->default($record->uom_id)
                 ->required(),
@@ -182,8 +188,10 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
             return null;
         }
 
+        $isIt = app()->getLocale() === 'it';
+
         return Select::make('lot_id')
-            ->label('Lot')
+            ->label($isIt ? 'Lotto' : 'Lot')
             ->options(fn (): array => ProductQuantity::query()
                 ->with('lot')
                 ->where('product_id', $record->id)
@@ -195,7 +203,7 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
                     '%s · %s%s',
                     $quant->lot->name,
                     LabUnits::format($record, (float) $quant->quantity),
-                    $quant->lot->expiration_date ? ' · exp. '.$quant->lot->expiration_date->format('d/m/Y') : '',
+                    $quant->lot->expiration_date ? ($isIt ? ' · scad. ' : ' · exp. ').$quant->lot->expiration_date->format('d/m/Y') : '',
                 )])
                 ->all())
             ->required();
@@ -203,15 +211,17 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
 
     protected function loadAction(): Action
     {
+        $isIt = app()->getLocale() === 'it';
+
         return Action::make('load')
-            ->label('Load')
+            ->label($isIt ? 'Carico magazzino' : 'Load')
             ->icon('heroicon-o-arrow-down-tray')
-            ->modalDescription('Goods in, into production stock.')
+            ->modalDescription($isIt ? 'Carico merci in ingresso nelle giacenze di produzione.' : 'Goods in, into production stock.')
             ->schema(fn (Product $record): array => array_values(array_filter([
                 ...$this->quantityFields($record, withPackage: true),
-                $record->tracking !== ProductTracking::QTY ? TextInput::make('lot')->label('Internal lot')->placeholder('L1')->required() : null,
-                $record->tracking !== ProductTracking::QTY ? TextInput::make('supplier_lot')->label('Supplier lot number') : null,
-                $record->tracking !== ProductTracking::QTY ? DatePicker::make('expires_on')->label('Expiry date') : null,
+                $record->tracking !== ProductTracking::QTY ? TextInput::make('lot')->label($isIt ? 'Lotto interno' : 'Internal lot')->placeholder('L1')->required() : null,
+                $record->tracking !== ProductTracking::QTY ? TextInput::make('supplier_lot')->label($isIt ? 'Lotto fornitore' : 'Supplier lot number') : null,
+                $record->tracking !== ProductTracking::QTY ? DatePicker::make('expires_on')->label($isIt ? 'Data di scadenza' : 'Expiry date') : null,
             ])))
             ->action(function (Product $record, array $data): void {
                 $this->run(fn () => LabStock::load(
@@ -221,17 +231,19 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
                     $data['lot'] ?? null,
                     $data['supplier_lot'] ?? null,
                     filled($data['expires_on'] ?? null) ? Carbon::parse($data['expires_on']) : null,
-                ), 'Loaded');
+                ), app()->getLocale() === 'it' ? 'Carico registrato' : 'Loaded');
             });
     }
 
     protected function moveToResearchAction(): Action
     {
+        $isIt = app()->getLocale() === 'it';
+
         return Action::make('toResearch')
-            ->label('To R&D')
+            ->label($isIt ? 'Trasferisci a R&S' : 'To R&D')
             ->icon('heroicon-o-arrow-right-circle')
             ->color('gray')
-            ->modalDescription('Hands a portion of production stock over to R&D.')
+            ->modalDescription($isIt ? 'Trasferisce una quota delle giacenze di produzione al reparto R&S.' : 'Hands a portion of production stock over to R&D.')
             ->schema(fn (Product $record): array => array_values(array_filter([
                 $this->lotField($record, LabStock::PRODUCTION),
                 ...$this->quantityFields($record),
@@ -242,26 +254,28 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
                     $this->warehouse(),
                     $this->mainQuantity($record, $data),
                     isset($data['lot_id']) ? Lot::query()->find($data['lot_id']) : null,
-                ), 'Moved to R&D');
+                ), app()->getLocale() === 'it' ? 'Trasferimento a R&S effettuato' : 'Moved to R&D');
             });
     }
 
     protected function researchLeftAction(): Action
     {
+        $isIt = app()->getLocale() === 'it';
+
         return Action::make('researchLeft')
-            ->label('R&D left')
+            ->label($isIt ? 'Rimanenza R&S' : 'R&D left')
             ->icon('heroicon-o-adjustments-horizontal')
             ->color('gray')
-            ->modalDescription('How much of it R&D still has. Nothing else to record: R&D use is not tracked.')
+            ->modalDescription($isIt ? 'Quantità ancora presente in R&S. Non occorre registrare altro: l\'utilizzo interno di R&S non viene tracciato.' : 'How much of it R&D still has. Nothing else to record: R&D use is not tracked.')
             ->schema(fn (Product $record): array => array_values(array_filter([
                 $this->lotField($record, LabStock::RESEARCH),
                 Radio::make('finished')
                     ->hiddenLabel()
-                    ->options([1 => 'Finished', 0 => 'Some is left'])
+                    ->options($isIt ? [1 => 'Esaurito', 0 => 'Rimanenza presente'] : [1 => 'Finished', 0 => 'Some is left'])
                     ->default(1)
                     ->inline()
                     ->live(),
-                ...array_map(fn ($field) => $field->visible(fn (Get $get): bool => ! (bool) $get('finished')), $this->quantityFields($record, label: 'Left')),
+                ...array_map(fn ($field) => $field->visible(fn (Get $get): bool => ! (bool) $get('finished')), $this->quantityFields($record, label: $isIt ? 'Rimanenza' : 'Left')),
             ])))
             ->action(function (Product $record, array $data): void {
                 $this->run(fn () => LabStock::setResearchRemaining(
@@ -269,16 +283,18 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
                     $this->warehouse(),
                     (bool) $data['finished'] ? 0.0 : $this->mainQuantity($record, $data),
                     isset($data['lot_id']) ? Lot::query()->find($data['lot_id']) : null,
-                ), 'R&D stock updated');
+                ), app()->getLocale() === 'it' ? 'Giacenza R&S aggiornata' : 'R&D stock updated');
             });
     }
 
     protected function discardAction(): Action
     {
+        $isIt = app()->getLocale() === 'it';
+
         return Action::make('discard')
-            ->label('Discard from production')
+            ->label($isIt ? 'Scarico (scarto)' : 'Discard from production')
             ->icon('heroicon-o-trash')
-            ->modalDescription('Expired, spilled or broken: production stock that no manufacturing order used.')
+            ->modalDescription($isIt ? 'Scaduto, rovesciato o danneggiato: giacenza di produzione non consumata da un ordine di produzione.' : 'Expired, spilled or broken: production stock that no manufacturing order used.')
             ->schema(fn (Product $record): array => array_values(array_filter([
                 $this->lotField($record, LabStock::PRODUCTION),
                 ...$this->quantityFields($record),
@@ -289,17 +305,19 @@ class LabStockPage extends Page implements HasActions, HasSchemas, HasTable
                     LabStock::location($this->warehouse(), LabStock::PRODUCTION),
                     $this->mainQuantity($record, $data),
                     isset($data['lot_id']) ? Lot::query()->find($data['lot_id']) : null,
-                ), 'Discarded');
+                ), app()->getLocale() === 'it' ? 'Scarico registrato' : 'Discarded');
             });
     }
 
     protected function minimumAction(): Action
     {
+        $isIt = app()->getLocale() === 'it';
+
         return Action::make('minimum')
-            ->label('Minimum stock')
+            ->label($isIt ? 'Scorta minima' : 'Minimum stock')
             ->icon('heroicon-o-flag')
             ->visible(fn (): bool => Orders::isAdmin())
-            ->schema(fn (Product $record): array => $this->quantityFields($record, withPackage: true, label: 'Keep at least (production)'))
+            ->schema(fn (Product $record): array => $this->quantityFields($record, withPackage: true, label: $isIt ? 'Quantità minima da mantenere (produzione)' : 'Keep at least (production)'))
             ->action(fn (Product $record, array $data) => LabStock::setMinimum($record, $this->warehouse(), $this->mainQuantity($record, $data)));
     }
 

@@ -291,3 +291,22 @@ it('hides product prices and costs from colleagues who are not administrators', 
         ProductResource::$pricesVisibleUsing = $rule;
     }
 });
+
+it('saves a line left without discount or price, and never half an offer', function () {
+    Livewire::test(CreateOrder::class)
+        ->fillForm([
+            'partner_id'  => $this->customer->id,
+            'supply_type' => SupplyType::Sale->value,
+            'fulfilment'  => Fulfilment::Courier->value,
+            'offer_date'  => today()->toDateString(),
+            'vat_rate'    => 22,
+            'lines'       => [['product_id' => $this->pad->id, 'quantity' => 2, 'unit_price' => 400, 'discount' => null]],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $line = Order::query()->latest('id')->firstOrFail()->lines()->sole();
+
+    expect((float) $line->discount)->toBe(0.0)
+        ->and((float) $line->unit_price)->toBe(400.0);
+});

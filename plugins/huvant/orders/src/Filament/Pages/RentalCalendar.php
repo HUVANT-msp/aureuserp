@@ -31,12 +31,12 @@ class RentalCalendar extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Rental calendar';
+        return app()->getLocale() === 'it' ? 'Calendario noleggi' : 'Rental calendar';
     }
 
     public function getTitle(): string
     {
-        return 'Rental calendar';
+        return app()->getLocale() === 'it' ? 'Calendario noleggi' : 'Rental calendar';
     }
 
     public function mount(): void

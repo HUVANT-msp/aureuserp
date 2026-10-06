@@ -15,11 +15,19 @@ enum ReturnStatus: string implements HasColor, HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::NotShipped => 'Not shipped yet',
-            self::Out        => 'Out',
-            self::Overdue    => 'Overdue',
-            self::Returned   => 'Back',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::NotShipped => 'Non ancora spedito',
+                self::Out        => 'Presso il cliente',
+                self::Overdue    => 'Scaduto',
+                self::Returned   => 'Rientrato',
+            },
+            default => match ($this) {
+                self::NotShipped => 'Not shipped yet',
+                self::Out        => 'Out',
+                self::Overdue    => 'Overdue',
+                self::Returned   => 'Back',
+            },
         };
     }
 

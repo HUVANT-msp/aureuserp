@@ -12,10 +12,17 @@ enum Fulfilment: string implements HasLabel
 
     public function getLabel(): string
     {
-        return match ($this) {
-            self::Courier      => 'Courier',
-            self::HandDelivery => 'Hand delivery',
-            self::Stock        => 'Production for stock',
+        return match (app()->getLocale()) {
+            'it' => match ($this) {
+                self::Courier      => 'Corriere',
+                self::HandDelivery => 'Consegna a mano',
+                self::Stock        => 'Produzione per magazzino',
+            },
+            default => match ($this) {
+                self::Courier      => 'Courier',
+                self::HandDelivery => 'Hand delivery',
+                self::Stock        => 'Production for stock',
+            },
         };
     }
 
