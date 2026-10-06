@@ -17,6 +17,16 @@ class ListOffers extends Page
         return __('huvant-orders::manufacturing.offers');
     }
 
+    /** @return array<int, mixed> */
+    public function getSubNavigation(): array
+    {
+        $cluster = static::getCluster();
+
+        return $cluster
+            ? $this->generateNavigationItems($cluster::getClusteredComponents())
+            : [];
+    }
+
     /** @return array<string, mixed> */
     protected function getViewData(): array
     {

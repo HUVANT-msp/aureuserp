@@ -156,17 +156,23 @@ it('shows the shared offers inbox and records requested production against the o
     $order = offerFor($this->customer, [[$this->pad, 2, 450, 0]]);
     Orders::confirm($order);
 
-    Livewire::test(ManufacturingOffers::class)
+    $offersPage = Livewire::test(ManufacturingOffers::class)
         ->assertOk()
         ->assertSee($order->order_number)
         ->assertSee('To manage');
 
+    expect(collect($offersPage->instance()->getSubNavigation())->map->getLabel()->all())
+        ->toContain('Offers', 'Production');
+
     $line = $order->lines()->sole();
-    Livewire::test(ManageOffer::class, ['record' => $order->getRouteKey()])
+    $managePage = Livewire::test(ManageOffer::class, ['record' => $order->getRouteKey()])
         ->assertOk()
         ->set("stockQuantities.{$line->id}", 0)
         ->call('manage')
         ->assertHasNoErrors();
+
+    expect(collect($managePage->instance()->getSubNavigation())->map->getLabel()->all())
+        ->toContain('Offers', 'Production');
 
     $task = $order->productionTasks()->sole();
     Livewire::test(Production::class)

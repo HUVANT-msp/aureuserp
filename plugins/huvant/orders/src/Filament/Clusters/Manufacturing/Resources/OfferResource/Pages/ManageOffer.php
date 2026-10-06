@@ -46,6 +46,16 @@ class ManageOffer extends Page
         return trim(($this->record->partner?->name ? $this->record->partner->name.' · ' : '').$this->record->name);
     }
 
+    /** @return array<int, mixed> */
+    public function getSubNavigation(): array
+    {
+        $cluster = static::getCluster();
+
+        return $cluster
+            ? $this->generateNavigationItems($cluster::getClusteredComponents())
+            : [];
+    }
+
     public function manage(): void
     {
         try {
