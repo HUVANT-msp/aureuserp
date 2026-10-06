@@ -15,11 +15,13 @@ use Huvant\Orders\Filament\Resources\OrderResource\Pages\CreateOrder;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\EditOrder;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\ListOrders;
 use Huvant\Orders\Models\Order;
+use Huvant\Orders\Models\ProductProject;
 use Huvant\Orders\Models\ProductUnit;
 use Huvant\Orders\Support\ErpSetup;
 use Huvant\Orders\Support\LabInventory;
 use Huvant\Orders\Support\ManufacturingFlow;
 use Huvant\Orders\Support\Orders;
+use Huvant\Orders\Support\ProductionProjects;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
@@ -33,6 +35,7 @@ use Webkul\Partner\Models\Partner;
 use Webkul\PluginManager\Models\Plugin;
 use Webkul\PluginManager\Package;
 use Webkul\Product\Filament\Resources\ProductResource;
+use Webkul\Project\Enums\TaskState;
 use Webkul\Security\Models\User;
 
 require_once __DIR__.'/../../../../webkul/support/tests/Helpers/TestBootstrapHelper.php';
@@ -48,6 +51,7 @@ beforeEach(function () {
     URL::resolveMissingNamedRoutesUsing(fn () => '#');
 
     $this->admin = ManufacturingHelper::actingAsAdmin();
+    ProductionProjects::ensureLabTeam()->users()->syncWithoutDetaching([$this->admin->id]);
     $this->warehouse = InventoryHelper::warehouse();
     $this->customer = Partner::withoutEvents(fn () => Partner::create([
         'account_type' => AccountType::COMPANY->value,
@@ -138,8 +142,10 @@ it('queues a confirmed offer, then splits each product between stock and product
     expect($order->refresh()->manufacturing_managed_at)->not->toBeNull()
         ->and($padLine->refresh()->stock_quantity)->toBe(2)
         ->and($padLine->production_quantity)->toBe(1)
-        ->and(ProductUnit::query()->where('status', UnitStatus::Allocated)->where('order_id', $order->id)->count())->toBe(2)
+        ->and(ProductUnit::query()->where('status', UnitStatus::Sold)->where('order_id', $order->id)->count())->toBe(2)
+        ->and($order->manufacturingEntries()->count())->toBe(3)
         ->and($order->productionTasks()->sole()->quantity)->toBe(1)
+        ->and($order->productionTasks()->sole()->projectTask)->not->toBeNull()
         ->and(Orders::productionStatus($order))->toBe(ProductionStatus::ToStart);
 });
 
@@ -159,29 +165,52 @@ it('shows the shared offers inbox and records requested production against the o
     $offersPage = Livewire::test(ManufacturingOffers::class)
         ->assertOk()
         ->assertSee($order->order_number)
-        ->assertSee('To manage');
+        ->assertSee('To manage')
+        ->assertSee('History');
 
     expect(collect($offersPage->instance()->getSubNavigation())->map->getLabel()->all())
         ->toContain('Offers', 'Production');
 
-    $line = $order->lines()->sole();
     $managePage = Livewire::test(ManageOffer::class, ['record' => $order->getRouteKey()])
         ->assertOk()
-        ->set("stockQuantities.{$line->id}", 0)
-        ->call('manage')
-        ->assertHasNoErrors();
+        ->assertSee($this->pad->name);
+
+    $entries = $order->manufacturingEntries()->orderBy('position')->get();
+    expect($entries)->toHaveCount(2);
+
+    foreach ($entries as $entry) {
+        $managePage
+            ->set('productionEntryId', $entry->id)
+            ->set('productionAssignees', [$this->admin->id])
+            ->set('productionDeadline', $order->expected_delivery_date->toDateString())
+            ->call('chooseProduction')
+            ->assertHasNoErrors();
+    }
+
+    $managePage->call('done')->assertHasNoErrors();
 
     expect(collect($managePage->instance()->getSubNavigation())->map->getLabel()->all())
         ->toContain('Offers', 'Production');
 
-    $task = $order->productionTasks()->sole();
+    $tasks = $order->productionTasks()->with('projectTask.project')->orderBy('id')->get();
+    expect($tasks)->toHaveCount(2)
+        ->and($tasks->every(fn ($task): bool => $task->quantity === 1))->toBeTrue()
+        ->and($tasks->every(fn ($task): bool => $task->projectTask !== null))->toBeTrue()
+        ->and($tasks->pluck('projectTask.project_id')->unique())->toHaveCount(1);
+
+    $tasks->last()->projectTask->update(['deadline' => today()->addDays(3)]);
+    expect($tasks->last()->refresh()->due_date->toDateString())->toBe(today()->addDays(3)->toDateString());
+
+    $tasks->first()->projectTask->update(['state' => TaskState::DONE]);
+
+    $secondTask = $tasks->last()->refresh();
     Livewire::test(Production::class)
         ->assertOk()
-        ->assertCanSeeTableRecords([$task])
-        ->mountAction(TestAction::make('produce')->table($task))
+        ->assertCanSeeTableRecords([$secondTask])
+        ->mountAction(TestAction::make('produce')->table($secondTask))
         ->set('mountedActions.0.data', [
             'production_date' => '2026-10-06',
-            'pieces'          => 2,
+            'pieces'          => 1,
             'lots'            => [
                 $this->silicone->id => $siliconeLot->id,
                 $this->mould->id    => $mouldLot->id,
@@ -192,10 +221,32 @@ it('shows the shared offers inbox and records requested production against the o
 
     $units = ProductUnit::query()->where('order_id', $order->id)->get();
 
-    expect($task->refresh()->status)->toBe(ProductionTaskStatus::Completed)
+    expect($tasks->first()->refresh()->status)->toBe(ProductionTaskStatus::Completed)
+        ->and($secondTask->refresh()->status)->toBe(ProductionTaskStatus::Completed)
+        ->and($secondTask->projectTask->refresh()->state)->toBe(TaskState::DONE)
         ->and($units)->toHaveCount(2)
-        ->and($units->every(fn (ProductUnit $unit): bool => $unit->status === UnitStatus::Allocated && $unit->order_id === $order->id))->toBeTrue()
+        ->and($units->every(fn (ProductUnit $unit): bool => $unit->status === UnitStatus::Sold && $unit->order_id === $order->id))->toBeTrue()
+        ->and($units->every(fn (ProductUnit $unit): bool => $unit->materials()->count() === 2))->toBeTrue()
+        ->and($order->refresh()->manufacturing_completed_at)->not->toBeNull()
         ->and(LabInventory::counts($this->pad)['in_lab'])->toBe(0);
+
+    Livewire::test(ManufacturingOffers::class)
+        ->set('activeTab', 'history')
+        ->assertSee($order->order_number)
+        ->assertSee('Completed');
+
+    $this->get(route('huvant.orders.manufacturing-report', ['order' => $order]))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+});
+
+it('creates a restricted production project automatically for every new product', function () {
+    $product = ManufacturingHelper::product(['name' => 'Next Generation Pad', 'huvant_role' => 'product']);
+    $mapping = ProductProject::query()->where('product_id', $product->id)->sole();
+
+    expect($mapping->project)->not->toBeNull()
+        ->and($mapping->project->name)->toContain($product->name)
+        ->and(DB::table('huvant_project_teams')->where('project_id', $mapping->project_id)->count())->toBe(1);
 });
 
 it('reports production as late once the deadline has passed', function () {

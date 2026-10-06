@@ -4,7 +4,7 @@ namespace Huvant\Orders\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Webkul\Manufacturing\Models\Order as ManufacturingOrder;
 use Webkul\Product\Models\Product;
 use Webkul\Security\Models\User;
@@ -59,9 +59,14 @@ class OrderLine extends Model
         return $this->belongsTo(User::class, 'manufacturing_managed_by');
     }
 
-    public function productionTask(): HasOne
+    public function productionTasks(): HasMany
     {
-        return $this->hasOne(ProductionTask::class);
+        return $this->hasMany(ProductionTask::class);
+    }
+
+    public function manufacturingEntries(): HasMany
+    {
+        return $this->hasMany(ManufacturingEntry::class)->orderBy('position');
     }
 
     /** Discount included, VAT excluded. */

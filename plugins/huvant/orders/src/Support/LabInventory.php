@@ -76,6 +76,8 @@ class LabInventory
                 ]);
             }
         });
+
+        ProductionProjects::ensureForProduct($product);
     }
 
     // ---- Raw materials in the lab ----------------------------------------------------------

@@ -8,13 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Product\Models\Product;
+use Webkul\Security\Models\User;
 
 /** One finished piece, identified by its code, with the material lots it was made from. */
 class ProductUnit extends Model
 {
     protected $table = 'huvant_product_units';
 
-    protected $fillable = ['product_id', 'order_id', 'order_line_id', 'code', 'production_date', 'expiry_date', 'status', 'status_since', 'notes', 'creator_id'];
+    protected $fillable = ['product_id', 'order_id', 'order_line_id', 'code', 'production_date', 'expiry_date', 'status', 'status_since', 'notes', 'quality_rating', 'creator_id'];
 
     /** @var array<string, mixed> */
     protected $attributes = ['status' => 'in_lab'];
@@ -26,6 +27,7 @@ class ProductUnit extends Model
             'expiry_date'     => 'date',
             'status'          => UnitStatus::class,
             'status_since'    => 'date',
+            'quality_rating'  => 'integer',
         ];
     }
 
@@ -47,6 +49,11 @@ class ProductUnit extends Model
     public function orderLine(): BelongsTo
     {
         return $this->belongsTo(OrderLine::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_id');
     }
 
     public function materials(): HasMany

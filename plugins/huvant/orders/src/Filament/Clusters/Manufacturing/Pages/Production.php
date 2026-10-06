@@ -68,7 +68,7 @@ class Production extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(ProductionTask::query()->with(['order.partner', 'product', 'managedBy']))
+            ->query(ProductionTask::query()->with(['order.partner', 'product', 'managedBy', 'projectTask.users']))
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('order.order_number')
@@ -84,7 +84,11 @@ class Production extends Page implements HasTable
                 TextColumn::make('completed_quantity')
                     ->label(__('huvant-orders::manufacturing.completed'))
                     ->numeric(),
-                TextColumn::make('order.expected_delivery_date')
+                TextColumn::make('projectTask.users.name')
+                    ->label(__('huvant-orders::manufacturing.assignees'))
+                    ->badge()
+                    ->separator(','),
+                TextColumn::make('due_date')
                     ->label(__('huvant-orders::manufacturing.deadline'))
                     ->date('d/m/Y')
                     ->placeholder('—')

@@ -44,13 +44,14 @@ class PiecesSold extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(ProductUnit::query()->with('product')->withCount('materials')->where('status', UnitStatus::Sold))
+            ->query(ProductUnit::query()->with(['product', 'order'])->withCount('materials')->where('status', UnitStatus::Sold))
             ->defaultSort('status_since', 'desc')
             ->columns([
                 TextColumn::make('code')->label(__('huvant-orders::lab.code'))->fontFamily('mono')->searchable(),
                 TextColumn::make('product.name')->label(__('huvant-orders::lab.product'))->searchable(),
                 TextColumn::make('production_date')->label(__('huvant-orders::lab.produced'))->date('d/m/Y')->sortable(),
                 TextColumn::make('status_since')->label(__('huvant-orders::lab.sold_on'))->date('d/m/Y')->sortable()->placeholder('—'),
+                TextColumn::make('order.order_number')->label(__('huvant-orders::manufacturing.offer'))->searchable()->placeholder('—'),
                 TextColumn::make('materials_count')->label(__('huvant-orders::lab.material_lots')),
                 TextColumn::make('notes')->label(__('huvant-orders::lab.notes'))->limit(40)->placeholder('—')->toggleable(),
             ])

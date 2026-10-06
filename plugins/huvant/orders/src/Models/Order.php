@@ -27,7 +27,7 @@ class Order extends Model
         'name', 'order_number', 'state', 'supply_type', 'fulfilment',
         'partner_id', 'contact_id', 'delivery_address_id', 'hand_delivery_user_id',
         'event', 'subject', 'offer_date', 'validity_date', 'expected_delivery_date', 'confirmed_at',
-        'manufacturing_managed_at', 'manufacturing_managed_by',
+        'manufacturing_managed_at', 'manufacturing_managed_by', 'manufacturing_completed_at',
         'rental_starts_on', 'rental_ends_on', 'expected_return_date',
         'payment_terms', 'vat_rate', 'notes', 'closing_state', 'company_id', 'creator_id',
     ];
@@ -53,6 +53,7 @@ class Order extends Model
             'expected_delivery_date'   => 'date',
             'confirmed_at'             => 'datetime',
             'manufacturing_managed_at' => 'datetime',
+            'manufacturing_completed_at' => 'datetime',
             'rental_starts_on'         => 'date',
             'rental_ends_on'           => 'date',
             'expected_return_date'     => 'date',
@@ -122,6 +123,11 @@ class Order extends Model
     public function productionTasks(): HasMany
     {
         return $this->hasMany(ProductionTask::class);
+    }
+
+    public function manufacturingEntries(): HasMany
+    {
+        return $this->hasMany(ManufacturingEntry::class);
     }
 
     public function untaxedAmount(): float

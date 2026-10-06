@@ -7,10 +7,13 @@ use Huvant\Orders\Console\ExpireOffers;
 use Huvant\Orders\Console\ImportRegisters;
 use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Http\Controllers\DeliveryNotePdfController;
+use Huvant\Orders\Http\Controllers\ManufacturingReportPdfController;
 use Huvant\Orders\Http\Controllers\OfferPdfController;
 use Huvant\Orders\Support\ErpSetup;
 use Huvant\Orders\Support\ItemRoles;
+use Huvant\Orders\Support\ManufacturingFlow;
 use Huvant\Orders\Support\OrdersSchema;
+use Huvant\Orders\Support\ProductionProjects;
 use Huvant\Orders\Support\Shipping;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +26,8 @@ use Webkul\PluginManager\Console\Commands\UninstallCommand;
 use Webkul\PluginManager\Package;
 use Webkul\PluginManager\PackageServiceProvider;
 use Webkul\Product\Models\Product;
+use Webkul\Project\Enums\TaskState;
+use Webkul\Project\Models\Task;
 
 class OrdersServiceProvider extends PackageServiceProvider
 {
@@ -33,13 +38,14 @@ class OrdersServiceProvider extends PackageServiceProvider
         $package->name(static::$name)
             ->hasViews()
             ->hasTranslations()
-            ->hasDependencies(['contacts', 'products', 'inventories', 'manufacturing', 'huvant-documents'])
+            ->hasDependencies(['contacts', 'products', 'inventories', 'manufacturing', 'projects', 'huvant-documents', 'huvant-teams'])
             ->hasMigrations([
                 '2026_10_05_100000_create_huvant_orders_tables',
                 '2026_10_05_120000_create_huvant_rental_categories_table',
                 '2026_10_06_100000_item_roles_replace_rental_categories',
                 '2026_10_06_120000_create_huvant_lab_inventory_tables',
                 '2026_10_06_140000_create_huvant_manufacturing_flow',
+                '2026_10_06_150000_create_atomic_manufacturing_entries',
             ])
             ->runsMigrations()
             ->hasSettings(['2026_10_05_130000_create_huvant_orders_settings'])
@@ -47,7 +53,7 @@ class OrdersServiceProvider extends PackageServiceProvider
             ->hasInstallCommand(function (InstallCommand $command): void {
                 $command
                     ->startWith(function (InstallCommand $command): void {
-                        foreach (['contacts', 'products', 'inventories', 'manufacturing', 'huvant-documents'] as $dependency) {
+                        foreach (['contacts', 'products', 'inventories', 'manufacturing', 'projects', 'huvant-documents', 'huvant-teams'] as $dependency) {
                             if (! Package::isPluginInstalled($dependency)) {
                                 $command->call($dependency.':install');
                             }
@@ -82,7 +88,19 @@ class OrdersServiceProvider extends PackageServiceProvider
         // The role of an item sets its stock type, tracking and sale flag, whichever product page saves it.
         foreach ([Product::class, InventoryProduct::class, ManufacturingProduct::class] as $productClass) {
             $productClass::saving(fn ($product) => ItemRoles::apply($product));
+            $productClass::saved(fn ($product) => ProductionProjects::ensureForProduct($product));
         }
+
+        Task::saving(function (Task $task): void {
+            if (! $task->exists || ! $task->isDirty(['state', 'deadline'])) {
+                return;
+            }
+
+            $state = $task->isDirty('state')
+                ? ($task->state instanceof TaskState ? $task->state : TaskState::from($task->state))
+                : null;
+            ManufacturingFlow::syncFromProjectTask($task, $state);
+        });
 
         Product::contributeCasts(['huvant_role' => ItemRole::class, 'huvant_production_days' => 'integer', 'huvant_density' => 'decimal:4', 'huvant_package_quantity' => 'decimal:4', 'huvant_min_quantity' => 'decimal:4', 'huvant_package_price' => 'decimal:2', 'huvant_shelf_life' => 'integer']);
 
@@ -102,6 +120,10 @@ class OrdersServiceProvider extends PackageServiceProvider
             ->get('admin/huvant/orders/deliveries/{delivery}/ddt.pdf', [DeliveryNotePdfController::class, 'show'])
             ->whereNumber('delivery')
             ->name('huvant.orders.delivery-note');
+        Route::middleware('web')
+            ->get('admin/huvant/orders/{order}/manufacturing-report.pdf', [ManufacturingReportPdfController::class, 'show'])
+            ->whereNumber('order')
+            ->name('huvant.orders.manufacturing-report');
     }
 
     public function packageRegistered(): void
