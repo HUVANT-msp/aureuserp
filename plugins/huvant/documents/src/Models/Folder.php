@@ -12,7 +12,7 @@ class Folder extends Model
 {
     protected $table = 'huvant_document_folders';
 
-    protected $fillable = ['project_id', 'parent_id', 'name', 'creator_id'];
+    protected $fillable = ['project_id', 'recipe_id', 'parent_id', 'name', 'creator_id'];
 
     public function project(): BelongsTo
     {

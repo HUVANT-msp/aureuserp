@@ -43,13 +43,14 @@ class ItemRoles
     public static function presetViews(): array
     {
         $byRole = fn (ItemRole $role) => fn (Builder $query) => $query->where('huvant_role', $role->value);
+        $isIt = app()->getLocale() === 'it';
 
         return [
-            'products'  => PresetView::make('Products')->icon('heroicon-s-cube')->favorite()->setAsDefault()->modifyQueryUsing($byRole(ItemRole::Product)),
-            'rentals'   => PresetView::make('Rentals')->icon('heroicon-s-arrow-path-rounded-square')->favorite()->modifyQueryUsing($byRole(ItemRole::Rental)),
-            'services'  => PresetView::make('Services')->icon('heroicon-s-sparkles')->favorite()->modifyQueryUsing($byRole(ItemRole::Service)),
-            'materials' => PresetView::make('Raw materials')->icon('heroicon-s-beaker')->favorite()->modifyQueryUsing($byRole(ItemRole::Material)),
-            'archived'  => PresetView::make('Archived')->icon('heroicon-s-archive-box')->favorite()->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed()),
+            'products'  => PresetView::make($isIt ? 'Prodotti' : 'Products')->icon('heroicon-s-cube')->favorite()->setAsDefault()->modifyQueryUsing($byRole(ItemRole::Product)),
+            'rentals'   => PresetView::make($isIt ? 'Noleggi' : 'Rentals')->icon('heroicon-s-arrow-path-rounded-square')->favorite()->modifyQueryUsing($byRole(ItemRole::Rental)),
+            'services'  => PresetView::make($isIt ? 'Servizi' : 'Services')->icon('heroicon-s-sparkles')->favorite()->modifyQueryUsing($byRole(ItemRole::Service)),
+            'materials' => PresetView::make($isIt ? 'Materie prime' : 'Raw materials')->icon('heroicon-s-beaker')->favorite()->modifyQueryUsing($byRole(ItemRole::Material)),
+            'archived'  => PresetView::make($isIt ? 'Archiviati' : 'Archived')->icon('heroicon-s-archive-box')->favorite()->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed()),
         ];
     }
 

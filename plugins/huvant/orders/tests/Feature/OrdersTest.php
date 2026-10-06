@@ -207,7 +207,7 @@ it('creates an offer from the form and confirms it from the order page', functio
     Livewire::test(ListOrders::class)->assertOk();
 
     Livewire::test(CreateOrder::class)
-        ->fillForm([
+        ->set('data', [
             'partner_id'  => $this->customer->id,
             'supply_type' => SupplyType::Sale->value,
             'fulfilment'  => Fulfilment::Courier->value,
@@ -242,7 +242,8 @@ it('keeps e-invoicing, event and customs data on contacts and products', functio
 it('edits the e-invoicing fields on the company and the production fields on the product', function () {
     Livewire::test(EditPartner::class, ['record' => $this->customer->getRouteKey()])
         ->assertOk()
-        ->fillForm(['huvant_sdi_code' => 'M5UXCR1', 'huvant_customs_code' => '21515141'])
+        ->set('data.huvant_sdi_code', 'M5UXCR1')
+        ->set('data.huvant_customs_code', '21515141')
         ->call('save')
         ->assertHasNoFormErrors();
 
@@ -250,7 +251,8 @@ it('edits the e-invoicing fields on the company and the production fields on the
 
     Livewire::test(EditProduct::class, ['record' => $this->pad->getRouteKey()])
         ->assertOk()
-        ->fillForm(['huvant_hs_code' => '9023.00', 'huvant_production_days' => 5])
+        ->set('data.huvant_hs_code', '9023.00')
+        ->set('data.huvant_production_days', 5)
         ->call('save')
         ->assertHasNoFormErrors();
 
@@ -294,7 +296,7 @@ it('hides product prices and costs from colleagues who are not administrators', 
 
 it('saves a line left without discount or price, and never half an offer', function () {
     Livewire::test(CreateOrder::class)
-        ->fillForm([
+        ->set('data', [
             'partner_id'  => $this->customer->id,
             'supply_type' => SupplyType::Sale->value,
             'fulfilment'  => Fulfilment::Courier->value,

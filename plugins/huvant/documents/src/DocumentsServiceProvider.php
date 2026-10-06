@@ -19,7 +19,10 @@ class DocumentsServiceProvider extends PackageServiceProvider
         $package->name(static::$name)
             ->hasViews()
             ->hasDependencies(['projects'])
-            ->hasMigrations(['2026_09_30_200000_create_huvant_documents_tables'])
+            ->hasMigrations([
+                '2026_09_30_200000_create_huvant_documents_tables',
+                '2026_10_06_130000_add_recipe_space_to_huvant_documents',
+            ])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {
                 $command

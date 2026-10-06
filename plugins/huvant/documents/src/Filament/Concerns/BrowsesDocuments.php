@@ -14,6 +14,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Huvant\Documents\Models\Document;
 use Huvant\Documents\Support\Documents;
+use Huvant\Documents\Support\DocumentSpace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use RuntimeException;
@@ -29,6 +30,12 @@ trait BrowsesDocuments
     abstract protected function documentsFolderId(): ?int;
 
     abstract protected function documentsQuery(): Builder;
+
+    /** Where this page's documents live; project pages use their project. */
+    protected function documentsSpace(): ?DocumentSpace
+    {
+        return ($projectId = $this->documentsProjectId()) ? DocumentSpace::project($projectId) : null;
+    }
 
     protected function currentUser(): User
     {
@@ -97,14 +104,14 @@ trait BrowsesDocuments
                     ->icon('heroicon-m-folder-arrow-down')
                     ->iconButton()
                     ->color('gray')
-                    ->visible(fn (Document $record): bool => ! $record->task_id && $record->project_id && Documents::canManage($this->currentUser(), $record))
+                    ->visible(fn (Document $record): bool => ! $record->task_id && DocumentSpace::of($record) && Documents::canManage($this->currentUser(), $record))
                     ->modalWidth(Width::Medium)
                     ->fillForm(fn (Document $record): array => ['folder_id' => $record->folder_id])
                     ->schema(fn (Document $record): array => [
                         Select::make('folder_id')
                             ->label('Folder')
-                            ->placeholder('Project documents (no folder)')
-                            ->options(Documents::folderOptions($record->project_id))
+                            ->placeholder('No folder')
+                            ->options(Documents::folderOptions(DocumentSpace::of($record)))
                             ->searchable(),
                     ])
                     ->action(function (Document $record, array $data): void {
@@ -141,7 +148,7 @@ trait BrowsesDocuments
                     ->multiple()
                     ->required()
                     ->disk(Documents::DISK)
-                    ->directory(fn (): string => Documents::directory($this->documentsProjectId()))
+                    ->directory(fn (): string => Documents::directory($this->documentsSpace()))
                     ->visibility('private')
                     ->storeFileNamesIn('names')
                     ->maxSize(Documents::MAX_UPLOAD_KB)
@@ -154,7 +161,7 @@ trait BrowsesDocuments
                 $names = $data['names'] ?? [];
                 foreach ((array) $data['files'] as $path) {
                     Documents::registerStoredFile(
-                        $user, $this->documentsProjectId(), $this->documentsFolderId(), $this->documentsTaskId(), $path, $names[$path] ?? null
+                        $user, $this->documentsSpace(), $this->documentsFolderId(), $this->documentsTaskId(), $path, $names[$path] ?? null
                     );
                 }
                 Notification::make()->success()->title(count((array) $data['files']) === 1 ? 'File uploaded' : 'Files uploaded')->send();
@@ -173,7 +180,7 @@ trait BrowsesDocuments
             ->schema($this->noteSchema())
             ->action(function (array $data): void {
                 Documents::createNote(
-                    $this->currentUser(), $this->documentsProjectId(), $this->documentsFolderId(), $this->documentsTaskId(), $data['title'], $data['body'] ?? null
+                    $this->currentUser(), $this->documentsSpace(), $this->documentsFolderId(), $this->documentsTaskId(), $data['title'], $data['body'] ?? null
                 );
                 Notification::make()->success()->title('Note saved')->send();
             });
@@ -245,11 +252,16 @@ trait BrowsesDocuments
         return $id ? $this->documentsQueryForLookup()->whereKey((int) $id)->first() : null;
     }
 
-    /** Lookups stay inside what this page shows (its project or task). */
+    /** Lookups stay inside what this page shows (its project, recipe or task). */
     protected function documentsQueryForLookup(): Builder
     {
-        return Document::query()
-            ->when($this->documentsTaskId(), fn ($q, $taskId) => $q->where('task_id', $taskId), fn ($q) => $q->where('project_id', $this->documentsProjectId()));
+        $query = Document::query();
+
+        if ($taskId = $this->documentsTaskId()) {
+            return $query->where('task_id', $taskId);
+        }
+
+        return ($space = $this->documentsSpace()) ? $space->scope($query) : $query->whereRaw('1 = 0');
     }
 
     protected function fileUrl(Document $document): string

@@ -7,6 +7,14 @@ use Webkul\Support\Enums\NavigationGroup;
 
 class Configurations extends Cluster
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     protected static ?string $slug = 'inventory/configurations';
 
     protected static ?int $navigationSort = 4;

@@ -32,11 +32,13 @@ class OrdersServiceProvider extends PackageServiceProvider
     {
         $package->name(static::$name)
             ->hasViews()
-            ->hasDependencies(['contacts', 'products', 'inventories', 'manufacturing'])
+            ->hasTranslations()
+            ->hasDependencies(['contacts', 'products', 'inventories', 'manufacturing', 'huvant-documents'])
             ->hasMigrations([
                 '2026_10_05_100000_create_huvant_orders_tables',
                 '2026_10_05_120000_create_huvant_rental_categories_table',
                 '2026_10_06_100000_item_roles_replace_rental_categories',
+                '2026_10_06_120000_create_huvant_lab_inventory_tables',
             ])
             ->runsMigrations()
             ->hasSettings(['2026_10_05_130000_create_huvant_orders_settings'])
@@ -44,7 +46,7 @@ class OrdersServiceProvider extends PackageServiceProvider
             ->hasInstallCommand(function (InstallCommand $command): void {
                 $command
                     ->startWith(function (InstallCommand $command): void {
-                        foreach (['contacts', 'products', 'inventories', 'manufacturing'] as $dependency) {
+                        foreach (['contacts', 'products', 'inventories', 'manufacturing', 'huvant-documents'] as $dependency) {
                             if (! Package::isPluginInstalled($dependency)) {
                                 $command->call($dependency.':install');
                             }
@@ -75,13 +77,13 @@ class OrdersServiceProvider extends PackageServiceProvider
 
         Partner::contributeFillable(['huvant_sdi_code', 'huvant_pec', 'huvant_customs_code', 'huvant_event_date', 'huvant_onsite_contact']);
         Partner::contributeCasts(['huvant_event_date' => 'date']);
-        Product::contributeFillable(['huvant_hs_code', 'huvant_production_days', 'huvant_role', 'huvant_cas_number', 'huvant_lab_kind', 'huvant_lab_use', 'huvant_supplier', 'huvant_supplier_code', 'huvant_package_quantity', 'huvant_package_uom_id', 'huvant_density', 'huvant_storage_position']);
+        Product::contributeFillable(['huvant_hs_code', 'huvant_production_days', 'huvant_role', 'huvant_code_prefix', 'huvant_shelf_life', 'huvant_shelf_life_unit', 'huvant_package_unit', 'huvant_min_quantity', 'huvant_package_price', 'huvant_cas_number', 'huvant_lab_kind', 'huvant_lab_use', 'huvant_supplier', 'huvant_supplier_code', 'huvant_package_quantity', 'huvant_package_uom_id', 'huvant_density', 'huvant_storage_position']);
         // The role of an item sets its stock type, tracking and sale flag, whichever product page saves it.
         foreach ([Product::class, InventoryProduct::class, ManufacturingProduct::class] as $productClass) {
             $productClass::saving(fn ($product) => ItemRoles::apply($product));
         }
 
-        Product::contributeCasts(['huvant_role' => ItemRole::class, 'huvant_production_days' => 'integer', 'huvant_density' => 'decimal:4', 'huvant_package_quantity' => 'decimal:4']);
+        Product::contributeCasts(['huvant_role' => ItemRole::class, 'huvant_production_days' => 'integer', 'huvant_density' => 'decimal:4', 'huvant_package_quantity' => 'decimal:4', 'huvant_min_quantity' => 'decimal:4', 'huvant_package_price' => 'decimal:2', 'huvant_shelf_life' => 'integer']);
 
         // A validated delivery of an order gets its delivery note number; a validated return closes the loop.
         Operation::saved(function (Operation $operation): void {

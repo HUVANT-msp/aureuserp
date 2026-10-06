@@ -141,10 +141,12 @@ it('shows the shipping of an order and edits its courier details', function () {
     Livewire::test(DeliveriesRelationManager::class, ['ownerRecord' => $order, 'pageClass' => EditOrder::class])
         ->assertOk()
         ->assertCanSeeTableRecords([$delivery])
-        ->callTableAction('edit', $delivery, data: [
+        ->mountTableAction('edit', $delivery)
+        ->set('mountedActions.0.data', [
             'huvant_carrier'         => 'DHL', 'huvant_tracking_number' => '1234567890', 'huvant_packages' => 1,
             'huvant_shipping_status' => ShippingStatus::InTransit->value,
         ])
+        ->callMountedTableAction()
         ->assertHasNoTableActionErrors();
 
     expect($delivery->refresh()->huvant_carrier)->toBe('DHL')

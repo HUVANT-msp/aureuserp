@@ -129,17 +129,23 @@ it('renders the project and task documents tabs', function () {
     $this->actingAs($admin);
 
     $page = Livewire::test(ManageProjectDocuments::class, ['record' => $project->getKey()])->assertOk()
-        ->callAction('newFolder', ['name' => 'Contratti'])
+        ->mountAction('newFolder')
+        ->set('mountedActions.0.data', ['name' => 'Contratti'])
+        ->callMountedAction()
         ->assertHasNoActionErrors()
         ->assertSee('Contratti')
-        ->callAction('newNote', ['title' => 'Kick-off', 'body' => '<p>Note</p>'])
+        ->mountAction('newNote')
+        ->set('mountedActions.0.data', ['title' => 'Kick-off', 'body' => '<p>Note</p>'])
+        ->callMountedAction()
         ->assertSee('Kick-off');
 
     $folder = Folder::query()->where('project_id', $project->getKey())->firstOrFail();
     $page->call('openFolder', (string) $folder->getKey())->assertSee('No documents')->assertDontSee('Kick-off');
 
     Livewire::test(ManageTaskDocuments::class, ['record' => $task])->assertOk()
-        ->callAction('newNote', ['title' => 'Checklist', 'body' => null])
+        ->mountAction('newNote')
+        ->set('mountedActions.0.data', ['title' => 'Checklist', 'body' => null])
+        ->callMountedAction()
         ->assertSee('Checklist');
 
     expect(Document::query()->where('task_id', $task)->value('project_id'))->toBe($project->getKey());

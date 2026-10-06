@@ -50,10 +50,12 @@ class OrderForm
 
     protected static function customerSection(): Section
     {
-        return Section::make('Customer')
+        $isIt = app()->getLocale() === 'it';
+
+        return Section::make($isIt ? 'Cliente' : 'Customer')
             ->schema([
                 Select::make('partner_id')
-                    ->label('Company')
+                    ->label($isIt ? 'Azienda' : 'Company')
                     ->relationship('partner', 'name', fn (Builder $query) => $query->where('account_type', AccountType::COMPANY->value))
                     ->searchable()
                     ->preload()
@@ -65,7 +67,7 @@ class OrderForm
                     })
                     ->columnSpan(2),
                 Select::make('contact_id')
-                    ->label('Contact (Attn)')
+                    ->label($isIt ? 'Contatto (C.a.)' : 'Contact (Attn)')
                     ->relationship('contact', 'name', fn (Builder $query, Get $get) => $query
                         ->where('account_type', AccountType::INDIVIDUAL->value)
                         ->where('parent_id', $get('partner_id')))
@@ -73,8 +75,8 @@ class OrderForm
                     ->preload()
                     ->disabled(fn (Get $get): bool => blank($get('partner_id'))),
                 Select::make('delivery_address_id')
-                    ->label('Delivery address')
-                    ->helperText('Empty: the registered office.')
+                    ->label($isIt ? 'Indirizzo di consegna' : 'Delivery address')
+                    ->helperText($isIt ? 'Vuoto: sede legale.' : 'Empty: the registered office.')
                     ->relationship('deliveryAddress', 'name', fn (Builder $query, Get $get) => $query
                         ->where('account_type', AccountType::ADDRESS->value)
                         ->where('sub_type', AddressType::DELIVERY->value)
@@ -83,11 +85,11 @@ class OrderForm
                     ->preload()
                     ->disabled(fn (Get $get): bool => blank($get('partner_id'))),
                 TextInput::make('event')
-                    ->label('Event')
+                    ->label($isIt ? 'Evento' : 'Event')
                     ->maxLength(160),
                 TextInput::make('subject')
-                    ->label('Subject')
-                    ->placeholder('Supply of haptic simulators')
+                    ->label($isIt ? 'Oggetto' : 'Subject')
+                    ->placeholder($isIt ? 'Fornitura di simulatori aptici' : 'Supply of haptic simulators')
                     ->maxLength(255),
             ])
             ->columns(2)
@@ -97,8 +99,9 @@ class OrderForm
     protected static function linesSection(): Section
     {
         $canSeePrices = Orders::canSeePrices();
+        $isIt = app()->getLocale() === 'it';
 
-        return Section::make('Products')
+        return Section::make($isIt ? 'Articoli / Prodotti' : 'Products')
             ->schema([
                 Repeater::make('lines')
                     ->relationship('lines')
@@ -106,13 +109,13 @@ class OrderForm
                     ->defaultItems(0)
                     ->compact()
                     ->orderColumn('sort')
-                    ->addActionLabel('Add product')
+                    ->addActionLabel($isIt ? 'Aggiungi articolo' : 'Add product')
                     ->table(array_values(array_filter([
-                        RepeaterTableColumn::make('product_id')->label('Product')->markAsRequired(),
-                        RepeaterTableColumn::make('description')->label('Description'),
-                        RepeaterTableColumn::make('quantity')->label('Quantity')->markAsRequired(),
-                        $canSeePrices ? RepeaterTableColumn::make('unit_price')->label('Unit price') : null,
-                        $canSeePrices ? RepeaterTableColumn::make('discount')->label('Discount %') : null,
+                        RepeaterTableColumn::make('product_id')->label($isIt ? 'Articolo' : 'Product')->markAsRequired(),
+                        RepeaterTableColumn::make('description')->label($isIt ? 'Descrizione' : 'Description'),
+                        RepeaterTableColumn::make('quantity')->label($isIt ? 'Quantità' : 'Quantity')->markAsRequired(),
+                        $canSeePrices ? RepeaterTableColumn::make('unit_price')->label($isIt ? 'Prezzo unitario' : 'Unit price') : null,
+                        $canSeePrices ? RepeaterTableColumn::make('discount')->label($isIt ? 'Sconto %' : 'Discount %') : null,
                     ])))
                     ->schema([
                         Select::make('product_id')
@@ -152,30 +155,32 @@ class OrderForm
 
     protected static function supplySection(): Section
     {
-        return Section::make('Supply')
+        $isIt = app()->getLocale() === 'it';
+
+        return Section::make($isIt ? 'Fornitura' : 'Supply')
             ->schema([
                 Select::make('supply_type')
-                    ->label('Supply type')
+                    ->label($isIt ? 'Tipo fornitura' : 'Supply type')
                     ->options(SupplyType::class)
                     ->default(SupplyType::Sale->value)
                     ->required()
                     ->live(),
                 Select::make('fulfilment')
-                    ->label('Fulfilment')
+                    ->label($isIt ? 'Modalità di consegna' : 'Fulfilment')
                     ->options(Fulfilment::class)
                     ->default(Fulfilment::Courier->value)
                     ->required()
                     ->live(),
                 Select::make('hand_delivery_user_id')
-                    ->label('Delivered by')
+                    ->label($isIt ? 'Consegnato da' : 'Delivered by')
                     ->relationship('handDeliveryUser', 'name')
                     ->searchable()
                     ->preload()
                     ->required(fn (Get $get): bool => static::fulfilment($get) === Fulfilment::HandDelivery)
                     ->visible(fn (Get $get): bool => static::fulfilment($get) === Fulfilment::HandDelivery),
                 TextInput::make('payment_terms')
-                    ->label('Payment terms')
-                    ->placeholder('Bank transfer 15 days after invoice')
+                    ->label($isIt ? 'Condizioni di pagamento' : 'Payment terms')
+                    ->placeholder($isIt ? 'Bonifico bancario 15 giorni data fattura' : 'Bank transfer 15 days after invoice')
                     ->maxLength(255)
                     ->visible(Orders::canSeePrices()),
             ])
@@ -184,47 +189,51 @@ class OrderForm
 
     protected static function datesSection(): Section
     {
-        return Section::make('Dates')
+        $isIt = app()->getLocale() === 'it';
+
+        return Section::make($isIt ? 'Date e scadenze' : 'Dates')
             ->schema([
                 DatePicker::make('offer_date')
-                    ->label('Offer date')
+                    ->label($isIt ? 'Data offerta' : 'Offer date')
                     ->default(today())
                     ->required()
                     ->disabled(fn (?Order $record): bool => $record !== null),
                 DatePicker::make('validity_date')
-                    ->label('Valid until')
+                    ->label($isIt ? 'Valida fino al' : 'Valid until')
                     ->default(today()->addDays(15)),
                 DatePicker::make('expected_delivery_date')
-                    ->label('Expected delivery'),
+                    ->label($isIt ? 'Consegna prevista' : 'Expected delivery'),
                 DatePicker::make('rental_starts_on')
-                    ->label('Rental from')
+                    ->label($isIt ? 'Noleggio dal' : 'Rental from')
                     ->visible(fn (Get $get): bool => static::rents($get)),
                 DatePicker::make('rental_ends_on')
-                    ->label('Rental until')
+                    ->label($isIt ? 'Noleggio al' : 'Rental until')
                     ->afterOrEqual('rental_starts_on')
                     ->live()
                     ->afterStateUpdated(fn (Set $set, ?string $state) => $set('expected_return_date', $state))
                     ->visible(fn (Get $get): bool => static::rents($get)),
                 DatePicker::make('expected_return_date')
-                    ->label('Expected back by')
+                    ->label($isIt ? 'Rientro previsto entro' : 'Expected back by')
                     ->visible(fn (Get $get): bool => static::supplyType($get)->isReturnable()),
                 Placeholder::make('confirmed_at')
-                    ->label('Confirmed on')
+                    ->label($isIt ? 'Confermato il' : 'Confirmed on')
                     ->content(fn (?Order $record): string => $record?->confirmed_at?->format('d/m/Y H:i') ?? '—')
                     ->visible(fn (?Order $record): bool => $record?->confirmed_at !== null),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label($isIt ? 'Note' : 'Notes')
                     ->rows(3),
             ]);
     }
 
     protected static function totalsSection(): Section
     {
-        return Section::make('Totals')
+        $isIt = app()->getLocale() === 'it';
+
+        return Section::make($isIt ? 'Importi e margini' : 'Totals')
             ->schema([
                 TextInput::make('vat_rate')
-                    ->label('VAT %')
-                    ->helperText('0 when VIES confirms the customer is exempt.')
+                    ->label($isIt ? 'IVA %' : 'VAT %')
+                    ->helperText($isIt ? '0 se il cliente è esente da IVA (es. verifica VIES).' : '0 when VIES confirms the customer is exempt.')
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
@@ -235,20 +244,20 @@ class OrderForm
                     ->hiddenLabel()
                     ->content(fn (?Order $record): string => $record
                         ? sprintf(
-                            'Subtotal %s · VAT %s · Total %s',
+                            $isIt ? 'Subtotale %s · IVA %s · Totale %s' : 'Subtotal %s · VAT %s · Total %s',
                             Number::currency($record->untaxedAmount(), 'EUR', 'it'),
                             Number::currency($record->taxAmount(), 'EUR', 'it'),
                             Number::currency($record->totalAmount(), 'EUR', 'it'),
                         )
-                        : 'Saved with the offer.'),
+                        : ($isIt ? "Salvato con l'offerta." : 'Saved with the offer.')),
                 Placeholder::make('margin')
-                    ->label('Margin')
-                    ->content(function (?Order $record): string {
+                    ->label($isIt ? 'Margine' : 'Margin')
+                    ->content(function (?Order $record) use ($isIt): string {
                         $costing = Orders::costing($record);
                         $euro = fn (float $amount): string => Number::currency($amount, 'EUR', 'it');
 
                         return sprintf(
-                            '%s%s · cost %s (materials %s, lab %s, other %s, shipping %s)',
+                            $isIt ? '%s%s · costo %s (materiali %s, lavorazione %s, altro %s, spedizione %s)' : '%s%s · cost %s (materials %s, lab %s, other %s, shipping %s)',
                             $euro($costing['margin']),
                             $costing['margin_percent'] === null ? '' : " ({$costing['margin_percent']}%)",
                             $euro($costing['cost']),

@@ -9,6 +9,14 @@ use Webkul\Support\Enums\NavigationGroup;
 
 class Overview extends Page
 {
+    /** Another plugin can take this out of the menu; its pages stay reachable. */
+    public static bool $hiddenFromNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::$hiddenFromNavigation && parent::shouldRegisterNavigation();
+    }
+
     use HasPageShield;
 
     protected static ?string $slug = 'inventory/overview';

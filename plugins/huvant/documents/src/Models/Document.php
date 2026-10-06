@@ -18,7 +18,7 @@ class Document extends Model
     protected $table = 'huvant_documents';
 
     protected $fillable = [
-        'project_id', 'folder_id', 'task_id', 'type', 'title', 'body',
+        'project_id', 'recipe_id', 'folder_id', 'task_id', 'type', 'title', 'body',
         'disk', 'path', 'original_name', 'mime_type', 'size', 'creator_id', 'updated_by',
     ];
 

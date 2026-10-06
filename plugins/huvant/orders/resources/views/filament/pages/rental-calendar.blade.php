@@ -36,13 +36,7 @@
                                 $state = $taken === 0 ? 'free' : ($taken > $owned ? 'over' : ($taken === $owned ? 'full' : 'partial'));
                             @endphp
                             <td class="px-0.5 py-1 text-center">
-                                <div @class([
-                                    'rounded py-1',
-                                    'bg-gray-50 text-gray-300 dark:bg-white/5 dark:text-gray-600' => $state === 'free',
-                                    'bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300' => $state === 'partial',
-                                    'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-300' => $state === 'full',
-                                    'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-300' => $state === 'over',
-                                ]) title="{{ $taken }} / {{ $owned }}">
+                                <div class="hv-cal-cell hv-cal-{{ $state }}" title="{{ $taken }} / {{ $owned }}">
                                     {{ $taken ?: '·' }}
                                 </div>
                             </td>

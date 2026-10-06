@@ -2,26 +2,22 @@
 
 namespace Huvant\Documents\Filament\Pages;
 
-use Filament\Actions\Action;
-use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
-use Filament\Support\Enums\Width;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Huvant\Documents\Filament\Concerns\BrowsesDocuments;
+use Huvant\Documents\Filament\Concerns\BrowsesFolders;
 use Huvant\Documents\Models\Document;
-use Huvant\Documents\Models\Folder;
 use Huvant\Documents\Support\Documents;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
-use Livewire\Attributes\Url;
 use Webkul\Project\Filament\Resources\ProjectResource;
 
 /** A project's documents: folders, files and notes, for everyone in the project's teams. */
 class ManageProjectDocuments extends Page implements HasTable
 {
-    use BrowsesDocuments, InteractsWithRecord, InteractsWithTable {
+    use BrowsesDocuments, BrowsesFolders, InteractsWithRecord, InteractsWithTable {
         BrowsesDocuments::table insteadof InteractsWithTable;
     }
 
@@ -30,10 +26,6 @@ class ManageProjectDocuments extends Page implements HasTable
     protected string $view = 'huvant-documents::filament.pages.project-documents';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-folder';
-
-    /** Folder being browsed; "task" shows the files attached to the project's tasks. */
-    #[Url(as: 'folder')]
-    public ?string $location = null;
 
     public function mount(int|string $record): void
     {
@@ -45,18 +37,12 @@ class ManageProjectDocuments extends Page implements HasTable
 
     public static function getNavigationLabel(): string
     {
-        return 'Documents';
+        return app()->getLocale() === 'it' ? 'Documenti' : 'Documents';
     }
 
     public function getTitle(): string|Htmlable
     {
-        return 'Documents';
-    }
-
-    public function openFolder(?string $location): void
-    {
-        $this->location = $location ?: null;
-        $this->resetTable();
+        return app()->getLocale() === 'it' ? 'Documenti' : 'Documents';
     }
 
     protected function documentsProjectId(): ?int
@@ -67,11 +53,6 @@ class ManageProjectDocuments extends Page implements HasTable
     protected function documentsTaskId(): ?int
     {
         return null;
-    }
-
-    protected function documentsFolderId(): ?int
-    {
-        return ctype_digit((string) $this->location) ? (int) $this->location : null;
     }
 
     protected function showingTaskFiles(): bool
@@ -95,13 +76,6 @@ class ManageProjectDocuments extends Page implements HasTable
             );
     }
 
-    public function currentFolder(): ?Folder
-    {
-        $id = $this->documentsFolderId();
-
-        return $id ? Folder::query()->where('project_id', $this->documentsProjectId())->find($id) : null;
-    }
-
     protected function getHeaderActions(): array
     {
         if ($this->showingTaskFiles()) {
@@ -109,77 +83,16 @@ class ManageProjectDocuments extends Page implements HasTable
         }
 
         return [
-            Action::make('newFolder')
-                ->label('New folder')
-                ->icon('heroicon-m-folder-plus')
-                ->color('gray')
-                ->modalWidth(Width::Medium)
-                ->modalSubmitActionLabel('Create')
-                ->schema([TextInput::make('name')->label('Name')->required()->maxLength(160)->autofocus()])
-                ->action(fn (array $data) => $this->attempt(
-                    fn () => Documents::createFolder($this->currentUser(), $this->documentsProjectId(), $this->documentsFolderId(), $data['name']),
-                    'Folder created',
-                )),
+            $this->newFolderAction(),
             $this->newNoteAction(),
             $this->uploadAction(),
         ];
     }
 
-    public function renameFolderAction(): Action
-    {
-        return Action::make('renameFolder')
-            ->label('Rename')
-            ->icon('heroicon-m-pencil-square')
-            ->iconButton()
-            ->size('sm')
-            ->color('gray')
-            ->modalHeading('Rename folder')
-            ->modalWidth(Width::Medium)
-            ->visible(fn (array $arguments): bool => ($folder = $this->folderFromArguments($arguments)) && Documents::canManage($this->currentUser(), $folder))
-            ->fillForm(fn (array $arguments): array => ['name' => $this->folderFromArguments($arguments)?->name])
-            ->schema([TextInput::make('name')->label('Name')->required()->maxLength(160)])
-            ->action(function (array $data, array $arguments): void {
-                if ($folder = $this->folderFromArguments($arguments)) {
-                    $this->attempt(fn () => Documents::renameFolder($folder, $data['name']));
-                }
-            });
-    }
-
-    public function deleteFolderAction(): Action
-    {
-        return Action::make('deleteFolder')
-            ->label('Delete')
-            ->icon('heroicon-m-trash')
-            ->iconButton()
-            ->size('sm')
-            ->color('danger')
-            ->requiresConfirmation()
-            ->modalHeading(fn (array $arguments): string => 'Delete the folder "'.($this->folderFromArguments($arguments)?->name ?? '').'"?')
-            ->modalDescription('Only an empty folder can be deleted.')
-            ->visible(fn (array $arguments): bool => ($folder = $this->folderFromArguments($arguments)) && Documents::canManage($this->currentUser(), $folder))
-            ->action(function (array $arguments): void {
-                if ($folder = $this->folderFromArguments($arguments)) {
-                    $this->attempt(fn () => Documents::deleteFolder($folder), 'Folder deleted');
-                }
-            });
-    }
-
-    protected function folderFromArguments(array $arguments): ?Folder
-    {
-        $id = $arguments['folder'] ?? null;
-
-        return $id ? Folder::query()->where('project_id', $this->documentsProjectId())->find((int) $id) : null;
-    }
-
     protected function getViewData(): array
     {
         $current = $this->currentFolder();
-        $folders = $this->showingTaskFiles() ? collect() : Folder::query()
-            ->where('project_id', $this->documentsProjectId())
-            ->where('parent_id', $current?->getKey())
-            ->withCount(['documents', 'children'])
-            ->orderBy('name')
-            ->get();
+        $folders = $this->showingTaskFiles() ? collect() : $this->childFolders();
 
         return [
             'trail'     => $current?->trail() ?? [],

@@ -20,7 +20,6 @@ class ErpSetup
         static::atomicProduction();
         static::separateLocations();
         static::inventoryFeatures();
-        LabUnits::ensureUnits();
     }
 
     /**

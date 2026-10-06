@@ -26,25 +26,28 @@ class EditOrder extends EditRecord
 
     public function getTitle(): string
     {
+        $isIt = app()->getLocale() === 'it';
+
         return $this->record->order_number
-            ? "Order {$this->record->order_number}"
-            : "Offer {$this->record->name}";
+            ? ($isIt ? "Ordine {$this->record->order_number}" : "Order {$this->record->order_number}")
+            : ($isIt ? "Offerta {$this->record->name}" : "Offer {$this->record->name}");
     }
 
     public function getSubheading(): ?string
     {
+        $isIt = app()->getLocale() === 'it';
         $parts = [$this->record->state->getLabel(), $this->record->supply_type->getLabel()];
 
         if ($this->record->order_number) {
-            $parts[] = "from offer {$this->record->name}";
+            $parts[] = $isIt ? "dall'offerta {$this->record->name}" : "from offer {$this->record->name}";
         }
 
         if ($this->record->state->isVisibleToProduction()) {
-            $parts[] = 'Production: '.Orders::productionStatus($this->record)->getLabel();
+            $parts[] = ($isIt ? 'Produzione: ' : 'Production: ').Orders::productionStatus($this->record)->getLabel();
         }
 
         if ($returnStatus = Shipping::returnStatus($this->record)) {
-            $parts[] = 'Return: '.$returnStatus->getLabel();
+            $parts[] = ($isIt ? 'Reso: ' : 'Return: ').$returnStatus->getLabel();
         }
 
         return implode(' · ', $parts);
@@ -53,35 +56,38 @@ class EditOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         $isOffer = fn (): bool => $this->record->state->isOffer();
+        $isIt = app()->getLocale() === 'it';
 
         return [
-            $this->stateAction('confirm', 'Confirm order', 'success', fn () => Orders::confirm($this->record, allowOverbooking: true), $isOffer)
+            $this->stateAction('confirm', $isIt ? 'Conferma ordine' : 'Confirm order', 'success', fn () => Orders::confirm($this->record, allowOverbooking: true), $isOffer)
                 ->requiresConfirmation()
-                ->modalDescription(function (): string {
-                    $description = 'Products with a bill of materials get a manufacturing order for the lab; goods get a delivery.';
+                ->modalDescription(function () use ($isIt): string {
+                    $description = $isIt
+                        ? 'I prodotti con distinta base generano un ordine di produzione per il laboratorio; le merci generano una spedizione.'
+                        : 'Products with a bill of materials get a manufacturing order for the lab; goods get a delivery.';
 
                     if ($conflicts = Rentals::conflicts($this->record)) {
-                        $description .= ' Warning, rentals overbooked: '.implode('; ', $conflicts).'.';
+                        $description .= ($isIt ? ' Attenzione, date in conflitto per noleggi: ' : ' Warning, rentals overbooked: ').implode('; ', $conflicts).'.';
                     }
 
                     return $description;
                 }),
-            $this->stateAction('send', 'Mark as sent', 'info', fn () => Orders::send($this->record), fn (): bool => $this->record->state === OrderState::Draft),
-            $this->stateAction('hold', 'Put on hold', 'warning', fn () => Orders::hold($this->record), fn (): bool => in_array($this->record->state, [OrderState::Draft, OrderState::Sent], true)),
+            $this->stateAction('send', $isIt ? 'Segna come inviata' : 'Mark as sent', 'info', fn () => Orders::send($this->record), fn (): bool => $this->record->state === OrderState::Draft),
+            $this->stateAction('hold', $isIt ? 'Metti in attesa' : 'Put on hold', 'warning', fn () => Orders::hold($this->record), fn (): bool => in_array($this->record->state, [OrderState::Draft, OrderState::Sent], true)),
             Action::make('offerPdf')
-                ->label('Offer PDF')
+                ->label($isIt ? 'PDF offerta' : 'Offer PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('gray')
                 ->url(fn (): string => route('huvant.orders.offer', $this->record))
                 ->openUrlInNewTab()
                 ->visible(fn (): bool => Orders::canSeePrices()),
             ActionGroup::make([
-                $this->stateAction('close', 'Close order', 'success', fn () => Orders::close($this->record), fn (): bool => $this->record->state === OrderState::Confirmed && $this->record->closing_state === ClosingState::Open),
-                $this->stateAction('contest', 'Mark as contested', 'danger', fn () => Orders::close($this->record, ClosingState::Contested), fn (): bool => $this->record->state === OrderState::Confirmed && $this->record->closing_state === ClosingState::Open),
-                $this->stateAction('reject', 'Rejected by the customer', 'danger', fn () => Orders::reject($this->record), $isOffer),
-                $this->stateAction('cancel', 'Cancel', 'danger', fn () => Orders::cancel($this->record), fn (): bool => $this->record->state->isOffer() || $this->record->state === OrderState::Confirmed)
+                $this->stateAction('close', $isIt ? 'Chiudi ordine' : 'Close order', 'success', fn () => Orders::close($this->record), fn (): bool => $this->record->state === OrderState::Confirmed && $this->record->closing_state === ClosingState::Open),
+                $this->stateAction('contest', $isIt ? 'Segna come contestato' : 'Mark as contested', 'danger', fn () => Orders::close($this->record, ClosingState::Contested), fn (): bool => $this->record->state === OrderState::Confirmed && $this->record->closing_state === ClosingState::Open),
+                $this->stateAction('reject', $isIt ? 'Rifiutata dal cliente' : 'Rejected by the customer', 'danger', fn () => Orders::reject($this->record), $isOffer),
+                $this->stateAction('cancel', $isIt ? 'Annulla' : 'Cancel', 'danger', fn () => Orders::cancel($this->record), fn (): bool => $this->record->state->isOffer() || $this->record->state === OrderState::Confirmed)
                     ->requiresConfirmation()
-                    ->modalDescription('Manufacturing orders not yet finished are cancelled too.'),
+                    ->modalDescription($isIt ? 'Verranno annullati anche gli ordini di produzione non ancora completati.' : 'Manufacturing orders not yet finished are cancelled too.'),
             ]),
         ];
     }

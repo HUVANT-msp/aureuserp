@@ -4,6 +4,7 @@ namespace Huvant\Orders;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Filament\View\PanelsRenderHook;
 use Huvant\Orders\Enums\ItemRole;
 use Huvant\Orders\Support\ItemRoles;
 use Huvant\Orders\Support\Navigation;
@@ -36,6 +37,11 @@ class OrdersPlugin implements Plugin
         $panel->when($panel->getId() == 'admin', function (Panel $panel): void {
             $panel->discoverResources(in: __DIR__.'/Filament/Resources', for: 'Huvant\\Orders\\Filament\\Resources');
             $panel->discoverPages(in: __DIR__.'/Filament/Pages', for: 'Huvant\\Orders\\Filament\\Pages');
+            $panel->discoverClusters(in: __DIR__.'/Filament/Clusters', for: 'Huvant\\Orders\\Filament\\Clusters');
+            $panel->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => '<style id="huvant-lab">'.file_get_contents(__DIR__.'/../resources/css/lab.css').'</style>',
+            );
             RecordFields::register();
             Navigation::hide();
             ProductResource::$pricesVisibleUsing = fn (): bool => Orders::canSeePrices();

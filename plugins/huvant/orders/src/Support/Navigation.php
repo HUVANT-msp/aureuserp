@@ -2,18 +2,23 @@
 
 namespace Huvant\Orders\Support;
 
+use Webkul\Inventory\Filament\Clusters\Configurations as InventoryConfigurations;
 use Webkul\Inventory\Filament\Clusters\Configurations\Resources\OperationTypeResource;
 use Webkul\Inventory\Filament\Clusters\Configurations\Resources\PutawayRuleResource;
 use Webkul\Inventory\Filament\Clusters\Configurations\Resources\StorageCategoryResource;
 use Webkul\Inventory\Filament\Clusters\Configurations\Resources\WarehouseResource;
+use Webkul\Inventory\Filament\Clusters\Operations as InventoryOperations;
 use Webkul\Inventory\Filament\Clusters\Operations\Resources\ScrapResource;
 use Webkul\Inventory\Filament\Clusters\PluginSettings as InventoryPluginSettings;
+use Webkul\Inventory\Filament\Clusters\Products as InventoryProducts;
+use Webkul\Inventory\Filament\Clusters\Reporting as InventoryReporting;
 use Webkul\Inventory\Filament\Clusters\Reporting\Resources\QuantityResource as StockReportResource;
 use Webkul\Inventory\Filament\Clusters\Settings\Pages\ManageLogistics;
 use Webkul\Inventory\Filament\Clusters\Settings\Pages\ManageOperations as ManageInventoryOperations;
 use Webkul\Inventory\Filament\Clusters\Settings\Pages\ManageProducts;
 use Webkul\Inventory\Filament\Clusters\Settings\Pages\ManageTraceability;
 use Webkul\Inventory\Filament\Clusters\Settings\Pages\ManageWarehouses;
+use Webkul\Inventory\Filament\Pages\Overview as InventoryOverview;
 use Webkul\Manufacturing\Filament\Clusters\PluginSettings as ManufacturingPluginSettings;
 use Webkul\Manufacturing\Filament\Clusters\Products\Resources\LotResource as ManufacturingLotResource;
 use Webkul\Manufacturing\Filament\Clusters\Products\Resources\ProductResource as ManufacturingProductResource;
@@ -23,14 +28,20 @@ use Webkul\Manufacturing\Filament\Clusters\Settings\Pages\ManageOperations as Ma
  * The inventory and manufacturing menus cut down to what the lab registers covered: the rest stays
  * installed and reachable by link, only out of the menu.
  *
- * Kept: Inventory overview, receipts, deliveries, internal transfers, quantities, products, lots,
- * move history, locations, product categories, units; Lab stock; manufacturing orders and bills
- * of materials.
+ * The Inventory menu shows only the lab's Raw materials and Finished products; the ERP's own
+ * inventory pages (transfers behind delivery notes and returns included) stay reachable by link.
+ * Manufacturing keeps its orders and bills of materials.
  */
 class Navigation
 {
     /** @var array<int, class-string> */
     public const HIDDEN = [
+        // The inventory menu is the lab's: Raw materials and Finished products only.
+        InventoryOverview::class,
+        InventoryOperations::class,
+        InventoryProducts::class,
+        InventoryReporting::class,
+        InventoryConfigurations::class,
         // Scrap: the lab discards from Lab stock.
         ScrapResource::class,
         // A second stock report: Operations › Quantities already shows it.

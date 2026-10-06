@@ -1,6 +1,5 @@
 <?php
 
-use Huvant\Orders\Support\LabStock;
 use Illuminate\Support\Facades\URL;
 use Webkul\Inventory\Enums\ProductTracking;
 use Webkul\Inventory\Models\Product;
@@ -68,11 +67,10 @@ it('imports the registers once, filling only what is missing, and never creates 
         ->and($staff->huvant_role->value)->toBe('service')
         ->and($reagent->huvant_role->value)->toBe('material')
         ->and((float) $staff->price)->toBe(600.0)
-        ->and($reagent->huvant_lab_use)->toBe(LabStock::RESEARCH)
         ->and($reagent->huvant_cas_number)->toBe('143314-16-3')
-        ->and($reagent->uom->name)->toBe('mL')
+        ->and($reagent->huvant_package_unit)->toBe('mL')
         ->and((float) $reagent->huvant_package_quantity)->toBe(250.0)
-        ->and(LabStock::minimum($reagent))->toBe(500.0)
+        ->and((float) $reagent->huvant_min_quantity)->toBe(500.0)
         ->and(Partner::query()->where('account_type', AccountType::INDIVIDUAL)->count())->toBe($people)
         ->and(Product::query()->where('reference', 'H-102-T')->count())->toBe(1);
 });

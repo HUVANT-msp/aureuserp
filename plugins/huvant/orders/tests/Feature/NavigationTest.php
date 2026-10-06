@@ -1,15 +1,13 @@
 <?php
 
-use Huvant\Orders\Filament\Pages\LabStockPage;
+use Huvant\Orders\Filament\Clusters\FinishedProducts;
+use Huvant\Orders\Filament\Clusters\RawMaterials;
 use Huvant\Orders\Filament\Resources\OrderResource;
 use Huvant\Orders\Support\ErpSetup;
 use Huvant\Orders\Support\Navigation;
 use Illuminate\Support\Facades\URL;
-use Webkul\Inventory\Filament\Clusters\Configurations\Resources\LocationResource;
 use Webkul\Inventory\Filament\Clusters\Operations\Resources\DeliveryResource;
-use Webkul\Inventory\Filament\Clusters\Operations\Resources\ReceiptResource;
 use Webkul\Inventory\Filament\Clusters\Operations\Resources\ScrapResource;
-use Webkul\Inventory\Filament\Clusters\Products\Resources\LotResource;
 use Webkul\Inventory\Settings\LogisticSettings;
 use Webkul\Inventory\Settings\TraceabilitySettings;
 use Webkul\Inventory\Settings\WarehouseSettings;
@@ -39,12 +37,13 @@ it('takes out of the menu what the lab registers never covered, and keeps what t
         expect($class::shouldRegisterNavigation())->toBeFalse($class);
     }
 
-    foreach ([DeliveryResource::class, ReceiptResource::class, LocationResource::class, LotResource::class, ManufacturingOrderResource::class, BillsOfMaterialResource::class, OrderResource::class, LabStockPage::class] as $kept) {
+    foreach ([RawMaterials::class, FinishedProducts::class, ManufacturingOrderResource::class, BillsOfMaterialResource::class, OrderResource::class] as $kept) {
         expect($kept::shouldRegisterNavigation())->toBeTrue($kept);
     }
 
-    // Hidden is not removed: the pages stay reachable by link.
-    expect(ScrapResource::getUrl('index'))->toBeString();
+    // Hidden is not removed: the pages stay reachable by link (delivery notes open transfers).
+    expect(ScrapResource::getUrl('index'))->toBeString()
+        ->and(DeliveryResource::getUrl('index'))->toBeString();
 });
 
 it('turns on lots, expiry dates and units, and off variants, packagings, packages, dropshipping and routes', function () {

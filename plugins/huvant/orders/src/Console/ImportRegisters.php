@@ -3,14 +3,10 @@
 namespace Huvant\Orders\Console;
 
 use Huvant\Orders\Enums\ItemRole;
-use Huvant\Orders\Support\LabStock;
-use Huvant\Orders\Support\LabUnits;
 use Huvant\Orders\Support\Orders;
-use Huvant\Orders\Support\Shipping;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Webkul\Inventory\Models\Product as InventoryProduct;
 use Webkul\Partner\Enums\AccountType;
 use Webkul\Partner\Enums\AddressType;
 use Webkul\Partner\Models\Partner;
@@ -43,8 +39,6 @@ class ImportRegisters extends Command
             ? User::query()->where('email', $this->option('as'))->firstOrFail()
             : User::query()->get()->first(fn (User $user): bool => Orders::canSeePrices($user));
         Auth::login($user ?? throw new \RuntimeException('No administrator to run the import as.'));
-
-        LabUnits::ensureUnits();
 
         DB::beginTransaction();
 
@@ -186,16 +180,15 @@ class ImportRegisters extends Command
     }
 
     /**
-     * Reagents and the rest of the lab inventory: lot tracked with expiry dates, minimum stock as a
-     * reordering rule. Stock levels are not imported (the sheet did not hold them reliably): they come
-     * with the first count.
+     * The raw materials catalogue: package size and unit as the sheet wrote them ("250 mL"), the
+     * minimum turned from packages into that unit. What is in the lab is not imported (the sheet did
+     * not hold it reliably): it comes with the first count.
      *
      * @param  array<int, array<string, mixed>>  $items
      */
     private function importLabItems(array $items): void
     {
         $units = UOM::query()->where('name', 'Units')->firstOrFail();
-        $warehouse = Shipping::warehouse(current_company_id());
 
         foreach ($items as $row) {
             if (Product::query()->where('reference', $row['reference'])->exists()) {
@@ -204,37 +197,40 @@ class ImportRegisters extends Command
                 continue;
             }
 
-            // "250 mL": stocked in mL, a package holds 250. Without a size, counted in units.
-            [$packageQuantity, $packageUnit] = LabUnits::parsePackage($row['package']) ?? [null, null];
-            $mainUnit = $packageUnit ?? $units;
+            [$packageQuantity, $packageUnit] = $this->package($row['package']);
 
-            $product = Product::query()->create([
+            Product::query()->create([
                 'huvant_role'             => ItemRole::Material,
                 'name'                    => $row['name'],
                 'reference'               => $row['reference'],
                 'price'                   => 0,
-                'uom_id'                  => $mainUnit->id,
-                'uom_po_id'               => $mainUnit->id,
+                'uom_id'                  => $units->id,
+                'uom_po_id'               => $units->id,
                 'huvant_package_quantity' => $packageQuantity,
-                'huvant_package_uom_id'   => $packageUnit?->id,
+                'huvant_package_unit'     => $packageUnit,
+                'huvant_min_quantity'     => $row['minimum'] !== null ? (float) $row['minimum'] * ($packageQuantity ?? 1) : null,
                 'category_id'             => $this->category('Lab'),
                 'enable_purchase'         => true,
-                'description_purchase'    => $row['notes'],
+                'description'             => $row['notes'],
                 'huvant_lab_kind'         => $row['kind'],
-                'huvant_lab_use'          => $row['use'] === 'research' ? LabStock::RESEARCH : ($row['use'] === 'production' ? LabStock::PRODUCTION : null),
                 'huvant_cas_number'       => $row['cas'],
                 'huvant_supplier'         => $row['supplier'],
                 'huvant_supplier_code'    => $row['supplier_code'],
                 'huvant_storage_position' => $row['position'],
             ]);
 
-            // The sheet counted the minimum in packages.
-            if ($row['minimum'] !== null) {
-                LabStock::setMinimum(InventoryProduct::query()->findOrFail($product->id), $warehouse, (float) $row['minimum'] * ($packageQuantity ?? 1));
-            }
-
             $this->count('lab items created');
         }
+    }
+
+    /** @return array{0: float|null, 1: string|null} "250 mL" as 250 and "mL"; anything else as one piece */
+    private function package(?string $text): array
+    {
+        if ($text && preg_match('/^\s*([\d.,]+)\s*(\S+)\s*$/u', $text, $match)) {
+            return [(float) str_replace(',', '.', $match[1]), $match[2] === 'ml' ? 'mL' : $match[2]];
+        }
+
+        return [1.0, 'pcs'];
     }
 
     private function category(?string $name): ?int
