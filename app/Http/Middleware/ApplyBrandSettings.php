@@ -113,7 +113,7 @@ class ApplyBrandSettings
         }
 
         if (Storage::disk('public')->exists($path)) {
-            return Storage::disk('public')->url($path);
+            return '/storage/'.ltrim($path, '/');
         }
 
         return asset($path);
