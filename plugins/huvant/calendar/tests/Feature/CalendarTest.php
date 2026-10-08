@@ -76,6 +76,22 @@ it('shows only "Busy" for somebody else\'s private event', function () {
         ->and(Calendar::view($event, $anna)['title'])->toBe('Medico');
 });
 
+it('keeps private events private from admins who are people, not from the system account', function () {
+    $anna = calUser('Anna');
+    $role = Role::query()->where('name', 'Admin')->firstOrFail();
+    $person = tap(calUser('Giulia'))->assignRole($role);
+    $system = User::query()->where('email', 'admin@example.com')->first()
+        ?? tap(User::withoutEvents(fn (): User => User::factory()->create(['is_active' => true, 'email' => 'admin@example.com'])))->assignRole($role);
+    $event = Calendar::save($anna, ['kind' => 'other', 'title' => 'Medico', 'date' => '2026-10-05', 'from' => '09:00', 'to' => '10:00', 'private' => true]);
+    $open = Calendar::save($anna, ['kind' => 'meeting', 'title' => 'Review', 'date' => '2026-10-05', 'from' => '11:00', 'to' => '12:00']);
+
+    expect(Calendar::view($event->load('attendees'), $person)['title'])->toBe('Busy')
+        ->and(Calendar::canEdit($person, $event))->toBeFalse()
+        ->and(Calendar::canEdit($person, $open))->toBeTrue()
+        ->and(Calendar::view($event, $system)['title'])->toBe('Medico')
+        ->and(Calendar::canEdit($system, $event))->toBeTrue();
+});
+
 it('renders both views and the event dialog', function () {
     $admin = calAdmin();
     $bruno = calUser('Bruno');

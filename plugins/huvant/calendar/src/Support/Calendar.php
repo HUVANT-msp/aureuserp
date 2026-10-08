@@ -43,6 +43,9 @@ class Calendar
         'weekend' => ['Weekend', 'idle'],
     ];
 
+    /** The only accounts that see (and edit) other people's private events: the system account, not the admins who are people. */
+    public const PRIVATE_EVENTS_VISIBLE_TO = ['admin@example.com'];
+
     public static function kind(string $kind): array
     {
         return self::KINDS[$kind] ?? self::KINDS['other'];
@@ -51,6 +54,11 @@ class Calendar
     public static function isAdmin(User $user): bool
     {
         return $user->roles()->get()->contains(fn (Role $role): bool => $role->isSystemRole());
+    }
+
+    public static function seesPrivateEvents(User $user): bool
+    {
+        return in_array(mb_strtolower((string) $user->email), self::PRIVATE_EVENTS_VISIBLE_TO, true) && static::isAdmin($user);
     }
 
     /** The people of the company: active users with an employee record (everyone active otherwise). */
@@ -195,7 +203,8 @@ class Calendar
 
     public static function canEdit(User $user, Event $event): bool
     {
-        return (int) $event->organizer_id === (int) $user->getKey() || static::isAdmin($user);
+        return (int) $event->organizer_id === (int) $user->getKey()
+            || (static::isAdmin($user) && (! $event->private || static::seesPrivateEvents($user)));
     }
 
     /** Invitees already busy (other events, time off) during the slot. */
@@ -297,7 +306,7 @@ class Calendar
     /** What the viewer may see of an event: someone else's private event is just "busy". */
     public static function view(Event $event, User $viewer): array
     {
-        $involved = static::isAdmin($viewer) || $event->attendees->contains('user_id', $viewer->getKey()) || (int) $event->organizer_id === (int) $viewer->getKey();
+        $involved = static::seesPrivateEvents($viewer) || $event->attendees->contains('user_id', $viewer->getKey()) || (int) $event->organizer_id === (int) $viewer->getKey();
         $masked = $event->private && ! $involved;
         [$label, $icon, $color] = static::kind($event->kind);
         $mine = $event->attendees->firstWhere('user_id', $viewer->getKey());
