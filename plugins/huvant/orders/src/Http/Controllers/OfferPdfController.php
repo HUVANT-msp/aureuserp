@@ -16,9 +16,11 @@ class OfferPdfController
         abort_unless(auth()->check(), 403);
         abort_unless(Orders::canSeePrices(), 403);
 
-        $order->load(['partner.country', 'contact', 'deliveryAddress.country', 'lines.product', 'company.partner.bankAccounts.bank', 'company.country']);
+        $order->load(['partner.country', 'contact', 'deliveryAddress.country', 'lines.product']);
 
-        $pdf = Pdf::loadView('huvant-orders::pdf.commercial-offer', ['order' => $order])->setPaper('a4');
+        $logo = 'data:image/jpeg;base64,'.base64_encode(file_get_contents(dirname(__DIR__, 3).'/resources/images/huvant-logo.jpeg'));
+
+        $pdf = Pdf::loadView('huvant-orders::pdf.commercial-offer', ['order' => $order, 'logo' => $logo])->setPaper('a4');
 
         $fileName = Str::of(sprintf('%s - %s - %s', $order->name, $order->offer_date->format('d-m-Y'), $order->partner?->name ?? 'Stock'))
             ->replaceMatches('/[\\\\\/:*?"<>|]+/', ' ')
