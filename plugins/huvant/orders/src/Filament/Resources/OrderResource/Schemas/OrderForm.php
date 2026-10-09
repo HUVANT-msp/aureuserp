@@ -7,6 +7,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -117,6 +118,7 @@ class OrderForm
                         RepeaterTableColumn::make('description')->label($isIt ? 'Descrizione' : 'Description'),
                         RepeaterTableColumn::make('quantity')->label($isIt ? 'Quantità' : 'Quantity')->markAsRequired(),
                         RepeaterTableColumn::make('stock_availability')->label($isIt ? 'Giacenza' : 'Stock'),
+                        RepeaterTableColumn::make('is_rental')->label($isIt ? 'Noleggio' : 'Rental'),
                         $canSeePrices ? RepeaterTableColumn::make('unit_price')->label($isIt ? 'Prezzo unitario' : 'Unit price') : null,
                         $canSeePrices ? RepeaterTableColumn::make('discount')->label($isIt ? 'Sconto %' : 'Discount %') : null,
                     ])))
@@ -132,6 +134,7 @@ class OrderForm
                                 $product = Product::query()->find($state);
                                 // The list price is proposed; it can be changed on the line.
                                 $set('unit_price', $product?->price ?? 0);
+                                $set('is_rental', $product?->huvant_role === ItemRole::Rental);
                             }),
                         TextInput::make('description')
                             ->maxLength(255),
@@ -144,6 +147,10 @@ class OrderForm
                         Placeholder::make('stock_availability')
                             ->hiddenLabel()
                             ->content(fn (Get $get): HtmlString|string => static::stockAvailability($get, $isIt)),
+                        // Printed as "(r)" next to the product code on the proforma.
+                        Toggle::make('is_rental')
+                            ->hiddenLabel()
+                            ->default(false),
                         TextInput::make('unit_price')
                             ->numeric()
                             ->minValue(0)

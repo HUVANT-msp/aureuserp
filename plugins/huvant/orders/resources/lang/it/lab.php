@@ -26,6 +26,7 @@ return [
     'code' => 'Codice',
     'internal_code' => 'Codice interno',
     'acronym' => 'Sigla',
+    'proforma_code_help' => 'Compare nella colonna COD della proforma dell\'offerta.',
     'piece_codes' => 'Codici unità: :code',
     'kind' => 'Tipologia',
     'package' => 'Confezione',

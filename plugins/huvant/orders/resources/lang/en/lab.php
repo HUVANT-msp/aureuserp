@@ -26,6 +26,7 @@ return [
     'code' => 'Code',
     'internal_code' => 'Internal code',
     'acronym' => 'Acronym',
+    'proforma_code_help' => 'Printed in the COD column of the offer proforma.',
     'piece_codes' => 'Piece codes: :code',
     'kind' => 'Kind',
     'package' => 'Package',

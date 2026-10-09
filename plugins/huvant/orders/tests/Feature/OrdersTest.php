@@ -451,3 +451,31 @@ it('saves a line left without discount or price, and never half an offer', funct
     expect((float) $line->discount)->toBe(0.0)
         ->and((float) $line->unit_price)->toBe(400.0);
 });
+
+it('prints the product code on the proforma, with (r) on lines offered for rent', function () {
+    Livewire::test(CreateOrder::class)
+        ->set('data', [
+            'partner_id'  => $this->customer->id,
+            'supply_type' => SupplyType::Sale->value,
+            'fulfilment'  => Fulfilment::Courier->value,
+            'offer_date'  => today()->toDateString(),
+            'vat_rate'    => 22,
+            'lines'       => [
+                ['product_id' => $this->pad->id, 'quantity' => 1, 'unit_price' => 450, 'discount' => 0, 'is_rental' => true],
+                ['product_id' => $this->support->id, 'quantity' => 1, 'unit_price' => 600, 'discount' => 0, 'is_rental' => false],
+            ],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $order = Order::query()->latest('id')->firstOrFail()->load('lines.product');
+    [$rented, $sold] = $order->lines->sortBy('sort')->values()->all();
+
+    expect($rented->is_rental)->toBeTrue()
+        ->and($rented->proformaCode())->toBe('HGBP (r)')
+        ->and($sold->proformaCode())->toBe('PERS');
+
+    $html = view('huvant-orders::pdf.commercial-offer', ['order' => $order, 'logo' => ''])->render();
+
+    expect($html)->toContain('HGBP (r)')->toContain('PERS');
+});

@@ -134,7 +134,7 @@
             <td class="input">{{ $number((float) $line->quantity, 4) }}</td>
             <td class="input">{{ $money((float) $line->unit_price) }}</td>
             @if ($hasDiscount)<td class="input">{{ (float) $line->discount > 0 ? $number((float) $line->discount, 2).'%' : '' }}</td>@endif
-            <td class="input">{{ $line->product?->reference }}</td>
+            <td class="input">{{ $line->proformaCode() }}</td>
             <td class="amount">{{ $money($line->subtotal()) }}</td>
         </tr>
     @endforeach

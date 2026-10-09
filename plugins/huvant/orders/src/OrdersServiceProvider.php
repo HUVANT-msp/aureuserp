@@ -47,6 +47,7 @@ class OrdersServiceProvider extends PackageServiceProvider
                 '2026_10_06_140000_create_huvant_manufacturing_flow',
                 '2026_10_06_150000_create_atomic_manufacturing_entries',
                 '2026_10_06_160000_add_product_unit_trash',
+                '2026_10_09_100000_add_rental_to_order_lines',
             ])
             ->runsMigrations()
             ->hasSettings(['2026_10_05_130000_create_huvant_orders_settings'])

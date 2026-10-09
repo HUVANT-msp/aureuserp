@@ -15,7 +15,7 @@ class OrderLine extends Model
 
     protected $fillable = [
         'order_id', 'sort', 'product_id', 'description', 'quantity', 'stock_quantity', 'production_quantity',
-        'manufacturing_managed_at', 'manufacturing_managed_by', 'unit_price', 'discount', 'manufacturing_order_id',
+        'manufacturing_managed_at', 'manufacturing_managed_by', 'unit_price', 'discount', 'is_rental', 'manufacturing_order_id',
     ];
 
     protected function casts(): array
@@ -27,6 +27,7 @@ class OrderLine extends Model
             'manufacturing_managed_at' => 'datetime',
             'unit_price'               => 'decimal:4',
             'discount'                 => 'decimal:2',
+            'is_rental'                => 'boolean',
         ];
     }
 
@@ -67,6 +68,14 @@ class OrderLine extends Model
     public function manufacturingEntries(): HasMany
     {
         return $this->hasMany(ManufacturingEntry::class)->orderBy('position');
+    }
+
+    /** The product code as the proforma prints it: "(r)" marks a line offered for rent. */
+    public function proformaCode(): string
+    {
+        $code = (string) $this->product?->reference;
+
+        return $this->is_rental ? trim($code.' (r)') : $code;
     }
 
     /** Discount included, VAT excluded. */

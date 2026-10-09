@@ -75,6 +75,11 @@ class RecipeResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull(),
+                        TextInput::make('reference')
+                            ->label(__('huvant-orders::lab.code'))
+                            ->helperText(__('huvant-orders::lab.proforma_code_help'))
+                            ->placeholder('HV-BP01')
+                            ->maxLength(40),
                         TextInput::make('huvant_code_prefix')
                             ->label(__('huvant-orders::lab.acronym'))
                             ->helperText(fn (Get $get): string => __('huvant-orders::lab.piece_codes', [
@@ -150,6 +155,7 @@ class RecipeResource extends Resource
             ->defaultSort('name')
             ->columns([
                 TextColumn::make('name')->label(__('huvant-orders::lab.product'))->searchable()->sortable(),
+                TextColumn::make('reference')->label(__('huvant-orders::lab.code'))->searchable()->sortable()->placeholder('—'),
                 TextColumn::make('huvant_code_prefix')->label(__('huvant-orders::lab.acronym'))->fontFamily('mono')->placeholder('—'),
                 TextColumn::make('recipe')
                     ->label(__('huvant-orders::lab.materials'))
