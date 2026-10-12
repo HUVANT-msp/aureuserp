@@ -369,6 +369,20 @@ it('creates an offer from the form and confirms it from the order page', functio
         ->and(Orders::manufacturingOrders($order))->toBeEmpty();
 });
 
+it('leaves deleted products out of the line picker, except on the line that already has one', function () {
+    $retired = ManufacturingHelper::product(['name' => 'Retired Kidney Kit', 'huvant_role' => 'product']);
+    $kept = ManufacturingHelper::product(['name' => 'Discontinued Liver Kit', 'huvant_role' => 'product']);
+    $order = offerFor($this->customer, [[$this->pad, 1, 450, 0], [$kept, 1, 100, 0]]);
+    $retired->delete();
+    $kept->delete();
+
+    Livewire::test(EditOrder::class, ['record' => $order->getRouteKey()])
+        ->assertOk()
+        ->assertSee('High Grade Brain Pad')
+        ->assertSee('Discontinued Liver Kit')
+        ->assertDontSee('Retired Kidney Kit');
+});
+
 it('keeps e-invoicing, event and customs data on contacts and products', function () {
     $this->customer->update(['huvant_sdi_code' => 'T9K4ZHO', 'huvant_pec' => 'huvant@postecert.it']);
     $this->pad->update(['huvant_hs_code' => '9023.00', 'huvant_production_days' => 10]);

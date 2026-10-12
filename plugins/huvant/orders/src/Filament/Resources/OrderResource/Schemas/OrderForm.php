@@ -124,7 +124,12 @@ class OrderForm
                     ])))
                     ->schema([
                         Select::make('product_id')
-                            ->relationship('product', 'name', fn (Builder $query) => ItemRoles::scope($query, ItemRole::sellable()))
+                            // The line relation includes deleted products, so old lines keep their name:
+                            // a deleted product is offered only on the line that already has it.
+                            ->relationship('product', 'name', fn (Builder $query, mixed $state) => ItemRoles::scope($query, ItemRole::sellable())
+                                ->where(fn (Builder $query) => $query
+                                    ->whereNull($query->qualifyColumn('deleted_at'))
+                                    ->when(filled($state), fn (Builder $query) => $query->orWhere($query->qualifyColumn('id'), $state))))
                             ->getOptionLabelFromRecordUsing(fn (Product $record): string => $record->reference ? "[{$record->reference}] {$record->name}" : $record->name)
                             ->searchable(['name', 'reference'])
                             ->preload()
