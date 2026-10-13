@@ -241,7 +241,7 @@ it('shows the shared offers inbox and records requested production against the o
         ->assertHeader('content-type', 'application/pdf');
 });
 
-it('shows pending offer products with shared demand and finished stock', function () {
+it('shows unapproved offer products with shared demand and finished stock', function () {
     $first = offerFor($this->customer, [[$this->pad, 5, 450, 0]], [
         'offer_date' => '2026-10-10',
         'event'      => 'Workshop Milano',
@@ -252,6 +252,12 @@ it('shows pending offer products with shared demand and finished stock', functio
     $second->update(['state' => OrderState::Pending]);
 
     $draft = offerFor($this->customer, [[$this->pad, 9, 450, 0]]);
+    $sent = offerFor($this->customer, [[$this->pad, 1, 450, 0]]);
+    $sent->update(['state' => OrderState::Sent]);
+
+    $confirmed = offerFor($this->customer, [[$this->pad, 12, 450, 0]]);
+    $confirmed->update(['state' => OrderState::Confirmed]);
+
     $serviceOnly = offerFor($this->customer, [[$this->support, 1, 600, 0]]);
     $serviceOnly->update(['state' => OrderState::Pending]);
 
@@ -266,15 +272,17 @@ it('shows pending offer products with shared demand and finished stock', functio
 
     $firstLine = $first->lines()->sole();
     $secondLine = $second->lines()->sole();
+    $draftLine = $draft->lines()->sole();
+    $sentLine = $sent->lines()->sole();
 
     Livewire::test(ProductionForecast::class)
         ->assertOk()
-        ->assertCanSeeTableRecords([$firstLine, $secondLine])
-        ->assertCanNotSeeTableRecords([$draft->lines()->sole(), $serviceOnly->lines()->sole()])
+        ->assertCanSeeTableRecords([$firstLine, $secondLine, $draftLine, $sentLine])
+        ->assertCanNotSeeTableRecords([$confirmed->lines()->sole(), $serviceOnly->lines()->sole()])
         ->assertTableColumnStateSet('quantity', '5', record: $firstLine)
-        ->assertTableColumnStateSet('pending_demand', '7', record: $firstLine)
+        ->assertTableColumnStateSet('pending_demand', '17', record: $firstLine)
         ->assertTableColumnStateSet('lab_stock', 3, record: $firstLine)
-        ->assertTableColumnStateSet('uncovered', __('huvant-orders::manufacturing.to_produce_count', ['count' => '4']), record: $firstLine)
+        ->assertTableColumnStateSet('uncovered', __('huvant-orders::manufacturing.to_produce_count', ['count' => '14']), record: $firstLine)
         ->assertSee('Workshop Milano');
 });
 

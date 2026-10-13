@@ -180,7 +180,7 @@ class ProductionForecast extends Page implements HasTable
                         ->whereIn('id', Order::query()
                             ->select('partner_id')
                             ->whereNotNull('partner_id')
-                            ->where('state', OrderState::Pending->value))
+                            ->whereIn('state', static::forecastStates()))
                         ->orderBy('name')
                         ->pluck('name', 'id')
                         ->all())
@@ -195,8 +195,8 @@ class ProductionForecast extends Page implements HasTable
                     ->preload(),
             ])
             ->emptyStateIcon('heroicon-o-check-circle')
-            ->emptyStateHeading(__('huvant-orders::manufacturing.no_pending_forecast'))
-            ->emptyStateDescription(__('huvant-orders::manufacturing.no_pending_forecast_help'));
+            ->emptyStateHeading(__('huvant-orders::manufacturing.no_unapproved_forecast'))
+            ->emptyStateDescription(__('huvant-orders::manufacturing.no_unapproved_forecast_help'));
     }
 
     /** @return array<string, mixed> */
@@ -218,8 +218,18 @@ class ProductionForecast extends Page implements HasTable
     protected static function forecastQuery(): Builder
     {
         return OrderLine::query()
-            ->whereHas('order', fn (Builder $query): Builder => $query->where('state', OrderState::Pending->value))
+            ->whereHas('order', fn (Builder $query): Builder => $query->whereIn('state', static::forecastStates()))
             ->whereHas('product', fn (Builder $query): Builder => $query->where('huvant_role', ItemRole::Product->value));
+    }
+
+    /** @return list<string> */
+    protected static function forecastStates(): array
+    {
+        return [
+            OrderState::Draft->value,
+            OrderState::Sent->value,
+            OrderState::Pending->value,
+        ];
     }
 
     protected function pendingDemandFor(int $productId): float

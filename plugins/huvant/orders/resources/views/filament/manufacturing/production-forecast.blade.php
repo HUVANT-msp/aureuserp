@@ -7,12 +7,12 @@
             </div>
             <span class="hv-forecast-status">
                 <x-filament::icon icon="heroicon-m-clock" />
-                {{ __('huvant-orders::manufacturing.only_pending_offers') }}
+                {{ __('huvant-orders::manufacturing.only_unapproved_offers') }}
             </span>
         </div>
 
         <dl class="hv-forecast-metrics">
-            <div><dt>{{ __('huvant-orders::manufacturing.pending_offers') }}</dt><dd>{{ $offersCount }}</dd></div>
+            <div><dt>{{ __('huvant-orders::manufacturing.unapproved_offers') }}</dt><dd>{{ $offersCount }}</dd></div>
             <div><dt>{{ __('huvant-orders::manufacturing.distinct_products') }}</dt><dd>{{ $productsCount }}</dd></div>
             <div><dt>{{ __('huvant-orders::manufacturing.potential_units') }}</dt><dd>{{ $requestedCount }}</dd></div>
             <div><dt>{{ __('huvant-orders::manufacturing.already_in_lab') }}</dt><dd>{{ $stockCount }}</dd></div>
