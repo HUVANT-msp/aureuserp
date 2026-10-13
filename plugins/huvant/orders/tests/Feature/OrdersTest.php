@@ -9,6 +9,7 @@ use Huvant\Orders\Enums\ProductionTaskStatus;
 use Huvant\Orders\Enums\SupplyType;
 use Huvant\Orders\Enums\UnitStatus;
 use Huvant\Orders\Filament\Clusters\Manufacturing\Pages\Production;
+use Huvant\Orders\Filament\Clusters\Manufacturing\Pages\ProductionForecast;
 use Huvant\Orders\Filament\Clusters\Manufacturing\Resources\OfferResource\Pages\ListOffers as ManufacturingOffers;
 use Huvant\Orders\Filament\Clusters\Manufacturing\Resources\OfferResource\Pages\ManageOffer;
 use Huvant\Orders\Filament\Resources\OrderResource\Pages\CreateOrder;
@@ -169,7 +170,7 @@ it('shows the shared offers inbox and records requested production against the o
         ->assertSee('History');
 
     expect(collect($offersPage->instance()->getSubNavigation())->map->getLabel()->all())
-        ->toContain('Offers', 'Production');
+        ->toContain('Offers', 'Lab forecast', 'Production');
 
     $managePage = Livewire::test(ManageOffer::class, ['record' => $order->getRouteKey()])
         ->assertOk()
@@ -190,7 +191,7 @@ it('shows the shared offers inbox and records requested production against the o
     $managePage->call('done')->assertHasNoErrors();
 
     expect(collect($managePage->instance()->getSubNavigation())->map->getLabel()->all())
-        ->toContain('Offers', 'Production');
+        ->toContain('Offers', 'Lab forecast', 'Production');
 
     $tasks = $order->productionTasks()->with('projectTask.project')->orderBy('id')->get();
     expect($tasks)->toHaveCount(2)
@@ -238,6 +239,43 @@ it('shows the shared offers inbox and records requested production against the o
     $this->get(route('huvant.orders.manufacturing-report', ['order' => $order]))
         ->assertOk()
         ->assertHeader('content-type', 'application/pdf');
+});
+
+it('shows pending offer products with shared demand and finished stock', function () {
+    $first = offerFor($this->customer, [[$this->pad, 5, 450, 0]], [
+        'offer_date' => '2026-10-10',
+        'event'      => 'Workshop Milano',
+    ]);
+    $first->update(['state' => OrderState::Pending]);
+
+    $second = offerFor($this->customer, [[$this->pad, 2, 450, 0]]);
+    $second->update(['state' => OrderState::Pending]);
+
+    $draft = offerFor($this->customer, [[$this->pad, 9, 450, 0]]);
+    $serviceOnly = offerFor($this->customer, [[$this->support, 1, 600, 0]]);
+    $serviceOnly->update(['state' => OrderState::Pending]);
+
+    foreach (range(1, 3) as $piece) {
+        ProductUnit::query()->create([
+            'product_id'      => $this->pad->id,
+            'code'            => 'FORECAST-PAD-'.$piece,
+            'production_date' => '2026-10-09',
+            'status'          => UnitStatus::InLab,
+        ]);
+    }
+
+    $firstLine = $first->lines()->sole();
+    $secondLine = $second->lines()->sole();
+
+    Livewire::test(ProductionForecast::class)
+        ->assertOk()
+        ->assertCanSeeTableRecords([$firstLine, $secondLine])
+        ->assertCanNotSeeTableRecords([$draft->lines()->sole(), $serviceOnly->lines()->sole()])
+        ->assertTableColumnStateSet('quantity', '5', record: $firstLine)
+        ->assertTableColumnStateSet('pending_demand', '7', record: $firstLine)
+        ->assertTableColumnStateSet('lab_stock', 3, record: $firstLine)
+        ->assertTableColumnStateSet('uncovered', __('huvant-orders::manufacturing.to_produce_count', ['count' => '4']), record: $firstLine)
+        ->assertSee('Workshop Milano');
 });
 
 it('creates a restricted production project automatically for every new product', function () {

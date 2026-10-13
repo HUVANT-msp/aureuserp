@@ -3,6 +3,7 @@
 use Huvant\Orders\Filament\Clusters\FinishedProducts;
 use Huvant\Orders\Filament\Clusters\Manufacturing;
 use Huvant\Orders\Filament\Clusters\Manufacturing\Pages\Production;
+use Huvant\Orders\Filament\Clusters\Manufacturing\Pages\ProductionForecast;
 use Huvant\Orders\Filament\Clusters\Manufacturing\Resources\OfferResource;
 use Huvant\Orders\Filament\Clusters\RawMaterials;
 use Huvant\Orders\Filament\Resources\OrderResource;
@@ -38,7 +39,7 @@ it('takes out of the menu what the lab registers never covered, and keeps what t
         expect($class::shouldRegisterNavigation())->toBeFalse($class);
     }
 
-    foreach ([RawMaterials::class, FinishedProducts::class, Manufacturing::class, OfferResource::class, Production::class, OrderResource::class] as $kept) {
+    foreach ([RawMaterials::class, FinishedProducts::class, Manufacturing::class, OfferResource::class, ProductionForecast::class, Production::class, OrderResource::class] as $kept) {
         expect($kept::shouldRegisterNavigation())->toBeTrue($kept);
     }
 

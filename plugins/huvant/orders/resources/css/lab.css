@@ -181,3 +181,82 @@ a.hv-lab-card:hover, a.hv-lab-card:focus-visible { border-color: var(--primary-5
 @media (max-width: 700px) { .hv-stock-unit { grid-template-columns: 20px 1fr 90px; } .hv-stock-unit > :nth-child(n+4) { grid-column: 2 / -1; } .hv-assignee-list { grid-template-columns: 1fr; } .hv-manage-footer { align-items: stretch; flex-direction: column; } }
 @media (max-width: 520px) { .hv-offer-card { grid-template-columns: 1fr; gap: 14px; } .hv-offer-products, .hv-offer-meta, .hv-offer-card-state { grid-column: 1; } .hv-offer-card-state { grid-row: auto; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--gray-100); } .dark .hv-offer-card-state { border-color: rgb(255 255 255 / .07); } }
 @media (prefers-reduced-motion: reduce) { .hv-offer-card, .hv-unit-notes::after { transition: none; } }
+/* Pending-offer forecast: a compact register, not a second production workflow. */
+.hv-forecast-summary { overflow: hidden; border: 1px solid var(--gray-200); border-radius: 12px; background: white; }
+.dark .hv-forecast-summary { border-color: rgb(255 255 255 / .1); background: var(--gray-900); }
+.hv-forecast-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 20px 22px 18px; }
+.hv-forecast-intro h2 { color: var(--gray-950); font-size: 20px; font-weight: 760; line-height: 1.25; letter-spacing: -.02em; }
+.dark .hv-forecast-intro h2 { color: white; }
+.hv-forecast-intro p { max-width: 68ch; margin-top: 5px; color: var(--gray-600); font-size: 13px; line-height: 1.5; }
+.dark .hv-forecast-intro p { color: var(--gray-300); }
+.hv-forecast-status { min-height: 32px; display: inline-flex; align-items: center; gap: 7px; flex: none; border: 1px solid color-mix(in oklab, var(--warning-500) 35%, var(--gray-200)); border-radius: 999px; padding: 6px 10px; background: color-mix(in oklab, var(--warning-500) 10%, white); color: var(--warning-800); font-size: 11px; font-weight: 700; }
+.dark .hv-forecast-status { border-color: color-mix(in oklab, var(--warning-400) 40%, transparent); background: color-mix(in oklab, var(--warning-500) 12%, transparent); color: var(--warning-300); }
+.hv-forecast-status svg { width: 16px; }
+.hv-forecast-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid var(--gray-200); }
+.dark .hv-forecast-metrics { border-color: rgb(255 255 255 / .1); }
+.hv-forecast-metrics > div { min-width: 0; padding: 14px 18px; border-inline-end: 1px solid var(--gray-200); }
+.dark .hv-forecast-metrics > div { border-color: rgb(255 255 255 / .1); }
+.hv-forecast-metrics > div:last-child { border-inline-end: 0; }
+.hv-forecast-metrics dt { color: var(--gray-500); font-size: 11px; font-weight: 700; line-height: 1.35; }
+.dark .hv-forecast-metrics dt { color: var(--gray-400); }
+.hv-forecast-metrics dd { margin-top: 4px; color: var(--gray-950); font-size: 20px; font-weight: 760; line-height: 1; font-variant-numeric: tabular-nums; }
+.dark .hv-forecast-metrics dd { color: white; }
+.hv-forecast-metrics .is-uncovered dd { color: var(--danger-700); }
+.dark .hv-forecast-metrics .is-uncovered dd { color: var(--danger-300); }
+.hv-forecast-metrics .is-covered dd { color: var(--success-700); }
+.dark .hv-forecast-metrics .is-covered dd { color: var(--success-300); }
+.hv-forecast-note { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: start; gap: 9px; padding: 12px 18px; background: var(--gray-50); color: var(--gray-600); }
+.dark .hv-forecast-note { background: rgb(255 255 255 / .025); color: var(--gray-300); }
+.hv-forecast-note svg { width: 18px; color: var(--primary-600); }
+.hv-forecast-note p { max-width: 90ch; font-size: 11px; line-height: 1.5; }
+.hv-forecast-table { margin-top: 18px; }
+.hv-forecast-table .fi-ta-table { font-variant-numeric: tabular-nums; }
+.hv-forecast-table .fi-ta-header-cell-label { white-space: nowrap; }
+.hv-forecast-table *:focus-visible { outline-color: var(--primary-500); outline-offset: 2px; }
+.hv-forecast-table input[type="search"] { min-height: 44px; }
+.hv-forecast-table .fi-ta-header-toolbar .fi-icon-btn { min-width: 44px; min-height: 44px; }
+
+@media (max-width: 900px) {
+    .hv-forecast-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .hv-forecast-metrics > div:nth-child(3) { border-inline-end: 0; }
+    .hv-forecast-metrics > div:nth-child(n + 4) { border-top: 1px solid var(--gray-200); }
+    .dark .hv-forecast-metrics > div:nth-child(n + 4) { border-color: rgb(255 255 255 / .1); }
+}
+
+@media (max-width: 620px) {
+    .hv-forecast-intro { flex-direction: column; gap: 12px; padding: 18px 16px 16px; }
+    .hv-forecast-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hv-forecast-metrics > div:nth-child(odd) { border-inline-end: 1px solid var(--gray-200); }
+    .hv-forecast-metrics > div:nth-child(even) { border-inline-end: 0; }
+    .hv-forecast-metrics > div:nth-child(n + 3) { border-top: 1px solid var(--gray-200); }
+    .dark .hv-forecast-metrics > div { border-color: rgb(255 255 255 / .1); }
+    .hv-forecast-metrics > div:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 820px) {
+    .hv-forecast-table input[type="search"] { min-height: 48px; }
+    .hv-forecast-table .fi-ta-header-toolbar .fi-icon-btn { min-width: 48px; min-height: 48px; }
+    .hv-forecast-table .fi-ta-content { overflow: visible; }
+    .hv-forecast-table .fi-ta-table, .hv-forecast-table .fi-ta-table tbody { display: block; min-width: 0; }
+    .hv-forecast-table .fi-ta-table thead { display: none; }
+    .hv-forecast-table .fi-ta-table tbody { padding: 12px; background: var(--gray-50); }
+    .dark .hv-forecast-table .fi-ta-table tbody { background: rgb(255 255 255 / .025); }
+    .hv-forecast-table .fi-ta-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 12px; overflow: hidden; border: 1px solid var(--gray-200); border-radius: 12px; background: white; }
+    .hv-forecast-table .fi-ta-row:last-child { margin-bottom: 0; }
+    .dark .hv-forecast-table .fi-ta-row { border-color: rgb(255 255 255 / .1); background: var(--gray-900); }
+    .hv-forecast-table .fi-ta-cell { display: flex; min-width: 0; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--gray-100); text-align: start; }
+    .dark .hv-forecast-table .fi-ta-cell { border-color: rgb(255 255 255 / .07); }
+    .hv-forecast-table .fi-ta-cell::before { color: var(--gray-500); content: attr(data-label); font-size: 11px; font-weight: 700; line-height: 1.35; }
+    .hv-forecast-table .fi-ta-cell .fi-align-end { justify-content: flex-start; text-align: start; }
+    .hv-forecast-table .fi-ta-cell[data-column="product"] { grid-column: 1 / -1; grid-row: 1; }
+    .hv-forecast-table .fi-ta-cell[data-column="uncovered"] { grid-column: 1 / -1; grid-row: 2; flex-direction: row; align-items: center; justify-content: space-between; background: var(--gray-50); }
+    .dark .hv-forecast-table .fi-ta-cell[data-column="uncovered"] { background: rgb(255 255 255 / .035); }
+    .hv-forecast-table .fi-ta-cell[data-column="quantity"] { grid-row: 3; }
+    .hv-forecast-table .fi-ta-cell[data-column="pending-demand"] { grid-row: 3; }
+    .hv-forecast-table .fi-ta-cell[data-column="lab-stock"] { grid-row: 4; }
+    .hv-forecast-table .fi-ta-cell[data-column="delivery"] { grid-row: 4; }
+    .hv-forecast-table .fi-ta-cell[data-column="offer-date"] { grid-row: 5; }
+    .hv-forecast-table .fi-ta-cell[data-column="offer"] { grid-row: 5; }
+    .hv-forecast-table .fi-ta-cell[data-column="offer"] .fi-copyable { overflow-wrap: anywhere; white-space: normal; }
+    .hv-forecast-table .fi-ta-cell[data-column="customer"] { grid-column: 1 / -1; grid-row: 6; border-bottom: 0; }
+}
