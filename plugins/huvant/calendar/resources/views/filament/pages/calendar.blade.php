@@ -76,27 +76,17 @@
             <div class="hv-cal-board" style="--days: {{ $days }}">
                 <div class="hv-cal-row hv-cal-head">
                     <span class="hv-cal-person">Person</span>
-                    <span class="hv-cal-now">Now</span>
                     @for ($i = 0; $i < $days; $i++)
                         @php $d = $weekOf($i); @endphp
                         <span @class(['hv-cal-day', 'is-today' => $d->isSameDay($today)])>{{ $dayNames[$i % $weekDays] }} <b>{{ $d->day }}</b></span>
                     @endfor
                 </div>
                 @foreach ($board['rows'] as $row)
-                    @php [$nowLabel, $nowTone, $nowDetail] = $row['now']; @endphp
                     <div class="hv-cal-row" wire:key="p-{{ $row['user']->id }}">
                         <button type="button" class="hv-cal-person" wire:click="showPerson({{ $row['user']->id }})" title="Open {{ $row['user']->name }}'s week">
                             <span class="hv-cal-avatar" style="--ac: {{ $personColor($row['user']->id) }}">{{ $initials($row['user']->name) }}</span>
                             {{ $row['user']->name }}
                         </button>
-                        <span class="hv-cal-now">
-                            @if ($monday->lte($today) && $end->gte($today))
-                                <span class="hv-cal-status tone-{{ $nowTone }}"><i></i>{{ $nowLabel }}</span>
-                                @if ($nowDetail)<small>{{ $nowDetail }}</small>@endif
-                            @else
-                                <span class="hv-cal-muted">—</span>
-                            @endif
-                        </span>
                         @php $isMe = (int) $row['user']->id === (int) auth()->id(); @endphp
                         @foreach ($row['cells'] as $cell)
                             @php [$label, $tone] = Calendar::PRESENCE[$cell['presence']]; @endphp
@@ -206,6 +196,7 @@
             <div class="hv-cal-dayboard">
                 <div class="hv-cal-dayrow hv-cal-dayhead">
                     <span class="hv-cal-person">Person</span>
+                    <span class="hv-cal-now">Now</span>
                     <div class="hv-cal-daytimeline">
                         @for ($m = $dayBoard['from']; $m <= $dayBoard['to']; $m += 60)
                             <span class="hv-cal-dayhour" style="left: {{ $dpct($m) }}%">{{ intdiv($m, 60) }}:00</span>
@@ -221,6 +212,15 @@
                             <span class="hv-cal-avatar" style="--ac: {{ $personColor($row['user']->id) }}">{{ $initials($row['user']->name) }}</span>
                             {{ $row['user']->name }}
                         </button>
+                        <span class="hv-cal-now">
+                            @if ($isToday)
+                                @php [$nowLabel, $nowTone, $nowDetail] = $row['now']; @endphp
+                                <span class="hv-cal-status tone-{{ $nowTone }}"><i></i>{{ $nowLabel }}</span>
+                                @if ($nowDetail)<small>{{ $nowDetail }}</small>@endif
+                            @else
+                                <span class="hv-cal-muted">—</span>
+                            @endif
+                        </span>
                         <div @class(['hv-cal-daytimeline', 'tone-'.Calendar::PRESENCE[$row['presence']][1]])>
                             @for ($m = $dayBoard['from']; $m < $dayBoard['to']; $m += 60)
                                 <span class="hv-cal-dayline" style="left: {{ $dpct($m) }}%"></span>

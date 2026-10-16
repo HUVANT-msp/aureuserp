@@ -319,8 +319,9 @@ class Calendar
      * One day, one row per person: where they are, and a timeline of their timed
      * events between $from and $to (minutes since midnight), colour-coded by kind.
      */
-    public static function dayTimeline(User $viewer, Collection $people, CarbonImmutable $day, int $from = 480, int $to = 1140): array
+    public static function dayTimeline(User $viewer, Collection $people, CarbonImmutable $day, int $from = 480, int $to = 1140, ?CarbonImmutable $now = null): array
     {
+        $now ??= CarbonImmutable::now();
         $day = $day->startOfDay();
         $dayEnd = $day->addDay();
         $ids = $people->pluck('id')->all();
@@ -330,7 +331,7 @@ class Calendar
             ->orderBy('starts_at')->get();
         $leaves = static::leaves($ids, $day, $dayEnd);
 
-        $rows = $people->map(function (User $person) use ($events, $leaves, $day, $from, $to, $viewer) {
+        $rows = $people->map(function (User $person) use ($events, $leaves, $day, $from, $to, $viewer, $now) {
             $mine = $events->filter(fn (Event $e) => $e->attendees->contains(fn ($a) => (int) $a->user_id === (int) $person->id && $a->response !== 'declined'));
             $myLeaves = $leaves->where('user_id', $person->id);
             $presence = static::dayCell($person, $day, $mine, $myLeaves)['presence'];
@@ -348,7 +349,7 @@ class Calendar
                 return ['id' => $e->id, 'from' => $startMin, 'to' => $endMin, 'color' => $view['color'], 'label' => $view['title']];
             })->filter()->values()->all();
 
-            return ['user' => $person, 'presence' => $presence, 'segments' => $segments];
+            return ['user' => $person, 'presence' => $presence, 'now' => static::nowStatus($person, $now, $mine, $myLeaves), 'segments' => $segments];
         });
 
         return ['rows' => $rows->all(), 'day' => $day, 'from' => $from, 'to' => $to];
