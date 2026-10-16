@@ -88,12 +88,14 @@ button.hv-cal-person:hover { color: var(--hv-c-primary); }
 
 /* Day timeline */
 .hv-cal-dayboard { overflow-x: auto; border: 1px solid var(--huvant-hairline); border-radius: 12px; background: var(--huvant-surface); box-shadow: var(--huvant-shadow-1); }
-.hv-cal-dayrow { display: grid; grid-template-columns: minmax(190px, 1.3fr) minmax(170px, 1.1fr) minmax(420px, 3fr); align-items: stretch; min-width: 930px; border-bottom: 1px solid var(--huvant-hairline); }
+.hv-cal-dayrow { display: grid; grid-template-columns: 200px 130px minmax(420px, 1fr); align-items: stretch; min-width: 760px; border-bottom: 1px solid var(--huvant-hairline); }
 .hv-cal-dayrow:last-child { border-bottom: 0; }
 .hv-cal-dayhead { background: var(--hv-c-2); color: var(--huvant-muted); font-size: 12px; font-weight: 600; }
-.hv-cal-dayhead .hv-cal-person { padding: 10px 12px; }
-.hv-cal-daytimeline { position: relative; min-height: 48px; margin: 4px 8px; border-radius: 6px; }
-.hv-cal-dayhead .hv-cal-daytimeline { min-height: 0; margin: 10px 8px; }
+.hv-cal-dayhead .hv-cal-person { padding: 8px 12px; }
+.hv-cal-dayrow .hv-cal-person { padding: 5px 12px; }
+.hv-cal-dayrow .hv-cal-now { padding: 5px 12px; }
+.hv-cal-daytimeline { position: relative; min-height: 32px; margin: 3px 8px; border-radius: 6px; }
+.hv-cal-dayhead .hv-cal-daytimeline { min-height: 0; margin: 8px 8px; }
 .hv-cal-dayhour { position: absolute; top: 0; transform: translateX(-50%); color: var(--huvant-muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
 .hv-cal-dayhour:first-child { transform: none; }
 .hv-cal-dayline { position: absolute; inset-block: 0; width: 1px; background: color-mix(in srgb, var(--huvant-hairline) 70%, transparent); }
