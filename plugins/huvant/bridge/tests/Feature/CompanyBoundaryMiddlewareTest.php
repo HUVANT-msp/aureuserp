@@ -211,3 +211,25 @@ it('derives a task stage company from its project', function () {
 
     expect($stage->company_id)->toBe($project->company_id);
 });
+
+it('heals a company-less project instead of rejecting a task stage for it', function () {
+    $singleCompanyId = Company::query()->orderBy('id')->value('id');
+    $actor = activeCompanyBoundaryUser();
+    $project = Project::factory()->create(['company_id' => null]);
+    $request = companyBoundaryRequest(
+        $actor,
+        'POST',
+        'admin.api.v1.projects.task-stages.store',
+        'admin/api/v1/projects/task-stages',
+        '/admin/api/v1/projects/task-stages',
+        [
+            'name'       => 'To Do',
+            'project_id' => $project->id,
+        ],
+    );
+
+    $response = app(EnsureBridgeCompanyBoundary::class)->handle($request, fn () => response()->noContent());
+
+    expect($response->getStatusCode())->toBe(204)
+        ->and($project->refresh()->company_id)->toBe($singleCompanyId);
+});

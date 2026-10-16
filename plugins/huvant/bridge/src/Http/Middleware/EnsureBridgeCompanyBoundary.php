@@ -65,7 +65,7 @@ class EnsureBridgeCompanyBoundary
         Collection $allowedCompanyIds,
         bool $isSuperAdmin,
     ): ?Response {
-        $companyId = $this->effectiveCompanyId($request, $actor, $project);
+        $companyId = $this->effectiveCompanyId($request, $actor, $project) ?? $this->singleCompanyId();
 
         if ($companyId === null) {
             return $this->invalid('company_id', 'A company is required for this project.');
@@ -116,7 +116,7 @@ class EnsureBridgeCompanyBoundary
         Collection $allowedCompanyIds,
         bool $isSuperAdmin,
     ): ?Response {
-        $companyId = $this->effectiveCompanyId($request, $actor, $partner);
+        $companyId = $this->effectiveCompanyId($request, $actor, $partner) ?? $this->singleCompanyId();
 
         if ($companyId === null) {
             return $this->invalid('company_id', 'A company is required for this partner.');
@@ -156,7 +156,7 @@ class EnsureBridgeCompanyBoundary
             return $this->invalid('project_id', 'A valid project is required for this task stage.');
         }
 
-        $companyId = $this->integerOrNull($project->company_id);
+        $companyId = $this->integerOrNull($project->company_id) ?? $this->healProjectCompanyId($project);
         if ($companyId === null) {
             return $this->invalid('project_id', 'The selected project has no company.');
         }
@@ -185,7 +185,7 @@ class EnsureBridgeCompanyBoundary
             return $this->invalid('project_id', 'A valid project is required for this task.');
         }
 
-        $companyId = $this->integerOrNull($project->company_id);
+        $companyId = $this->integerOrNull($project->company_id) ?? $this->healProjectCompanyId($project);
         if ($companyId === null) {
             return $this->invalid('project_id', 'The selected project has no company.');
         }
@@ -240,6 +240,23 @@ class EnsureBridgeCompanyBoundary
         }
 
         return null;
+    }
+
+    /** Huvant runs a single company: a missing company_id resolves to it instead of blocking the request. */
+    private function singleCompanyId(): ?int
+    {
+        return $this->integerOrNull(\Webkul\Support\Models\Company::query()->orderBy('id')->value('id'));
+    }
+
+    /** Self-heal a project left without a company (e.g. created through an API call that omitted it). */
+    private function healProjectCompanyId(Project $project): ?int
+    {
+        $companyId = $this->singleCompanyId();
+        if ($companyId !== null) {
+            $project->forceFill(['company_id' => $companyId])->saveQuietly();
+        }
+
+        return $companyId;
     }
 
     private function effectiveCompanyId(Request $request, User $actor, ?Model $target): ?int
