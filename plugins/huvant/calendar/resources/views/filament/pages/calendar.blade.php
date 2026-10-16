@@ -79,7 +79,7 @@
                     <span class="hv-cal-now">Now</span>
                     @for ($i = 0; $i < $days; $i++)
                         @php $d = $weekOf($i); @endphp
-                        <span @class(['hv-cal-day', 'is-today' => $d->isSameDay($today)])>{{ $dayNames[$i % 7] }} <b>{{ $d->day }}</b></span>
+                        <span @class(['hv-cal-day', 'is-today' => $d->isSameDay($today)])>{{ $dayNames[$i % $weekDays] }} <b>{{ $d->day }}</b></span>
                     @endfor
                 </div>
                 @foreach ($board['rows'] as $row)
@@ -152,7 +152,7 @@
                 <div class="hv-cal-agrow hv-cal-aghead">
                     <span></span>
                     @foreach ($agenda['days'] as $i => $d)
-                        <span @class(['hv-cal-agday', 'is-today' => $d['date']->isSameDay($today)])>{{ $dayNames[$i % 7] }} <b>{{ $d['date']->day }}</b></span>
+                        <span @class(['hv-cal-agday', 'is-today' => $d['date']->isSameDay($today)])>{{ $dayNames[$i % $weekDays] }} <b>{{ $d['date']->day }}</b></span>
                     @endforeach
                 </div>
                 <div class="hv-cal-agrow hv-cal-allday">
