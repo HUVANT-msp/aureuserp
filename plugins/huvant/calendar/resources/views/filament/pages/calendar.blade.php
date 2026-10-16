@@ -212,6 +212,9 @@
                         @for ($m = $dayBoard['from']; $m <= $dayBoard['to']; $m += 60)
                             <span class="hv-cal-dayhour" style="left: {{ $dpct($m) }}%">{{ intdiv($m, 60) }}:00</span>
                         @endfor
+                        @if ($isToday && $nowM >= $dayBoard['from'] && $nowM <= $dayBoard['to'])
+                            <span class="hv-cal-daynowline" style="left: {{ $dpct($nowM) }}%"></span>
+                        @endif
                     </div>
                 </div>
                 @foreach ($dayBoard['rows'] as $row)

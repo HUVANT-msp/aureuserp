@@ -97,8 +97,9 @@ button.hv-cal-person:hover { color: var(--hv-c-primary); }
 .hv-cal-dayhour { position: absolute; top: 0; transform: translateX(-50%); color: var(--huvant-muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
 .hv-cal-dayhour:first-child { transform: none; }
 .hv-cal-dayline { position: absolute; inset-block: 0; width: 1px; background: color-mix(in srgb, var(--huvant-hairline) 70%, transparent); }
-.hv-cal-daynowline { position: absolute; inset-block: 0; z-index: 2; width: 2px; background: #d8141d; }
-.hv-cal-daynowline::before { content: ""; position: absolute; top: -4px; inset-inline-start: -3px; width: 8px; height: 8px; border-radius: 50%; background: #d8141d; }
+.hv-cal-daynowline { position: absolute; inset-block: 0; z-index: 2; width: 1px; background: color-mix(in srgb, #d8141d 55%, transparent); }
+.hv-cal-dayhead .hv-cal-daynowline { top: -1px; }
+.hv-cal-dayhead .hv-cal-daynowline::before { content: ""; position: absolute; top: -3px; inset-inline-start: -3px; width: 7px; height: 7px; border-radius: 50%; background: #d8141d; }
 .hv-cal-daytimeline.tone-remote { background: var(--hv-c-remote-soft); }
 .hv-cal-daytimeline.tone-limited { background: var(--hv-c-lim-soft); }
 .hv-cal-daytimeline.tone-off { background: var(--hv-c-off-soft); }
