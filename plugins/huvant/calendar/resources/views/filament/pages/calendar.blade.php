@@ -192,8 +192,10 @@
                 $dpct = fn (int $m) => round((max($dayBoard['from'], min($dayBoard['to'], $m)) - $dayBoard['from']) / $dbSpan * 100, 3);
                 $nowM = (int) now()->format('G') * 60 + (int) now()->format('i');
                 $isToday = $selectedDay->isSameDay($today);
+                $maxNameLen = collect($dayBoard['rows'])->max(fn ($r) => mb_strlen($r['user']->name)) ?? 10;
+                $hourSteps = max(1, intdiv($dayBoard['to'] - $dayBoard['from'], 60));
             @endphp
-            <div class="hv-cal-dayboard">
+            <div class="hv-cal-dayboard" style="--person-col: calc({{ $maxNameLen }}ch + 60px); --hours: {{ $hourSteps }}">
                 <div class="hv-cal-dayrow hv-cal-dayhead">
                     <span class="hv-cal-person">Person</span>
                     <span class="hv-cal-now">Now</span>
@@ -222,9 +224,6 @@
                             @endif
                         </span>
                         <div @class(['hv-cal-daytimeline', 'tone-'.Calendar::PRESENCE[$row['presence']][1]])>
-                            @for ($m = $dayBoard['from']; $m < $dayBoard['to']; $m += 60)
-                                <span class="hv-cal-dayline" style="left: {{ $dpct($m) }}%"></span>
-                            @endfor
                             @if ($isToday && $nowM >= $dayBoard['from'] && $nowM <= $dayBoard['to'])
                                 <span class="hv-cal-daynowline" style="left: {{ $dpct($nowM) }}%"></span>
                             @endif
