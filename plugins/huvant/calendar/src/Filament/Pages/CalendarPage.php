@@ -5,11 +5,15 @@ namespace Huvant\Calendar\Filament\Pages;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Huvant\Calendar\Filament\Concerns\EditsEvents;
 use Huvant\Calendar\Models\Event;
 use Huvant\Calendar\Support\Calendar;
+use Huvant\Calendar\Support\SmartWorking;
 use Livewire\Attributes\Url;
 use RuntimeException;
 use Webkul\Security\Models\Team;
@@ -22,6 +26,9 @@ class CalendarPage extends Page
 
     public const GROUP = 'Calendar';
 
+    /** The "Calendar" and "Who's where" tabs show this many weeks at once. */
+    public const WEEKS = 2;
+
     protected string $view = 'huvant-calendar::filament.pages.calendar';
 
     protected static ?string $slug = 'calendar';
@@ -31,10 +38,13 @@ class CalendarPage extends Page
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calendar-days';
 
     #[Url(as: 'view')]
-    public string $tab = 'presence';
+    public string $tab = 'calendar';
 
     #[Url(as: 'week')]
     public string $week = '';
+
+    #[Url(as: 'day')]
+    public string $day = '';
 
     #[Url(as: 'who')]
     public string $scope = 'me';
@@ -49,17 +59,17 @@ class CalendarPage extends Page
 
     public static function getNavigationGroup(): string|\UnitEnum
     {
-        return self::GROUP;
+        return self::GROUP; // the key: CalendarPlugin gives it its label and launcher icon
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Company calendar';
+        return app()->getLocale() === 'it' ? 'Calendario aziendale' : 'Company calendar';
     }
 
     public function getTitle(): string
     {
-        return 'Company calendar';
+        return app()->getLocale() === 'it' ? 'Calendario aziendale' : 'Company calendar';
     }
 
     public static function canAccess(): bool
@@ -70,7 +80,8 @@ class CalendarPage extends Page
     public function mount(): void
     {
         $this->week = $this->monday()->toDateString();
-        $this->tab = in_array($this->tab, ['presence', 'agenda'], true) ? $this->tab : 'presence';
+        $this->day = $this->selectedDay()->toDateString();
+        $this->tab = in_array($this->tab, ['calendar', 'day', 'presence'], true) ? $this->tab : 'calendar';
         if ($this->eventId) {
             $this->openEvent($this->eventId);
         }
@@ -78,7 +89,7 @@ class CalendarPage extends Page
 
     public function setTab(string $tab): void
     {
-        $this->tab = in_array($tab, ['presence', 'agenda'], true) ? $tab : 'presence';
+        $this->tab = in_array($tab, ['calendar', 'day', 'presence'], true) ? $tab : 'calendar';
     }
 
     public function shiftWeek(int $weeks): void
@@ -91,10 +102,20 @@ class CalendarPage extends Page
         $this->week = CarbonImmutable::today()->startOfWeek()->toDateString();
     }
 
+    public function shiftDay(int $days): void
+    {
+        $this->day = $this->selectedDay()->addDays($days)->toDateString();
+    }
+
+    public function todayDay(): void
+    {
+        $this->day = CarbonImmutable::today()->toDateString();
+    }
+
     public function showPerson(int $userId): void
     {
         $this->scope = (string) $userId;
-        $this->tab = 'agenda';
+        $this->tab = 'calendar';
     }
 
     public function openEvent(int $id): void
@@ -149,12 +170,85 @@ class CalendarPage extends Page
     {
         return [
             ActionGroup::make([
-                Action::make('todayRemote')->label('Working remotely today')->icon('heroicon-m-home')->action(fn () => $this->markToday('remote')),
                 Action::make('todayTravel')->label('Travelling today')->icon('heroicon-m-paper-airplane')->action(fn () => $this->markToday('travel')),
                 Action::make('todayAway')->label('Out of office today')->icon('heroicon-m-no-symbol')->action(fn () => $this->markToday('away')),
             ])->label('My day')->icon('heroicon-m-map-pin')->button()->color('gray'),
+            $this->smartWorkingReferentAction(),
+            $this->smartWorkingRequestAction(),
             $this->eventAction('create')->label('New event')->icon('heroicon-m-plus'),
         ];
+    }
+
+    /** Ask the referent for a smart working day; less than a week's notice is flagged but allowed. */
+    public function smartWorkingRequestAction(): Action
+    {
+        $isIt = app()->getLocale() === 'it';
+
+        return Action::make('smartWorkingRequest')
+            ->label($isIt ? 'Nuova richiesta di smart working' : 'New smart working request')
+            ->icon('heroicon-m-home')
+            ->color('gray')
+            ->modalHeading($isIt ? 'Nuova richiesta di smart working' : 'New smart working request')
+            ->modalDescription(fn (): string => ($referent = SmartWorking::referent())
+                ? ($isIt ? "Milo manda la richiesta a {$referent->name}. Risulterai in smart working nel calendario solo dopo l'approvazione." : "Milo sends the request to {$referent->name}. You show as remote in the calendar only once it is approved.")
+                : ($isIt ? 'Nessun referente per lo smart working: chiedi a un admin di impostarlo.' : 'No smart working referent yet: ask an admin to set one.'))
+            ->modalSubmitActionLabel($isIt ? 'Conferma' : 'Confirm')
+            ->fillForm(fn (array $arguments): array => ['day' => $arguments['day'] ?? CarbonImmutable::today()->addWeek()->toDateString()])
+            ->schema([
+                DatePicker::make('day')
+                    ->label($isIt ? 'Giorno' : 'Day')
+                    ->native(false)->displayFormat('D d/m/Y')->firstDayOfWeek(1)
+                    ->minDate(CarbonImmutable::today())
+                    ->disabledDates(fn (): array => collect(range(0, 120))->map(fn (int $i) => CarbonImmutable::today()->addDays($i))->filter->isWeekend()->map->toDateString()->values()->all())
+                    ->required()->live()
+                    ->hint(fn (?string $state): ?string => $this->noticeHint($state))
+                    ->hintIcon(fn (?string $state): ?string => $state ? (SmartWorking::isShortNotice(CarbonImmutable::parse($state)) ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle') : null)
+                    ->hintColor(fn (?string $state): string => $state && SmartWorking::isShortNotice(CarbonImmutable::parse($state)) ? 'danger' : 'success'),
+                Textarea::make('note')->label($isIt ? 'Nota per il referente (facoltativa)' : 'Note for the referent (optional)')->rows(2)->maxLength(500),
+            ])
+            ->action(function (array $data) use ($isIt): void {
+                $this->attempt(fn () => SmartWorking::request($this->user(), CarbonImmutable::parse($data['day']), $data['note'] ?? null),
+                    $isIt ? 'Richiesta inviata: riceverai una mail da Milo con la risposta' : 'Request sent: Milo will e-mail you the answer');
+            });
+    }
+
+    /** Admins choose who approves smart working days. */
+    public function smartWorkingReferentAction(): Action
+    {
+        $isIt = app()->getLocale() === 'it';
+
+        return Action::make('smartWorkingReferent')
+            ->label($isIt ? 'Referente smart working' : 'Smart working referent')
+            ->icon('heroicon-m-user-circle')
+            ->color('gray')
+            ->visible(fn (): bool => Calendar::isAdmin($this->user()))
+            ->modalHeading($isIt ? 'Referente smart working' : 'Smart working referent')
+            ->modalDescription($isIt ? 'Riceve da Milo le richieste di smart working e le approva dalla mail.' : 'Gets the smart working requests from Milo and approves them from the e-mail.')
+            ->fillForm(fn (): array => ['referent_id' => SmartWorking::referent()?->getKey()])
+            ->schema([
+                Select::make('referent_id')->label($isIt ? 'Referente' : 'Referent')
+                    ->options(fn () => Calendar::people()->mapWithKeys(fn (User $u) => [$u->id => "{$u->name} · {$u->email}"])->all())
+                    ->searchable()->required(),
+            ])
+            ->action(function (array $data) use ($isIt): void {
+                abort_unless(Calendar::isAdmin($this->user()), 403);
+                SmartWorking::setReferent((int) $data['referent_id']);
+                Notification::make()->success()->title($isIt ? 'Referente salvato' : 'Referent saved')->send();
+            });
+    }
+
+    private function noticeHint(?string $state): ?string
+    {
+        if (! $state) {
+            return null;
+        }
+        $days = SmartWorking::noticeDays(CarbonImmutable::parse($state));
+        $isIt = app()->getLocale() === 'it';
+        if ($days < SmartWorking::NOTICE_DAYS) {
+            return $isIt ? "Preavviso di {$days} ".($days === 1 ? 'giorno' : 'giorni').': meno di una settimana' : "{$days} days' notice: less than a week";
+        }
+
+        return $isIt ? "Preavviso di {$days} giorni" : "{$days} days' notice";
     }
 
     public function editEventAction(): Action
@@ -200,21 +294,54 @@ class CalendarPage extends Page
     {
         $monday = $this->monday();
         $user = $this->user();
-        $days = $this->weekend ? 7 : 5;
+        $weekDays = $this->weekend ? 7 : 5;
+        $days = $weekDays * self::WEEKS;
+        // Not called "day": that would collide with the public $day URL property Livewire shares with the view.
+        $selectedDay = $this->selectedDay();
+        $teamPeople = Calendar::people($this->team);
         $event = $this->eventId ? Event::query()->with(['attendees.user:id,name', 'organizer:id,name', 'project:id,name'])->find($this->eventId) : null;
 
         return [
             'monday'    => $monday,
             'days'      => $days,
+            'weekDays'  => $weekDays,
             'today'     => CarbonImmutable::today(),
+            'selectedDay' => $selectedDay,
             'teams'     => Team::query()->orderBy('name')->get(['id', 'name']),
             'people'    => Calendar::people(),
-            'board'     => $this->tab === 'presence' ? Calendar::board(Calendar::people($this->team), $monday, $days) : null,
-            'agenda'    => $this->tab === 'agenda' ? Calendar::agenda($user, $monday, $this->scope, $days) : null,
+            'board'     => $this->tab === 'presence' ? $this->weeks($monday, $weekDays, fn (CarbonImmutable $from) => Calendar::board($teamPeople, $from, $weekDays)) : null,
+            'agenda'    => $this->tab === 'calendar' ? $this->weeks($monday, $weekDays, fn (CarbonImmutable $from) => Calendar::agenda($user, $from, $this->scope, $weekDays)) : null,
+            'dayBoard'  => $this->tab === 'day' ? Calendar::dayTimeline($user, $teamPeople, $selectedDay) : null,
             'pending'   => Calendar::pendingFor($user),
             'event'     => $event,
             'eventView' => $event ? Calendar::view($event, $user) : null,
             'canEdit'   => $event ? Calendar::canEdit($user, $event) : false,
+        ];
+    }
+
+    /**
+     * self::WEEKS one-week boards/agendas side by side, so each week keeps its
+     * own Monday and correctly skips its own weekend instead of spilling into the next.
+     */
+    private function weeks(CarbonImmutable $monday, int $weekDays, callable $oneWeek): array
+    {
+        $weeks = collect(range(0, self::WEEKS - 1))->map(fn (int $w) => $oneWeek($monday->addWeeks($w)));
+        $first = $weeks->first();
+
+        if (array_key_exists('rows', $first)) { // board: concat each person's cells across weeks
+            $rows = collect($first['rows'])->map(fn ($row, $i) => [
+                'user'  => $row['user'],
+                'cells' => $weeks->flatMap(fn ($week) => $week['rows'][$i]['cells'])->all(),
+                'now'   => $row['now'],
+            ])->all();
+
+            return ['rows' => $rows, 'from' => $monday, 'days' => $weekDays * self::WEEKS];
+        }
+
+        return [ // agenda: concat the day columns across weeks
+            'days' => $weeks->flatMap(fn ($week) => $week['days'])->all(),
+            'from' => $weeks->min('from'),
+            'to'   => $weeks->max('to'),
         ];
     }
 
@@ -243,6 +370,17 @@ class CalendarPage extends Page
         }
 
         return $day->startOfWeek();
+    }
+
+    private function selectedDay(): CarbonImmutable
+    {
+        try {
+            $day = $this->day !== '' ? CarbonImmutable::parse($this->day) : CarbonImmutable::today();
+        } catch (\Throwable) {
+            $day = CarbonImmutable::today();
+        }
+
+        return $day;
     }
 
     private function user(): User

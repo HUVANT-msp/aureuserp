@@ -1,7 +1,7 @@
 @php
     use Huvant\Home\Support\Home;
     use Huvant\Tasks\Support\Board;
-    $calendarUrl = rescue(fn () => \Huvant\Calendar\Filament\Pages\CalendarPage::getUrl(['view' => 'agenda']), null, false);
+    $calendarUrl = rescue(fn () => \Huvant\Calendar\Filament\Pages\CalendarPage::getUrl(['view' => 'calendar']), null, false);
     $open = collect($tasks)->flatten(1)->count();
 @endphp
 <x-filament-panels::page>
@@ -11,35 +11,35 @@
             @php
                 $next = collect($upcoming)->flatMap(fn ($day) => collect($day['items'])->map(fn ($item) => $item + ['day' => $day['date']]))->take(6);
             @endphp
-            <section class="hv-home-card hv-home-upcoming" aria-label="Coming up">
+            <section class="hv-home-card hv-home-upcoming" aria-label="In programma">
                 <header class="hv-home-head">
-                    <h2>Coming up</h2>
-                    @if ($calendarUrl)<a href="{{ $calendarUrl }}" class="hv-home-link">Calendar</a>@endif
+                    <h2>In programma</h2>
+                    @if ($calendarUrl)<a href="{{ $calendarUrl }}" class="hv-home-link">Calendario</a>@endif
                 </header>
                 <ol class="hv-home-week">
                     @foreach ($upcoming as $i => $day)
-                        <li @class(['is-today' => $i === 0, 'is-weekend' => $day['date']->isWeekend()]) title="{{ $day['date']->format('l j F') }}{{ in_array($day['presence'], ['office', 'weekend'], true) ? '' : ' · '.\Huvant\Calendar\Support\Calendar::PRESENCE[$day['presence']][0] }}">
-                            <small>{{ $day['date']->format('D') }}</small>
+                        <li @class(['is-today' => $i === 0, 'is-weekend' => $day['date']->isWeekend()]) title="{{ $day['date']->locale('it')->translatedFormat('l j F') }}{{ in_array($day['presence'], ['office', 'weekend'], true) ? '' : ' · '.\Huvant\Calendar\Support\Calendar::PRESENCE[$day['presence']][0] }}">
+                            <small>{{ $day['date']->locale('it')->translatedFormat('D') }}</small>
                             <b>{{ $day['date']->day }}</b>
                             <span class="hv-home-dots">
                                 @foreach (array_slice($day['items'], 0, 3) as $item)<i style="background: {{ $item['color'] }}"></i>@endforeach
                             </span>
                             @if (! in_array($day['presence'], ['office', 'weekend'], true))
-                                <em class="where-{{ $day['presence'] }}">{{ ['remote' => 'Remote', 'travel' => 'Travel', 'away' => 'Away', 'leave' => 'Leave'][$day['presence']] ?? '' }}</em>
+                                <em class="where-{{ $day['presence'] }}">{{ ['remote' => 'Da remoto', 'travel' => 'Trasferta', 'away' => 'Assente', 'leave' => 'Ferie'][$day['presence']] ?? '' }}</em>
                             @endif
                         </li>
                     @endforeach
                 </ol>
                 @if ($next->isEmpty())
-                    <p class="hv-home-muted">Nothing planned in the next seven days.</p>
+                    <p class="hv-home-muted">Nessun impegno nei prossimi sette giorni.</p>
                 @else
                     <ul class="hv-home-agenda">
                         @foreach ($next as $item)
                             <li>
-                                <a href="{{ $calendarUrl ? \Huvant\Calendar\Filament\Pages\CalendarPage::getUrl(['view' => 'agenda', 'event' => $item['id'], 'week' => $item['day']->startOfWeek()->toDateString()]) : '#' }}" style="--ec: {{ $item['color'] }}">
-                                    <span class="hv-home-when">{{ $item['day']->isToday() ? 'Today' : ($item['day']->isTomorrow() ? 'Tomorrow' : $item['day']->format('D j')) }} <b>{{ $item['time'] }}</b></span>
+                                <a href="{{ $calendarUrl ? \Huvant\Calendar\Filament\Pages\CalendarPage::getUrl(['view' => 'calendar', 'event' => $item['id'], 'week' => $item['day']->startOfWeek()->toDateString()]) : '#' }}" style="--ec: {{ $item['color'] }}">
+                                    <span class="hv-home-when">{{ $item['day']->isToday() ? 'Oggi' : ($item['day']->isTomorrow() ? 'Domani' : $item['day']->locale('it')->translatedFormat('D j')) }} <b>{{ $item['time'] }}</b></span>
                                     <span class="hv-home-what">{{ $item['title'] }}</span>
-                                    @if ($item['pending'])<small>reply</small>@endif
+                                    @if ($item['pending'])<small>rispondi</small>@endif
                                 </a>
                             </li>
                         @endforeach
@@ -47,6 +47,7 @@
                 @endif
             </section>
 
+            @if ($canLogTime)
             {{-- My time today: a gauge and two buttons --}}
             @php
                 $pct = $today['expected'] > 0 ? min(1, $today['hours'] / $today['expected']) : 0;
@@ -54,17 +55,17 @@
             @endphp
             <section class="hv-home-card hv-home-time">
                 <header class="hv-home-head">
-                    <h2>My time today</h2>
-                    <a href="{{ \Huvant\Worklog\Filament\Pages\MyWeek::getUrl() }}" class="hv-home-link">My time</a>
+                    <h2>Le mie ore oggi</h2>
+                    <a href="{{ \Huvant\Worklog\Filament\Pages\MyWeek::getUrl() }}" class="hv-home-link">Le mie ore</a>
                 </header>
-                <div @class(['hv-gauge', 'is-running' => (bool) $today['running']]) role="img" aria-label="{{ \Huvant\Worklog\Support\Worklog::format($today['hours']) }} of {{ \Huvant\Worklog\Support\Worklog::format($today['expected']) }} hours today">
+                <div @class(['hv-gauge', 'is-running' => (bool) $today['running']]) role="img" aria-label="{{ \Huvant\Worklog\Support\Worklog::format($today['hours']) }} di {{ \Huvant\Worklog\Support\Worklog::format($today['expected']) }} ore oggi">
                     <svg viewBox="0 0 120 120" aria-hidden="true">
                         <circle class="hv-gauge-track" cx="60" cy="60" r="52" stroke-dasharray="{{ round($arc, 2) }} 999" />
                         <circle class="hv-gauge-fill" cx="60" cy="60" r="52" stroke-dasharray="{{ round($arc * $pct, 2) }} 999" />
                     </svg>
                     <div class="hv-gauge-text">
                         <b>{{ \Huvant\Worklog\Support\Worklog::format($today['hours']) }}</b>
-                        <small>of {{ \Huvant\Worklog\Support\Worklog::format($today['expected']) }} h</small>
+                        <small>di {{ \Huvant\Worklog\Support\Worklog::format($today['expected']) }} h</small>
                     </div>
                 </div>
                 @if ($today['running'])
@@ -76,12 +77,12 @@
                 <div class="hv-home-time-actions">
                     @if ($today['running'])
                         <button type="button" class="hv-home-btn is-stop" x-on:click="$dispatch('open-modal', { id: 'hv-home-stop' })">
-                            <x-filament::icon icon="heroicon-m-stop" class="h-4 w-4" />Stop
+                            <x-filament::icon icon="heroicon-m-stop" class="h-4 w-4" />Ferma
                         </button>
                     @else
                         <div class="hv-home-btn is-start" x-data="{ open: false }" x-on:click.outside="open = false">
                             <button type="button" x-on:click="open = ! open" :aria-expanded="open" @disabled($today['tasks']->isEmpty())>
-                                <x-filament::icon icon="heroicon-m-play" class="h-4 w-4" />Start timer
+                                <x-filament::icon icon="heroicon-m-play" class="h-4 w-4" />Avvia timer
                             </button>
                             <ul class="hv-home-pick" x-show="open" x-cloak x-transition.opacity>
                                 @foreach ($today['tasks'] as $task)
@@ -91,10 +92,11 @@
                         </div>
                     @endif
                     <button type="button" class="hv-home-btn" wire:click="mountAction('logTime')">
-                        <x-filament::icon icon="heroicon-m-pencil-square" class="h-4 w-4" />Log time
+                        <x-filament::icon icon="heroicon-m-pencil-square" class="h-4 w-4" />Registra ore
                     </button>
                 </div>
             </section>
+            @endif
         </div>
 
         <div class="hv-home-grid">
@@ -102,10 +104,10 @@
             {{-- My tasks --}}
             <section class="hv-home-card hv-home-tasks">
                 <header class="hv-home-head">
-                    <h2>My tasks <span>{{ $open }}</span></h2>
+                    <h2>I miei task <span>{{ $open }}</span></h2>
                 </header>
                 @if ($open === 0)
-                    <p class="hv-home-muted">Nothing assigned to you. Join a task from a project board to start.</p>
+                    <p class="hv-home-muted">Nessun task assegnato. Assegnati un task da una bacheca di progetto per iniziare.</p>
                 @endif
                 @foreach (Home::BUCKETS as $key => [$label, $tone])
                     @continue(empty($tasks[$key]))
@@ -135,17 +137,39 @@
             </div>
 
             <div class="hv-home-col">
+            @if ($worklogAlerts)
+                <section class="hv-home-card hv-home-hours-alerts">
+                    <header class="hv-home-head">
+                        <h2>Ore da verificare <span>{{ count($worklogAlerts) }}</span></h2>
+                        <a href="{{ \Huvant\Worklog\Filament\Pages\TeamHours::getUrl() }}" class="hv-home-link">Vista settimanale</a>
+                    </header>
+                    <ul class="hv-hours-alert-list">
+                        @foreach ($worklogAlerts as $alert)
+                            <li class="is-{{ $alert['status'] }}">
+                                <span class="hv-hours-alert-icon">
+                                    <x-filament::icon :icon="$alert['status'] === 'justified' ? 'heroicon-m-document-check' : 'heroicon-m-exclamation-triangle'" class="h-4 w-4" />
+                                </span>
+                                <span class="hv-home-grow">
+                                    <b>{{ $alert['name'] }}</b>
+                                    <small>{{ \Carbon\CarbonImmutable::parse($alert['date'])->locale('it')->translatedFormat('D j M') }} · {{ \Huvant\Worklog\Support\Worklog::format($alert['hours']) }} / {{ \Huvant\Worklog\Support\Worklog::format($alert['expected']) }} h{{ $alert['reason'] ? ' · '.$alert['reason'] : '' }}</small>
+                                </span>
+                                <span class="hv-hours-alert-state">{{ $alert['status'] === 'justified' ? 'Giustificato' : 'Mancante' }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
             {{-- Waiting on you --}}
             @if ($waiting['count'] > 0)
                 <section class="hv-home-card hv-home-waiting">
-                    <header class="hv-home-head"><h2>Waiting on you <span>{{ $waiting['count'] }}</span></h2></header>
+                    <header class="hv-home-head"><h2>In attesa di tuo riscontro <span>{{ $waiting['count'] }}</span></h2></header>
                     @foreach ($waiting['invites'] as $invite)
                         <div class="hv-home-wait">
                             <x-filament::icon icon="heroicon-m-envelope" class="h-4 w-4" />
-                            <span class="hv-home-grow"><b>{{ $invite->title }}</b><small>{{ $invite->starts_at->format('D j M, H:i') }}{{ $invite->organizer ? ' · from '.$invite->organizer->name : '' }}</small></span>
+                            <span class="hv-home-grow"><b>{{ $invite->title }}</b><small>{{ $invite->starts_at->locale('it')->translatedFormat('D j M, H:i') }}{{ $invite->organizer ? ' · da '.$invite->organizer->name : '' }}</small></span>
                             <span class="hv-home-reply">
-                                <button type="button" wire:click="respondInvite({{ $invite->id }}, 'accepted')">Yes</button>
-                                <button type="button" wire:click="respondInvite({{ $invite->id }}, 'tentative')">Maybe</button>
+                                <button type="button" wire:click="respondInvite({{ $invite->id }}, 'accepted')">Sì</button>
+                                <button type="button" wire:click="respondInvite({{ $invite->id }}, 'tentative')">Forse</button>
                                 <button type="button" wire:click="respondInvite({{ $invite->id }}, 'declined')">No</button>
                             </span>
                         </div>
@@ -153,13 +177,13 @@
                     @foreach ($waiting['assigned'] as $task)
                         <button type="button" class="hv-home-wait" x-on:click="$dispatch('huvant-open-task', { taskId: {{ $task->id }} })">
                             <x-filament::icon icon="heroicon-m-user-plus" class="h-4 w-4" />
-                            <span class="hv-home-grow"><b>{{ $task->title }}</b><small>Assigned to you{{ $task->project ? ' · '.$task->project->name : '' }}</small></span>
+                            <span class="hv-home-grow"><b>{{ $task->title }}</b><small>Assegnato a te{{ $task->project ? ' · '.$task->project->name : '' }}</small></span>
                         </button>
                     @endforeach
                     @foreach ($waiting['comments'] as $comment)
                         <button type="button" class="hv-home-wait" x-on:click="$dispatch('huvant-open-task', { taskId: {{ $comment->task_id }} })">
                             <x-filament::icon icon="heroicon-m-chat-bubble-left-ellipsis" class="h-4 w-4" />
-                            <span class="hv-home-grow"><b>{{ $comment->author ?? 'Someone' }} on {{ $comment->task }}</b><small>{{ \Illuminate\Support\Str::limit(strip_tags((string) $comment->body), 90) }}</small></span>
+                            <span class="hv-home-grow"><b>{{ $comment->author ?? 'Qualcuno' }} su {{ $comment->task }}</b><small>{{ \Illuminate\Support\Str::limit(strip_tags((string) $comment->body), 90) }}</small></span>
                         </button>
                     @endforeach
                 </section>
@@ -173,13 +197,13 @@
                         <h2>Milo</h2>
                         <p>
                             @if ($brief)
-                                {{ $brief->error ? 'Last attempt' : 'Written' }} {{ \Carbon\Carbon::parse($brief->generated_at)->isToday() ? 'today at '.\Carbon\Carbon::parse($brief->generated_at)->format('H:i') : \Carbon\Carbon::parse($brief->generated_at)->format('D j M, H:i') }}
+                                {{ $brief->error ? 'Ultimo tentativo' : 'Generato' }} {{ \Carbon\Carbon::parse($brief->generated_at)->isToday() ? 'oggi alle '.\Carbon\Carbon::parse($brief->generated_at)->format('H:i') : \Carbon\Carbon::parse($brief->generated_at)->locale('it')->translatedFormat('D j M, H:i') }}
                             @else
-                                Your brief arrives at 8:00 and 13:00
+                                Il tuo brief viene generato alle 8:00 e alle 13:00
                             @endif
                         </p>
                     </div>
-                    <button type="button" class="hv-milo-refresh" wire:click="refreshBrief" title="Ask Milo for a fresh brief" aria-label="Ask Milo for a fresh brief">
+                    <button type="button" class="hv-milo-refresh" wire:click="refreshBrief" title="Richiedi un nuovo brief a Milo" aria-label="Richiedi un nuovo brief a Milo">
                         <x-filament::icon icon="heroicon-m-arrow-path" class="h-4 w-4" />
                     </button>
                 </header>
@@ -202,26 +226,28 @@
                         </ul>
                     @endif
                 @elseif ($brief && $brief->error)
-                    <p class="hv-home-muted">{{ $brief->error }} Try the refresh button in a moment.</p>
+                    <p class="hv-home-muted">{{ $brief->error }} Riprova tra qualche istante con il pulsante di aggiornamento.</p>
                 @else
-                    <p class="hv-home-muted">No brief yet. Use the refresh button to get one now.</p>
+                    <p class="hv-home-muted">Nessun brief disponibile. Usa il pulsante di aggiornamento per richiederne uno.</p>
                 @endif
-                <a class="hv-milo-ask" href="/riunioni/milo">Ask Milo <x-filament::icon icon="heroicon-m-arrow-right" class="h-4 w-4" /></a>
+                <a class="hv-milo-ask" href="/riunioni/milo">Chiedi a Milo <x-filament::icon icon="heroicon-m-arrow-right" class="h-4 w-4" /></a>
             </section>
 
             </div>
 
         </div>
     </div>
+    @if ($canLogTime)
     <x-filament::modal id="hv-home-stop" width="md">
-        <x-slot name="heading">What did you do?</x-slot>
+        <x-slot name="heading">A cosa hai lavorato?</x-slot>
         <form class="hv-home-stop" wire:submit="stopTimer">
-            <textarea wire:model="stopNote" rows="3" maxlength="255" required placeholder="Required"></textarea>
+            <textarea wire:model="stopNote" rows="3" maxlength="255" required placeholder="Descrizione dell'attività svolta (obbligatoria)"></textarea>
             <div>
-                <button type="button" class="hv-home-discard" wire:click="discardTimer" wire:confirm="Discard the timer without logging any time?">Discard timer</button>
-                <x-filament::button type="submit">Stop and log</x-filament::button>
+                <button type="button" class="hv-home-discard" wire:click="discardTimer" wire:confirm="Vuoi annullare il timer senza registrare le ore?">Scarta timer</button>
+                <x-filament::button type="submit">Salva e registra</x-filament::button>
             </div>
         </form>
     </x-filament::modal>
+    @endif
     @livewire('huvant-task-panel')
 </x-filament-panels::page>

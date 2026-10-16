@@ -86,6 +86,30 @@ button.hv-cal-person:hover { color: var(--hv-c-primary); }
 .hv-cal-event.is-pending { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ec) 10%, var(--huvant-surface)) 0 6px, var(--huvant-surface) 6px 12px); border: 1px dashed var(--ec); }
 .hv-cal-event.is-masked { background: var(--hv-c-3); box-shadow: inset 3px 0 0 var(--huvant-muted); }
 
+/* Day timeline */
+.hv-cal-dayboard { overflow-x: auto; border: 1px solid var(--huvant-hairline); border-radius: 12px; background: var(--huvant-surface); box-shadow: var(--huvant-shadow-1); }
+.hv-cal-dayrow { display: grid; grid-template-columns: minmax(190px, 1.3fr) minmax(460px, 3fr); align-items: stretch; min-width: 760px; border-bottom: 1px solid var(--huvant-hairline); }
+.hv-cal-dayrow:last-child { border-bottom: 0; }
+.hv-cal-dayhead { background: var(--hv-c-2); color: var(--huvant-muted); font-size: 12px; font-weight: 600; }
+.hv-cal-dayhead .hv-cal-person { padding: 10px 12px; }
+.hv-cal-daytimeline { position: relative; min-height: 48px; margin: 4px 8px; border-radius: 6px; }
+.hv-cal-dayhead .hv-cal-daytimeline { min-height: 0; margin: 10px 8px; }
+.hv-cal-dayhour { position: absolute; top: 0; transform: translateX(-50%); color: var(--huvant-muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.hv-cal-dayhour:first-child { transform: none; }
+.hv-cal-dayline { position: absolute; inset-block: 0; width: 1px; background: color-mix(in srgb, var(--huvant-hairline) 70%, transparent); }
+.hv-cal-daynowline { position: absolute; inset-block: 0; z-index: 2; width: 2px; background: #d8141d; }
+.hv-cal-daynowline::before { content: ""; position: absolute; top: -4px; inset-inline-start: -3px; width: 8px; height: 8px; border-radius: 50%; background: #d8141d; }
+.hv-cal-daytimeline.tone-remote { background: var(--hv-c-remote-soft); }
+.hv-cal-daytimeline.tone-limited { background: var(--hv-c-lim-soft); }
+.hv-cal-daytimeline.tone-off { background: var(--hv-c-off-soft); }
+.hv-cal-daytimeline.tone-idle { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--hv-c-3) 70%, transparent) 6px 12px); }
+.hv-cal-dayevent {
+    position: absolute; top: 3px; bottom: 3px; z-index: 1; display: flex; align-items: center; overflow: hidden; padding: 0 7px; border-radius: 6px;
+    background: color-mix(in srgb, var(--ec) 20%, var(--huvant-surface)); box-shadow: inset 0 -3px 0 var(--ec); color: var(--huvant-ink); text-align: start; cursor: pointer;
+}
+.hv-cal-dayevent:hover { background: color-mix(in srgb, var(--ec) 30%, var(--huvant-surface)); z-index: 3; }
+.hv-cal-dayevent span { overflow: hidden; font-size: 11.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Event modal and form */
 .hv-cal-modal-head { display: inline-flex; align-items: center; gap: 8px; }
 .hv-cal-modal-head svg { color: var(--ec); }
@@ -107,7 +131,7 @@ button.hv-cal-person:hover { color: var(--hv-c-primary); }
 
 /* One's own row: every day can be changed */
 .hv-cal-mine { position: relative; display: grid; }
-.hv-cal-cell.is-editable { position: relative; width: auto; text-align: start; cursor: pointer; border: 1px dashed transparent; }
+.hv-cal-cell.is-editable { position: relative; width: auto; text-align: center; cursor: pointer; border: 1px dashed transparent; }
 .hv-cal-cell.is-editable:hover, .hv-cal-cell.is-editable[aria-expanded="true"] { border-color: var(--hv-c-primary); }
 .hv-cal-edit { position: absolute; top: 6px; inset-inline-end: 6px; color: var(--huvant-muted); opacity: 0; }
 .hv-cal-cell.is-editable:hover .hv-cal-edit { opacity: 1; }
@@ -116,4 +140,3 @@ button.hv-cal-person:hover { color: var(--hv-c-primary); }
 .hv-cal-menu button:hover { background: var(--hv-c-2); }
 .hv-cal-menu button[aria-checked="true"] { color: var(--hv-c-primary); font-weight: 600; }
 .hv-cal-row:has(.hv-cal-mine) { background: color-mix(in srgb, var(--hv-c-primary) 3%, transparent); }
-@media (min-width: 1100px) { .hv-cal-board { overflow: visible; } }

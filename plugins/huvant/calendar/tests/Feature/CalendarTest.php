@@ -52,7 +52,7 @@ it('creates a meeting, invites people and notifies them', function () {
 it('reports conflicts and says where people are and whether they can be reached', function () {
     [$anna, $bruno] = [calUser('Anna'), calUser('Bruno')];
     $monday = CarbonImmutable::parse('2026-10-05');
-    Calendar::save($anna, ['kind' => 'remote', 'date' => '2026-10-05', 'all_day' => true]);
+    Calendar::setPresence($anna, $monday, 'remote', approved: true);
     Calendar::save($bruno, ['kind' => 'meeting', 'title' => 'Review', 'date' => '2026-10-05', 'from' => '10:00', 'to' => '11:30']);
     Calendar::save($bruno, ['kind' => 'away', 'date' => '2026-10-07', 'all_day' => true]);
 
@@ -99,20 +99,41 @@ it('renders both views and the event dialog', function () {
     $event = Calendar::save($admin, ['kind' => 'meeting', 'title' => 'Planning', 'date' => CarbonImmutable::today()->toDateString(), 'from' => '10:00', 'to' => '11:00', 'attendees' => [$bruno->id]]);
 
     Livewire::test(CalendarPage::class)->assertOk()->assertSee("Who's where", false)
-        ->call('setTab', 'agenda')->assertSee('Planning')
+        ->assertSee('Planning') // "Calendar" is the default tab
         ->call('openEvent', $event->id)->assertSee('Bruno')->assertSee('Awaiting reply')
-        ->call('markToday', 'remote')->assertOk()
+        ->call('markToday', 'travel')->assertOk()
+        ->call('setTab', 'day')->assertSee($admin->name)->assertOk()
         ->call('setTab', 'presence')->call('setMyDay', CarbonImmutable::today()->subDays(3)->toDateString(), 'away')->assertOk();
 
-    expect(Event::query()->where('kind', 'remote')->where('organizer_id', $admin->id)->exists())->toBeTrue();
+    expect(Event::query()->where('kind', 'travel')->where('organizer_id', $admin->id)->exists())->toBeTrue();
     $this->get(CalendarPage::getUrl())->assertOk();
+});
+
+it('lays out a day timeline per person, masking private events from outsiders', function () {
+    [$anna, $bruno] = [calUser('Anna'), calUser('Bruno')];
+    Calendar::setPresence($anna, CarbonImmutable::parse('2026-10-05'), 'remote', approved: true);
+    Calendar::save($bruno, ['kind' => 'meeting', 'title' => 'Review', 'date' => '2026-10-05', 'from' => '10:00', 'to' => '11:30']);
+    Calendar::save($bruno, ['kind' => 'other', 'title' => 'Medico', 'date' => '2026-10-05', 'from' => '14:00', 'to' => '15:00', 'private' => true]);
+
+    $asOutsider = Calendar::dayTimeline($anna, collect([$anna, $bruno]), CarbonImmutable::parse('2026-10-05'));
+    [$annaRow, $brunoRow] = $asOutsider['rows'];
+    expect($annaRow['presence'])->toBe('remote')
+        ->and($annaRow['segments'])->toBe([])
+        ->and($brunoRow['segments'])->toHaveCount(2)
+        ->and($brunoRow['segments'][0]['label'])->toBe('Review')
+        ->and($brunoRow['segments'][0]['from'])->toBe(600)
+        ->and($brunoRow['segments'][0]['to'])->toBe(690)
+        ->and($brunoRow['segments'][1]['label'])->toBe('Busy');
+
+    $asSelf = Calendar::dayTimeline($bruno, collect([$bruno]), CarbonImmutable::parse('2026-10-05'));
+    expect($asSelf['rows'][0]['segments'][1]['label'])->toBe('Medico');
 });
 
 it('sets one\'s presence on any day, splitting longer events around it', function () {
     $anna = calUser('Anna');
     $trip = Calendar::save($anna, ['kind' => 'travel', 'date' => '2026-10-05', 'date_to' => '2026-10-07', 'all_day' => true]);
 
-    Calendar::setPresence($anna, CarbonImmutable::parse('2026-10-06'), 'remote');
+    Calendar::setPresence($anna, CarbonImmutable::parse('2026-10-06'), 'remote', approved: true);
     $mine = Event::query()->orderBy('starts_at')->get()->map(fn ($e) => $e->kind.' '.$e->starts_at->format('d').'-'.$e->ends_at->format('d'))->all();
     expect($mine)->toBe(['travel 05-06', 'remote 06-07', 'travel 07-08'])
         ->and(Event::query()->whereKey($trip->id)->exists())->toBeFalse();

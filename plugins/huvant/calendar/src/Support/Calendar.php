@@ -8,6 +8,7 @@ use Filament\Notifications\Notification;
 use Huvant\Calendar\Filament\Pages\CalendarPage;
 use Huvant\Calendar\Models\Attendee;
 use Huvant\Calendar\Models\Event;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -81,6 +82,10 @@ class Calendar
         }
         $kind = array_key_exists($data['kind'] ?? '', self::KINDS) ? $data['kind'] : 'meeting';
         [$start, $end] = static::range($data);
+        // Smart working days come only from an approved request (SmartWorking::decide).
+        if ($kind === 'remote' && ($event?->kind !== 'remote' || ! $event->starts_at->equalTo($start) || ! $event->ends_at->equalTo($end))) {
+            throw new RuntimeException(SmartWorking::NEEDS_REQUEST);
+        }
         $title = trim((string) ($data['title'] ?? '')) ?: static::kind($kind)[0];
         $people = collect($data['attendees'] ?? [])->map(fn ($id) => (int) $id)->filter()->unique();
         if (static::kind($kind)[3] && $people->isEmpty()) {
@@ -125,13 +130,20 @@ class Calendar
     }
 
     /**
-     * Set where one is on a day ("office" clears it). Presence events that span
+     * Set where one is on a day ("office" clears it); "remote" only for an approved
+     * smart working request. Presence events that span
      * more days are split around it, so the other days stay as they were.
      */
-    public static function setPresence(User $user, CarbonImmutable $day, string $kind): void
+    public static function setPresence(User $user, CarbonImmutable $day, string $kind, bool $approved = false): void
     {
         if ($kind !== 'office' && ! (self::KINDS[$kind][3] ?? false)) {
             throw new RuntimeException('Unknown presence.');
+        }
+        if ($kind === 'remote' && ! $approved) {
+            throw new RuntimeException(SmartWorking::NEEDS_REQUEST);
+        }
+        if ($kind !== 'remote') {
+            SmartWorking::cancelForDay($user, $day->startOfDay()); // back in the office: the request is withdrawn
         }
         $day = $day->startOfDay();
         $next = $day->addDay();
@@ -303,6 +315,45 @@ class Calendar
         return ['days' => $out, 'from' => $first, 'to' => $last];
     }
 
+    /**
+     * One day, one row per person: where they are, and a timeline of their timed
+     * events between $from and $to (minutes since midnight), colour-coded by kind.
+     */
+    public static function dayTimeline(User $viewer, Collection $people, CarbonImmutable $day, int $from = 480, int $to = 1140): array
+    {
+        $day = $day->startOfDay();
+        $dayEnd = $day->addDay();
+        $ids = $people->pluck('id')->all();
+        $events = Event::query()->with('attendees')
+            ->where('starts_at', '<', $dayEnd)->where('ends_at', '>', $day)
+            ->whereHas('attendees', fn ($q) => $q->whereIn('user_id', $ids)->where('response', '!=', 'declined'))
+            ->orderBy('starts_at')->get();
+        $leaves = static::leaves($ids, $day, $dayEnd);
+
+        $rows = $people->map(function (User $person) use ($events, $leaves, $day, $from, $to, $viewer) {
+            $mine = $events->filter(fn (Event $e) => $e->attendees->contains(fn ($a) => (int) $a->user_id === (int) $person->id && $a->response !== 'declined'));
+            $myLeaves = $leaves->where('user_id', $person->id);
+            $presence = static::dayCell($person, $day, $mine, $myLeaves)['presence'];
+
+            $segments = $mine->reject(fn (Event $e) => $e->all_day)->map(function (Event $e) use ($day, $from, $to, $viewer) {
+                $startMin = $e->starts_at->isSameDay($day) ? (int) $e->starts_at->format('G') * 60 + (int) $e->starts_at->format('i') : 0;
+                $endMin = $e->ends_at->isSameDay($day) ? (int) $e->ends_at->format('G') * 60 + (int) $e->ends_at->format('i') : 24 * 60;
+                $startMin = max($startMin, $from);
+                $endMin = min($endMin, $to);
+                if ($endMin <= $startMin) {
+                    return null;
+                }
+                $view = static::view($e, $viewer);
+
+                return ['id' => $e->id, 'from' => $startMin, 'to' => $endMin, 'color' => $view['color'], 'label' => $view['title']];
+            })->filter()->values()->all();
+
+            return ['user' => $person, 'presence' => $presence, 'segments' => $segments];
+        });
+
+        return ['rows' => $rows->all(), 'day' => $day, 'from' => $from, 'to' => $to];
+    }
+
     /** What the viewer may see of an event: someone else's private event is just "busy". */
     public static function view(Event $event, User $viewer): array
     {
@@ -397,7 +448,7 @@ class Calendar
             return [$busy->kind === 'focus' ? 'Focus time' : ($busy->kind === 'meeting' ? 'In a meeting' : 'Busy'), 'busy', 'until '.$busy->ends_at->format('H:i')];
         }
         if (! static::inWorkingHours($person, $now)) {
-            return ['Off hours', 'idle', null];
+            return [static::onLunchBreak($person, $now) ? 'Lunch break' : 'Off hours', 'idle', null];
         }
         if ($current->contains('kind', 'travel')) {
             return ['Travelling', 'limited', null];
@@ -409,17 +460,46 @@ class Calendar
 
     private static function inWorkingHours(User $person, CarbonImmutable $now): bool
     {
-        $hour = (float) $now->format('G') + (int) $now->format('i') / 60;
-        $calendarId = Schema::hasTable('employees_employees')
-            ? DB::table('employees_employees')->where('user_id', $person->getKey())->whereNull('deleted_at')->value('calendar_id')
-            : null;
+        $calendarId = static::workingCalendarId($person);
         if (! $calendarId) {
+            $hour = static::hourOf($now);
+
             return ! $now->isWeekend() && $hour >= 9 && $hour < 18;
         }
 
+        return static::attendanceNow($calendarId, $now)->where('day_period', '!=', 'lunch')->exists();
+    }
+
+    /** The lunch slot of the person's working schedule (12–13 in the default one). */
+    private static function onLunchBreak(User $person, CarbonImmutable $now): bool
+    {
+        $calendarId = static::workingCalendarId($person);
+
+        return $calendarId && static::attendanceNow($calendarId, $now)->where('day_period', 'lunch')->exists();
+    }
+
+    private static function workingCalendarId(User $person): ?int
+    {
+        $id = Schema::hasTable('employees_employees')
+            ? DB::table('employees_employees')->where('user_id', $person->getKey())->whereNull('deleted_at')->value('calendar_id')
+            : null;
+
+        return $id ? (int) $id : null;
+    }
+
+    private static function attendanceNow(int $calendarId, CarbonImmutable $now): Builder
+    {
+        $hour = static::hourOf($now);
+
         return DB::table('calendar_attendances')->where('calendar_id', $calendarId)
-            ->where('day_of_week', strtolower($now->englishDayOfWeek))->where('day_period', '!=', 'lunch')
-            ->where('hour_from', '<=', $hour)->where('hour_to', '>', $hour)->exists();
+            ->where('day_of_week', strtolower($now->englishDayOfWeek))
+            // The hours are stored as text: compare them as numbers ("8" < "10").
+            ->whereRaw('CAST(hour_from AS DECIMAL(6,2)) <= ?', [$hour])->whereRaw('CAST(hour_to AS DECIMAL(6,2)) > ?', [$hour]);
+    }
+
+    private static function hourOf(CarbonImmutable $now): float
+    {
+        return (float) $now->format('G') + (int) $now->format('i') / 60;
     }
 
     /** Approved or requested time off overlapping the range. */
@@ -486,7 +566,7 @@ class Calendar
         if ($link && class_exists(CalendarPage::class)) {
             $notification->actions([
                 Action::make('open')->label('Open in calendar')->button()
-                    ->url(rescue(fn () => CalendarPage::getUrl(['event' => $event->getKey(), 'view' => 'agenda', 'week' => $event->starts_at->startOfWeek()->toDateString()]), '#', false)),
+                    ->url(rescue(fn () => CalendarPage::getUrl(['event' => $event->getKey(), 'view' => 'calendar', 'week' => $event->starts_at->startOfWeek()->toDateString()]), '#', false)),
             ]);
         }
         $notification->sendToDatabase($users);
