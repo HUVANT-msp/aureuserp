@@ -106,7 +106,6 @@
                                             x-on:click="open = ! open" :aria-expanded="open" aria-haspopup="menu"
                                             aria-label="Where are you on {{ $cell['date']->format('l j F') }}? Now: {{ $label }}">
                                         <span class="hv-cal-presence">{{ $cell['presence'] === 'office' ? 'Office' : $label }}</span>
-                                        @if ($cell['meetings'])<span class="hv-cal-meetings">{{ $cell['meetings'] }} {{ $cell['meetings'] === 1 ? 'meeting' : 'meetings' }}</span>@endif
                                         <x-filament::icon icon="heroicon-m-pencil" class="hv-cal-edit h-3 w-3" />
                                     </button>
                                     <span class="hv-cal-menu" role="menu" x-show="open" x-cloak x-transition.opacity>
@@ -128,7 +127,6 @@
                             <span @class(['hv-cal-cell', 'tone-'.$tone, 'is-today' => $cell['date']->isSameDay($today)])
                                   title="{{ $label }}@foreach ($cell['events'] as $e)&#10;{{ $e->all_day ? 'All day' : $e->starts_at->format('H:i') }} {{ $e->private && ! $e->attendees->contains('user_id', auth()->id()) ? 'Busy' : $e->title }}@endforeach">
                                 <span class="hv-cal-presence">{{ $cell['presence'] === 'office' ? 'Office' : $label }}</span>
-                                @if ($cell['meetings'])<span class="hv-cal-meetings">{{ $cell['meetings'] }} {{ $cell['meetings'] === 1 ? 'meeting' : 'meetings' }}</span>@endif
                             </span>
                         @endforeach
                     </div>
